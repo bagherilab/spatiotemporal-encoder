@@ -15,3 +15,5 @@ Submodules
    simulation-encoder.encoder
    simulation-encoder.loader
    simulation-encoder.logger
+   simulation-encoder.parser
+   simulation-encoder.utils
