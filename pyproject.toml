@@ -1,8 +1,8 @@
 [tool.poetry]
-name = "sandbox"
+name = "simulation-encoder"
 version = "0.0.0"
 description = ""
-authors = ["author <author@email.com>"]
+authors = ["jacob <jevarts@uw.edu>"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
