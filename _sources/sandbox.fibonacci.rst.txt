@@ -1,7 +1,0 @@
-sandbox.fibonacci module
-========================
-
-.. automodule:: sandbox.fibonacci
-   :members:
-   :undoc-members:
-   :show-inheritance:

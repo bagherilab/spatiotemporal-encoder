@@ -1,7 +1,0 @@
-sandbox.cli module
-==================
-
-.. automodule:: sandbox.cli
-   :members:
-   :undoc-members:
-   :show-inheritance:

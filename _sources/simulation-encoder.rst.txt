@@ -1,0 +1,17 @@
+simulation\-encoder package
+===========================
+
+.. automodule:: simulation-encoder
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   simulation-encoder.encoder
+   simulation-encoder.loader
+   simulation-encoder.logger

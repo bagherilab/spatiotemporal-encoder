@@ -1,7 +1,7 @@
-sandbox
-=======
+simulation-encoder
+==================
 
 .. toctree::
    :maxdepth: 4
 
-   sandbox
+   simulation-encoder
