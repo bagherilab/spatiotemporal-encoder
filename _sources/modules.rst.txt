@@ -1,7 +1,7 @@
-simulation-encoder
+simulation_encoder
 ==================
 
 .. toctree::
    :maxdepth: 4
 
-   simulation-encoder
+   simulation_encoder

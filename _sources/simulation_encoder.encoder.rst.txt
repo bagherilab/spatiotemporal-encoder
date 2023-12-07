@@ -1,7 +1,7 @@
-simulation\-encoder.encoder module
+simulation\_encoder.encoder module
 ==================================
 
-.. automodule:: simulation-encoder.encoder
+.. automodule:: simulation_encoder.encoder
    :members:
    :undoc-members:
    :show-inheritance:

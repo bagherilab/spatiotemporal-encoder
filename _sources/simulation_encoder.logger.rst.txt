@@ -1,7 +1,7 @@
-simulation\-encoder.loader module
+simulation\_encoder.logger module
 =================================
 
-.. automodule:: simulation-encoder.loader
+.. automodule:: simulation_encoder.logger
    :members:
    :undoc-members:
    :show-inheritance:
