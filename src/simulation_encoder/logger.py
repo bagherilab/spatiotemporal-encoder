@@ -28,7 +28,7 @@ class Logger:
         exp_name: str,
         log_dir: str = "/logs/",
         format_str: str = "%(asctime)s:%(name)s:%(message)s",
-        level=logging.INFO,
+        level: int = logging.INFO,
     ):
         self.log_path = os.path.join(log_dir, f"{exp_name}.log")
         self.exp_name = exp_name
@@ -36,12 +36,12 @@ class Logger:
         self.logger = logging.getLogger(self.exp_name)
         self._set_up_logger(format_str, level)
 
-    def _set_up_logger(self, format_str: str, level: int):
+    def _set_up_logger(self, format_str: str, level: int) -> None:
         self.logger.setLevel(level)
         formatter = logging.Formatter(format_str)
         file_handler = logging.FileHandler(self.log_path)
         file_handler.setFormatter(formatter)
         self.logger.addHandler(file_handler)
 
-    def log(self, msg: str):
+    def log(self, msg: str) -> None:
         self.logger.info(msg)
