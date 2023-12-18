@@ -1,4 +1,5 @@
 import os
+import json
 import ntpath
 
 import numpy as np
@@ -11,60 +12,82 @@ from utils.s3_utils import download_file, list_s3_files
 
 class Parser(ABC):
     @abstractmethod
-    def parse_timepoint(self, sim_data, time_index, timepoint) -> None:
+    def parse_cells(self, sim_data) -> None:
         pass
 
     @abstractmethod
-    def save(self, path: str) -> None:
+    def parse_graph(self, graph_data) -> None:
         pass
 
 
-class Arcade_Parser(Parser):
-    def __init__(self, key: str):
+class Arcade_Parser:
+    def __init__(self):
         self.timepoints = [((x / 2.0) - 1) for x in range(0, 31)]
-        self.data = pd.DataFrame()
-        self.key = key
+        self.data_dir = "data/ARCADE"
         self.bucket = "bagherilab-working"
         self.object_prefix = "jcain/emulation_sims/outputs"
-        self.parse_files()
 
-    def parse_files(self) -> None:
-        files = list_s3_files("arcade-simulations", self.key)
-        for f in files:
-            print(f)
-            # self.parse_file(f)
 
-    def parse_timepoint(self, sim_json, time_index, timepoint) -> None:
+    def parse_files(self, key) -> None:
+        # cell_files = list_s3_files(self.bucket, self.object_prefix, include=[key], exclude=[".GRAPH"])
+        # file_pd = pd.DataFrame()
+        # for file_name in cell_files:
+        #     local_path = f"{self.data_dir}/{file_name}"
+        #     s3_path = f"{self.object_prefix}/{file_name}"
+        #     download_file(self.bucket, s3_path, local_path)
+        #     parsed_df = self.parse_cells(local_path)
+        #     file_pd = pd.concat([file_pd, parsed_df], ignore_index=True)
+        #     os.remove(local_path)
+
+        # file_pd.to_csv(f"{self.data_dir}/{self.key}cells.csv", index=False)
+
+        graph_files = list_s3_files(self.bucket, self.object_prefix, include=[key, ".GRAPH"])
+        file_pd = pd.DataFrame()
+        for file_name in graph_files:
+            local_path = f"{self.data_dir}/{file_name}"
+            s3_path = f"{self.object_prefix}/{file_name}"
+            download_file(self.bucket, s3_path, local_path)
+            parsed_df = self.parse_graph(local_path)
+            file_pd = pd.concat([file_pd, parsed_df], ignore_index=True)
+            os.remove(local_path)
+
+        file_pd.to_csv(f"{self.data_dir}/{key}graph.csv", index=False)
+
+            
+
+    def parse_cells(self, sim_file) -> pd.DataFrame:
         parsed_data = []
-        sim_timepoint = sim_json["timepoints"][time_index]["cells"]
+        parsed_df = pd.DataFrame()
 
-        for location, cells in sim_timepoint:
-            u = int(location[0])
-            v = int(location[1])
-            w = int(location[2])
-            z = int(location[3])
+        with open(sim_file, "r") as f:
+            sim_json = json.load(f)
 
-            for cell in cells:
-                population = cell[1]
-                state = cell[2]
-                position = cell[3]
-                volume = np.round(cell[4])
-                cycle = np.round(np.mean(cell[5]))
+        for time_index, timepoint in enumerate(self.timepoints):
+            sim_timepoint = sim_json["timepoints"][time_index]["cells"]
 
-                data_list = [
-                    timepoint,
-                    u,
-                    v,
-                    w,
-                    z,
-                    position,
-                    int(population),
-                    int(state),
-                    volume,
-                    cycle,
-                ]
+            for location, cells in sim_timepoint:
+                u, v, w, z = map(int, location[:4])
 
-                parsed_data.append(data_list)
+                for cell in cells:
+                    population, state, position, volume, cell_cycle = cell[1:6]
+                    cycle = np.round(np.mean(cell_cycle)) if cell_cycle else 0
+                    seed = self._get_seed(sim_file)
+
+                    data_list = [
+                        timepoint,
+                        u,
+                        v,
+                        w,
+                        z,
+                        position,
+                        int(population),
+                        int(state),
+                        np.round(volume),
+                        cycle,
+                        seed
+                    ]
+
+                    parsed_data.append(data_list)
 
         columns = [
             "timepoint",
@@ -77,12 +100,47 @@ class Arcade_Parser(Parser):
             "state",
             "volume",
             "cycle",
+            "seed"
         ]
-        parsed_df = pd.DataFrame(parsed_data, columns=columns)
-        return
+        if parsed_data:
+            parsed_df = pd.DataFrame(parsed_data, columns=columns)
 
-    def save(self, path: str) -> None:
-        self.data.to_csv(path, index=False)
+        return parsed_df
+
+
+    def parse_graph(self, graph_file) -> pd.DataFrame:
+        parsed_data = []
+        parsed_df = pd.DataFrame()
+
+        with open(graph_file, "r") as f:
+            graph_json = json.load(f)
+
+        seed = graph_json["seed"]
+        csv_data = ['seed', 'time', 'fromx', 'fromy', 'fromz', 'frompressure', 'fromoxygen',
+                 'tox', 'toy', 'toz', 'topressure', 'tooxygen',
+                 'CODE', 'RADIUS', 'LENGTH', 'WALL', 'SHEAR', 'CIRCUM', 'FLOW']
+        
+        for timepoint in graph_json["timepoints"]:
+            time = timepoint["time"]
+
+            for edge in timepoint["graph"]:
+                fromx, fromy, fromz, frompressure, fromoxygen = edge[0][:5]
+                tox, toy, toz, topressure, tooxygen = edge[1][:5]
+                code, radius, length, wall, shear, circum, flow = edge[2][:7]
+
+                data_list = [
+                    seed, time, fromx, fromy, fromz, frompressure, fromoxygen,
+                    tox, toy, toz, topressure, tooxygen,
+                    code, radius, length, wall, shear, circum, flow
+                ]
+
+                parsed_data.append(data_list)
+
+        parsed_df = pd.DataFrame(parsed_data, columns=csv_data)
+
+        return parsed_df
+
+
 
     def _get_seed(self, f) -> None:
         f_path = ntpath.dirname(f)

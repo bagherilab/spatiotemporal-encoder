@@ -77,17 +77,17 @@ def list_s3_files(
     s3_resource = boto3.resource("s3")
     file_list = []
     my_bucket = s3_resource.Bucket(bucket)
+
     for object_summary in my_bucket.objects.filter(Prefix=object_prefix):
         file_name = object_summary.key.split("/")[-1]
         file_list.append(file_name)
 
     if exclude:
         for exclude_term in exclude:
-            files_list = list(filter(lambda file: exclude_term not in file, files_list))
+            file_list = list(filter(lambda file: exclude_term not in file, file_list))
+
 
     if include:
-        final_list = []
-        for include_term in include:
-            final_list += list(filter(lambda file: include_term in file, files_list))
-        return final_list
-    return files_list
+        final_list = [file for file in file_list if all(term in file for term in include)]
+        return list(set(final_list))
+    return list(set(file_list))
