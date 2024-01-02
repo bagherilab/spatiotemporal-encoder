@@ -1,0 +1,7 @@
+simulation\_encoder.graph\_parser module
+========================================
+
+.. automodule:: simulation_encoder.graph_parser
+   :members:
+   :undoc-members:
+   :show-inheritance:
