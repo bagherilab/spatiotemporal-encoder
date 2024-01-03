@@ -1,7 +1,7 @@
-simulation\_encoder.cell\_parser module
+simulation\_encoder.parse.parser module
 =======================================
 
-.. automodule:: simulation_encoder.cell_parser
+.. automodule:: simulation_encoder.parse.parser
    :members:
    :undoc-members:
    :show-inheritance:

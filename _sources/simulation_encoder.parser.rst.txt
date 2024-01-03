@@ -1,7 +1,0 @@
-simulation\_encoder.parser module
-=================================
-
-.. automodule:: simulation_encoder.parser
-   :members:
-   :undoc-members:
-   :show-inheritance:
