@@ -9,8 +9,8 @@ import pandas as pd
 from abc import ABC, abstractmethod
 from utils.s3_utils import download_file, list_s3_files
 
-from graph_parser import Graph_Parser
-from cell_parser import Cell_Parser
+from parse.graph_parser import GraphParser
+from parse.cell_parser import CellParser
 
 
 class Parser(ABC):
@@ -19,16 +19,17 @@ class Parser(ABC):
         pass
 
 
-class Arcade_Parser:
+class ArcadeParser:
     def __init__(self):
         self.timepoints = [(x / 2.0) for x in range(0, 31)]
-        self.data_dir = "data/ARCADE"
+        self.data_dir = "../../data/ARCADE"
         self.bucket = "bagherilab-working"
         self.object_prefix = "jcain/emulation_sims/outputs"
 
-
     def parse_files_to_csv(self, key) -> None:
-        cell_files = list_s3_files(self.bucket, self.object_prefix, include=[key], exclude=[".GRAPH"])
+        cell_files = list_s3_files(
+            self.bucket, self.object_prefix, include=[key], exclude=[".GRAPH"]
+        )
         file_pd = pd.DataFrame()
         for file_name in cell_files:
             local_path = f"{self.data_dir}/{file_name}"
@@ -40,26 +41,25 @@ class Arcade_Parser:
 
         file_pd.to_csv(f"{self.data_dir}/{key}cell.csv", index=False)
 
-        # graph_files = list_s3_files(self.bucket, self.object_prefix, include=[key, ".GRAPH"])
-        # file_pd = pd.DataFrame()
-        # for file_name in graph_files:
-        #     local_path = f"{self.data_dir}/{file_name}"
-        #     s3_path = f"{self.object_prefix}/{file_name}"
-        #     download_file(self.bucket, s3_path, local_path)
-        #     parsed_df = self._parse_graph(local_path)
-        #     file_pd = pd.concat([file_pd, parsed_df], ignore_index=True)
-        #     os.remove(local_path)
+        graph_files = list_s3_files(self.bucket, self.object_prefix, include=[key, ".GRAPH"])
+        file_pd = pd.DataFrame()
+        for file_name in graph_files:
+            local_path = f"{self.data_dir}/{file_name}"
+            s3_path = f"{self.object_prefix}/{file_name}"
+            download_file(self.bucket, s3_path, local_path)
+            parsed_df = self._parse_graph(local_path)
+            file_pd = pd.concat([file_pd, parsed_df], ignore_index=True)
+            os.remove(local_path)
 
-        # file_pd.to_csv(f"{self.data_dir}/{key}graph.csv", index=False)
+        file_pd.to_csv(f"{self.data_dir}/{key}graph.csv", index=False)
 
     def parse_graph_metrics_to_csv(self, key) -> None:
-        graph_parser = Graph_Parser()
+        graph_parser = GraphParser()
         graph_parser.parse_graph_metrics(key)
 
     def parse_cell_metrics_to_csv(self, key) -> None:
-        cell_parser = Cell_Parser()
+        cell_parser = CellParser()
         cell_parser.parse_cell_metrics(key)
-
 
     def _parse_cells(self, sim_file) -> pd.DataFrame:
         parsed_data = []
@@ -91,7 +91,7 @@ class Arcade_Parser:
                         int(state),
                         np.round(volume),
                         cycle,
-                        seed
+                        seed,
                     ]
 
                     parsed_data.append(data_list)
@@ -107,13 +107,12 @@ class Arcade_Parser:
             "state",
             "volume",
             "cycle",
-            "seed"
+            "seed",
         ]
         if parsed_data:
             parsed_df = pd.DataFrame(parsed_data, columns=columns)
 
         return parsed_df
-
 
     def _parse_graph(self, graph_file) -> pd.DataFrame:
         parsed_data = []
@@ -123,10 +122,28 @@ class Arcade_Parser:
             graph_json = json.load(f)
 
         seed = graph_json["seed"]
-        csv_data = ['seed', 'time', 'fromx', 'fromy', 'fromz', 'frompressure', 'fromoxygen',
-                 'tox', 'toy', 'toz', 'topressure', 'tooxygen',
-                 'CODE', 'RADIUS', 'LENGTH', 'WALL', 'SHEAR', 'CIRCUM', 'FLOW']
-        
+        csv_data = [
+            "seed",
+            "time",
+            "fromx",
+            "fromy",
+            "fromz",
+            "frompressure",
+            "fromoxygen",
+            "tox",
+            "toy",
+            "toz",
+            "topressure",
+            "tooxygen",
+            "CODE",
+            "RADIUS",
+            "LENGTH",
+            "WALL",
+            "SHEAR",
+            "CIRCUM",
+            "FLOW",
+        ]
+
         for timepoint in graph_json["timepoints"]:
             time = timepoint["time"]
 
@@ -136,9 +153,25 @@ class Arcade_Parser:
                 code, radius, length, wall, shear, circum, flow = edge[2][:7]
 
                 data_list = [
-                    seed, time, fromx, fromy, fromz, frompressure, fromoxygen,
-                    tox, toy, toz, topressure, tooxygen,
-                    code, radius, length, wall, shear, circum, flow
+                    seed,
+                    time,
+                    fromx,
+                    fromy,
+                    fromz,
+                    frompressure,
+                    fromoxygen,
+                    tox,
+                    toy,
+                    toz,
+                    topressure,
+                    tooxygen,
+                    code,
+                    radius,
+                    length,
+                    wall,
+                    shear,
+                    circum,
+                    flow,
                 ]
 
                 parsed_data.append(data_list)
@@ -146,8 +179,6 @@ class Arcade_Parser:
         parsed_df = pd.DataFrame(parsed_data, columns=csv_data)
 
         return parsed_df
-
-
 
     def _get_seed(self, f) -> None:
         f_path = ntpath.dirname(f)

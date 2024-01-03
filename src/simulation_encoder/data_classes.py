@@ -38,6 +38,7 @@ class GraphMetrics:
     def __getitem__(self, item: str) -> Any:
         return getattr(self, item)
 
+
 @dataclass
 class CellMetrics:
     """

@@ -86,7 +86,6 @@ def list_s3_files(
         for exclude_term in exclude:
             file_list = list(filter(lambda file: exclude_term not in file, file_list))
 
-
     if include:
         final_list = [file for file in file_list if all(term in file for term in include)]
         return list(set(final_list))

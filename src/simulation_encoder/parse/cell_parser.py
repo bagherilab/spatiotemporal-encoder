@@ -6,7 +6,8 @@ from data_classes import CellMetrics
 
 import pandas as pd
 
-class Cell_Parser:
+
+class CellParser:
     def __init__(self):
         self.data_dir = "data/ARCADE"
         self.timepoints = [(x / 2.0) for x in range(0, 31)]
@@ -17,10 +18,9 @@ class Cell_Parser:
 
         file_df = pd.DataFrame()
 
-        for seed in seeds: 
+        for seed in seeds:
             print("seed: ", seed)
-            for timepoint in self.timepoints: 
-                print("timepoint: ", timepoint)
+            for timepoint in self.timepoints:
                 simulation_df = cell_df[(cell_df.seed == seed) & (cell_df.timepoint == timepoint)]
 
                 metrics = self.cell_metrics(simulation_df)
@@ -37,7 +37,6 @@ class Cell_Parser:
 
         file_df.to_csv(f"{self.data_dir}/{key}cell_metrics.csv", index=False)
 
-
     def _get_layout(self, key: str) -> str:
         name_chunks = key.split("_")
         return name_chunks[1]
@@ -45,7 +44,7 @@ class Cell_Parser:
     def _get_context(self, key: str) -> str:
         name_chunks = key.split("_")
         return name_chunks[0]
-    
+
     def cell_metrics(self, simulation_df: pd.DataFrame) -> CellMetrics:
         num_cells = len(simulation_df)
         avg_volume = np.mean(simulation_df.volume)

@@ -7,7 +7,8 @@ from data_classes import GraphMetrics
 
 import pandas as pd
 
-class Graph_Parser:
+
+class GraphParser:
     def __init__(self):
         self.data_dir = "data/ARCADE"
         self.center = (238 / 2, 158 / 2)
@@ -22,9 +23,10 @@ class Graph_Parser:
         for seed in seeds:
             print("seed: ", seed)
             for timepoint in self.timepoints:
-                print("timepoint: ", timepoint)
                 # Get sub df for seed and timepoint
-                simulation_df = graph_df.loc[(graph_df["seed"] == seed) & (graph_df["time"] == timepoint)]
+                simulation_df = graph_df.loc[
+                    (graph_df["seed"] == seed) & (graph_df["time"] == timepoint)
+                ]
                 node_ax_indeces = list(simulation_df.loc[:, "fromx"])
                 node_ay_indeces = list(simulation_df.loc[:, "fromy"])
                 node_a_indeces = list(zip(node_ax_indeces, node_ay_indeces))
@@ -56,8 +58,8 @@ class Graph_Parser:
         name_chunks = key.split("_")
         return name_chunks[0]
 
-    def igraph_graph_metrics(self, 
-        edges: list[Tuple[Any, Any]], weights: Optional[list[float]] = None
+    def igraph_graph_metrics(
+        self, edges: list[Tuple[Any, Any]], weights: Optional[list[float]] = None
     ) -> GraphMetrics:
         """
         Calculate graph metrics from a set of edges
@@ -92,9 +94,7 @@ class Graph_Parser:
         m_dict["nodes"] = igraph.vcount()
         m_dict["edges"] = igraph.ecount()
 
-        degree_metrics_dict = self._calc_degree_metrics(
-            igraph, node_inverse_distances_from_center
-        )
+        degree_metrics_dict = self._calc_degree_metrics(igraph, node_inverse_distances_from_center)
         m_dict.update(degree_metrics_dict)
 
         distance_metrics_dict = self._calc_distance_metrics(
@@ -118,8 +118,8 @@ class Graph_Parser:
         metrics = GraphMetrics(**m_dict)
         return metrics
 
-    def _calc_distance_metrics(self,
-        graph: ig.Graph, connected: bool, avg_weight: Optional[list[float]] = None
+    def _calc_distance_metrics(
+        self, graph: ig.Graph, connected: bool, avg_weight: Optional[list[float]] = None
     ) -> dict[str, float]:
         """Helper function to calculatedistance based metrics from igraph"""
         dist_m_dict = {}
@@ -142,9 +142,7 @@ class Graph_Parser:
         total_distance: int = 0
         try:
             for node in graph.vs:
-                distance_vector = graph.distances(
-                    source=node, mode="all", weights="weight"
-                )[0]
+                distance_vector = graph.distances(source=node, mode="all", weights="weight")[0]
                 distance_vector = np.array(list(distance_vector))
                 reachable = np.count_nonzero(~np.isinf(distance_vector))
                 distances = np.nan_to_num(distance_vector, posinf=0.0)
@@ -152,9 +150,7 @@ class Graph_Parser:
                     continue
                 distance = np.sum(distances)
                 eccs.append(max(distances))
-                closeness.append(
-                    (reachable - 1) * (reachable - 1) / np.sum(distance) / (n_nodes)
-                )
+                closeness.append((reachable - 1) * (reachable - 1) / np.sum(distance) / (n_nodes))
                 total_distance += distance
         except ig._igraph.InternalError:
             return {
@@ -184,9 +180,8 @@ class Graph_Parser:
 
         return dist_m_dict
 
-
-    def _calc_betweenness_metric(self,
-        graph: ig.Graph, connected: bool, avg_weight: Optional[list[float]] = None
+    def _calc_betweenness_metric(
+        self, graph: ig.Graph, connected: bool, avg_weight: Optional[list[float]] = None
     ) -> dict[str, float]:
         """Helper function to calcuate normalized betweenness from igraph"""
         between_m_dict = {}
@@ -199,9 +194,7 @@ class Graph_Parser:
         n_nodes = graph.vcount()
         betweenness_norm_factor = (n_nodes - 1) * (n_nodes - 2)
         try:
-            betweenness = (
-                np.array(graph.betweenness(weights="weight")) / betweenness_norm_factor
-            )
+            betweenness = np.array(graph.betweenness(weights="weight")) / betweenness_norm_factor
             between_m_dict["avg_betweenness"] = np.mean(betweenness)
             if avg_weight:
                 between_m_dict["avg_betweenness_weighted"] = self._weighted_average(
@@ -217,9 +210,8 @@ class Graph_Parser:
                 "avg_betweenness_weighted": float("inf"),
             }
 
-
-    def _calc_degree_metrics(self,
-        graph: ig.Graph, avg_weight: Optional[list[float]] = None
+    def _calc_degree_metrics(
+        self, graph: ig.Graph, avg_weight: Optional[list[float]] = None
     ) -> dict[str, float]:
         """
         Helper function to calculate the average degree (number of edges per node) from igraph
@@ -246,9 +238,7 @@ class Graph_Parser:
                 degree_m_dict["avg_in_degrees_weighted"],
                 degree_m_dict["avg_out_degrees_weighted"],
                 degree_m_dict["avg_degree_weighted"],
-            ) = tuple(
-                self._weighted_average(graph.degree(mode=mode), avg_weight) for mode in modes
-            )
+            ) = tuple(self._weighted_average(graph.degree(mode=mode), avg_weight) for mode in modes)
         else:
             (
                 degree_m_dict["avg_in_degrees_weighted"],
@@ -257,7 +247,6 @@ class Graph_Parser:
             ) = tuple(float("inf") for _ in modes)
         return degree_m_dict
 
-
     def _calc_clustering_metric(self, graph: ig.Graph) -> float:
         """
         Helper function to calculate the global transitivity,
@@ -265,9 +254,8 @@ class Graph_Parser:
         """
         return graph.transitivity_avglocal_undirected()
 
-
-    def _calc_coreness_metric(self, 
-        graph: ig.Graph, connected: bool, avg_weight: Optional[list[float]] = None
+    def _calc_coreness_metric(
+        self, graph: ig.Graph, connected: bool, avg_weight: Optional[list[float]] = None
     ) -> dict[str, float]:
         """Helper function to get the assortivity from igraph."""
         coreness_m_dict = {}
@@ -277,13 +265,10 @@ class Graph_Parser:
         coreness = graph.coreness(mode="all")
         coreness_m_dict["avg_coreness"] = float(np.average(coreness))
         if avg_weight:
-            coreness_m_dict["avg_coreness_weighted"] = self._weighted_average(
-                coreness, avg_weight
-            )
+            coreness_m_dict["avg_coreness_weighted"] = self._weighted_average(coreness, avg_weight)
         else:
             coreness_m_dict["avg_coreness_weighted"] = float("inf")
         return coreness_m_dict
-
 
     def _calc_n_components(self, graph: ig.Graph, connected: bool) -> int:
         """Helper function to get the number of components (subgraphs) from igraph."""
@@ -291,7 +276,6 @@ class Graph_Parser:
             return 1
 
         return len(graph.decompose(mode="weak"))
-
 
     def _make_igraph(self, edges: list[Tuple[Any, Any]], weights: list[float]) -> ig.Graph:
         """
@@ -314,21 +298,15 @@ class Graph_Parser:
         dir_graph.es["weight"] = weights
         return dir_graph
 
-
-    def _inverse_distance_from_center(self, 
-        node: Tuple[Any, Any]
-    ) -> float:
+    def _inverse_distance_from_center(self, node: Tuple[Any, Any]) -> float:
         """Helper function to calculate the distance from the center of the graph"""
 
         return 1 / np.sqrt(
             (int(node[0]) - self.center[0]) ** 2 + (int(node[1]) - self.center[1]) ** 2
         )
 
-
     def _weighted_average(self, values: list[float], weights: list[float]) -> float:
         # print(weights)
         total_weight = sum(weights)
         weighted_sum = sum(v * w for v, w in zip(values, weights))
         return float(weighted_sum / total_weight)
-
-
