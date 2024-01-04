@@ -10,7 +10,7 @@ import pandas as pd
 
 class GraphParser:
     def __init__(self):
-        self.data_dir = "data/ARCADE"
+        self.data_dir = "../../data/ARCADE"
         self.center = (238 / 2, 158 / 2)
         self.timepoints = [(x / 2.0) for x in range(0, 31)]
 

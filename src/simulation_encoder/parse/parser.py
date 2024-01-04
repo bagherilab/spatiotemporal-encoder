@@ -26,40 +26,43 @@ class ArcadeParser:
         self.bucket = "bagherilab-working"
         self.object_prefix = "jcain/emulation_sims/outputs"
 
-    def parse_files_to_csv(self, key) -> None:
-        cell_files = list_s3_files(
-            self.bucket, self.object_prefix, include=[key], exclude=[".GRAPH"]
-        )
-        file_pd = pd.DataFrame()
-        for file_name in cell_files:
-            local_path = f"{self.data_dir}/{file_name}"
-            s3_path = f"{self.object_prefix}/{file_name}"
-            download_file(self.bucket, s3_path, local_path)
-            parsed_df = self._parse_cells(local_path)
-            file_pd = pd.concat([file_pd, parsed_df], ignore_index=True)
-            os.remove(local_path)
+    def parse_files_to_csv(self, keys: list[str]) -> None:
+        for key in keys:
+            cell_files = list_s3_files(
+                self.bucket, self.object_prefix, include=[key], exclude=[".GRAPH"]
+            )
+            file_pd = pd.DataFrame()
+            for file_name in cell_files:
+                local_path = f"{self.data_dir}/{file_name}"
+                s3_path = f"{self.object_prefix}/{file_name}"
+                download_file(self.bucket, s3_path, local_path)
+                parsed_df = self._parse_cells(local_path)
+                file_pd = pd.concat([file_pd, parsed_df], ignore_index=True)
+                os.remove(local_path)
 
-        file_pd.to_csv(f"{self.data_dir}/{key}cell.csv", index=False)
+            file_pd.to_csv(f"{self.data_dir}/{key}cell.csv", index=False)
 
-        graph_files = list_s3_files(self.bucket, self.object_prefix, include=[key, ".GRAPH"])
-        file_pd = pd.DataFrame()
-        for file_name in graph_files:
-            local_path = f"{self.data_dir}/{file_name}"
-            s3_path = f"{self.object_prefix}/{file_name}"
-            download_file(self.bucket, s3_path, local_path)
-            parsed_df = self._parse_graph(local_path)
-            file_pd = pd.concat([file_pd, parsed_df], ignore_index=True)
-            os.remove(local_path)
+            graph_files = list_s3_files(self.bucket, self.object_prefix, include=[key, ".GRAPH"])
+            file_pd = pd.DataFrame()
+            for file_name in graph_files:
+                local_path = f"{self.data_dir}/{file_name}"
+                s3_path = f"{self.object_prefix}/{file_name}"
+                download_file(self.bucket, s3_path, local_path)
+                parsed_df = self._parse_graph(local_path)
+                file_pd = pd.concat([file_pd, parsed_df], ignore_index=True)
+                os.remove(local_path)
 
-        file_pd.to_csv(f"{self.data_dir}/{key}graph.csv", index=False)
+            file_pd.to_csv(f"{self.data_dir}/{key}graph.csv", index=False)
 
-    def parse_graph_metrics_to_csv(self, key) -> None:
+    def parse_graph_metrics_to_csv(self, keys: list[str]) -> None:
         graph_parser = GraphParser()
-        graph_parser.parse_graph_metrics(key)
+        for key in keys:
+            graph_parser.parse_graph_metrics(key)
 
-    def parse_cell_metrics_to_csv(self, key) -> None:
+    def parse_cell_metrics_to_csv(self, keys: list[str]) -> None:
         cell_parser = CellParser()
-        cell_parser.parse_cell_metrics(key)
+        for key in keys:
+            cell_parser.parse_cell_metrics(key)
 
     def _parse_cells(self, sim_file) -> pd.DataFrame:
         parsed_data = []
@@ -69,7 +72,6 @@ class ArcadeParser:
             sim_json = json.load(f)
 
         for time_index, timepoint in enumerate(self.timepoints):
-            print("timepoint: ", timepoint)
             sim_timepoint = sim_json["timepoints"][time_index]["cells"]
 
             for location, cells in sim_timepoint:

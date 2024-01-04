@@ -9,7 +9,7 @@ import pandas as pd
 
 class CellParser:
     def __init__(self):
-        self.data_dir = "data/ARCADE"
+        self.data_dir = "../../data/ARCADE"
         self.timepoints = [(x / 2.0) for x in range(0, 31)]
 
     def parse_cell_metrics(self, key):
