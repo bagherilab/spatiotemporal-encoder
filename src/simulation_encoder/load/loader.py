@@ -27,7 +27,11 @@ class ArcadeDataset(Dataset):
             self.graph_dfs = [
                 pd.read_csv(f"{self.data_dir}/{key}graph_metrics.csv") for key in keys
             ]
+            self.graph_dfs = [graph_df.drop(
+            columns=["avg_eccentricity_weighted", "avg_closeness_weighted", "avg_coreness_weighted", "avg_betweenness_weighted", "avg_out_degrees_weighted", "avg_in_degrees_weighted", "avg_degree_weighted"]
+            ) for graph_df in self.graph_dfs]
 
+        self.feature_columns = None
         self._align_data()
 
         self.train_indices, self.test_indices = self._split_data(split_ratio, seed)
@@ -53,6 +57,8 @@ class ArcadeDataset(Dataset):
         self.features = self.data.drop(
             columns=["seed", "timepoint", "name", "context", "layout", "sim_key"]
         )
+        
+        self.feature_columns = self.features.columns
         self.features = self.features.fillna(0)
         self.features = self.features.apply(pd.to_numeric)
         self.features = torch.tensor(self.features.values)

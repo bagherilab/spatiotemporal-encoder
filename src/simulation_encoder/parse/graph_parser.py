@@ -1,20 +1,109 @@
+import os
 import dataclasses
 from typing import Tuple, Optional, Any
 
+import networkx as nx
 import igraph as ig
 import numpy as np
 from data_classes import GraphMetrics
 
+from collections import OrderedDict
+
+from karateclub import Graph2Vec
+
+from utils.s3_utils import download_file, upload_file
+
 import pandas as pd
+
+
+class GraphEmbedder:
+    def __init__(self):
+        self.data_dir = "../../data/ARCADE"
+        self.timepoints = [(x / 2.0) for x in range(0, 31)]
+        self.object_prefix = "jevarts/encoder/parsed_sims"
+        self.bucket = "bagherilab-working"
+
+    def embed_graph(self, key):
+        download_file(self.bucket, f"{self.object_prefix}/raw/{key}graph.csv", f"{self.data_dir}/{key}graph.csv")
+        graph_df = pd.read_csv(f"{self.data_dir}/{key}graph.csv")
+        seeds = sorted(graph_df.seed.unique())
+
+        graphs = []
+        graph_embedding_df = pd.DataFrame()
+
+        for seed in seeds:
+            print("seed: ", seed)
+            for timepoint in self.timepoints:
+                # Get sub df for seed and timepoint
+                simulation_df = graph_df.loc[
+                    (graph_df["seed"] == seed) & (graph_df["time"] == timepoint)
+                ]
+                node_ax_indeces = list(simulation_df.loc[:, "fromx"])
+                node_ay_indeces = list(simulation_df.loc[:, "fromy"])
+                node_a_indeces = list(zip(node_ax_indeces, node_ay_indeces))
+
+                node_bx_indeces = list(simulation_df.loc[:, "tox"])
+                node_by_indeces = list(simulation_df.loc[:, "toy"])
+                node_b_indeces = list(zip(node_bx_indeces, node_by_indeces))
+
+                edges = list(zip(node_a_indeces, node_b_indeces))
+            
+                graph = self.make_networkx_graph(edges)
+                graphs.append(graph)
+
+        graph2vec = Graph2Vec(dimensions=2)
+        graph2vec.fit(graphs)
+        graph_embedding = graph2vec.get_embedding()
+        graph_embedding_df = pd.concat([graph_embedding_df, pd.DataFrame(graph_embedding)], ignore_index=True)
+        graph_embedding_df.to_csv(f"{self.data_dir}/{key}graph_embedding.csv", index=False)
+                
+        return graph_embedding
+
+
+    def make_networkx_graph(self, edges: list[Tuple[Any, Any]]) -> nx.DiGraph:
+        """
+        Creates a networkx graph from provided edges for certain graph metric calculations and returns
+        a directed version of the graph
+
+        Parameters
+        ----------
+        edges :
+            List of edges defined by end nodes (i.e. [[1,2], [2,4]...]) of the graph to be analyzed
+        weights :
+            (Optional) List of weights in the same order as the list of edges
+
+        Returns
+        -------
+        dir_graph
+            Directed graph
+        """
+
+        nodes = []
+        for edge in edges:
+            nodes.extend(edge)
+        nodes = list(OrderedDict.fromkeys(nodes))
+
+        node_mapping = {node: index for index, node in enumerate(nodes)}
+
+        nx_graph = nx.DiGraph()
+        nx_graph.add_nodes_from(range(len(nodes)))
+
+        for edge in edges:
+            nx_graph.add_edge(node_mapping[edge[0]], node_mapping[edge[1]])
+
+        return nx_graph
 
 
 class GraphParser:
     def __init__(self):
         self.data_dir = "../../data/ARCADE"
-        self.center = (238 / 2, 158 / 2)
         self.timepoints = [(x / 2.0) for x in range(0, 31)]
+        self.object_prefix = "jevarts/encoder/parsed_sims"
+        self.bucket = "bagherilab-working"
 
     def parse_graph_metrics(self, key):
+        download_file(self.bucket, f"{self.object_prefix}/raw/{key}graph.csv", f"{self.data_dir}/{key}graph.csv")
+
         graph_df = pd.read_csv(f"{self.data_dir}/{key}graph.csv")
         seeds = sorted(graph_df.seed.unique())
 
@@ -48,7 +137,9 @@ class GraphParser:
 
                 file_df = pd.concat([file_df, network_metrics_df], ignore_index=True)
 
+        os.remove(f"{self.data_dir}/{key}graph.csv")
         file_df.to_csv(f"{self.data_dir}/{key}graph_metrics.csv", index=False)
+        upload_file(f"{self.data_dir}/{key}graph_metrics.csv", self.bucket, f"{self.object_prefix}/metrics/{key}graph_metrics.csv")
 
     def _get_layout(self, key: str) -> str:
         name_chunks = key.split("_")
@@ -83,9 +174,9 @@ class GraphParser:
             weights = [1.0] * len(edges)
 
         igraph = self._make_igraph(edges, weights)
-        node_inverse_distances_from_center = [
-            self._inverse_distance_from_center(node["name"]) for node in igraph.vs
-        ]
+        # node_inverse_distances_from_center = [
+        #     self._inverse_distance_from_center(node["name"]) for node in igraph.vs
+        # ]
 
         connected: bool = igraph.is_connected("weak")
 
@@ -94,21 +185,21 @@ class GraphParser:
         m_dict["nodes"] = igraph.vcount()
         m_dict["edges"] = igraph.ecount()
 
-        degree_metrics_dict = self._calc_degree_metrics(igraph, node_inverse_distances_from_center)
+        degree_metrics_dict = self._calc_degree_metrics(igraph)
         m_dict.update(degree_metrics_dict)
 
         distance_metrics_dict = self._calc_distance_metrics(
-            igraph, connected, node_inverse_distances_from_center
+            igraph, connected
         )
         m_dict.update(distance_metrics_dict)
 
         betweeness_metrics_dict = self._calc_betweenness_metric(
-            igraph, connected, node_inverse_distances_from_center
+            igraph, connected
         )
         m_dict.update(betweeness_metrics_dict)
 
         coreness_metrics_dict = self._calc_coreness_metric(
-            igraph, connected, node_inverse_distances_from_center
+            igraph, connected
         )
         m_dict.update(coreness_metrics_dict)
 
