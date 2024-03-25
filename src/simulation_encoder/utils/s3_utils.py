@@ -1,3 +1,4 @@
+import os
 import boto3
 
 
@@ -17,6 +18,7 @@ def download_file(bucket: str, object_path: str, file_name: str) -> None:
     """
     s3_client = boto3.client("s3")
     try:
+        os.makedirs(os.path.dirname(file_name), exist_ok=True)
         s3_client.download_file(bucket, object_path, file_name)
     except:
         print(f"Could not download {object_path}")

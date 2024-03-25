@@ -10,6 +10,34 @@ import pandas as pd
 from utils.s3_utils import download_file, upload_file
 
 
+class CellEmbedder:
+    def __init__(self):
+        self.data_dir = "../../data/ARCADE"
+        self.timepoints = [(x / 2.0) for x in range(0, 31)]
+        self.object_prefix = "jevarts/encoder/parsed_sims"
+        self.bucket = "bagherilab-working"
+
+    def embed_cells(self, key) -> pd.DataFrame:
+        # download_file(self.bucket, f"{self.object_prefix}/raw/{key}cell.csv", f"{self.data_dir}/{key}cell.csv")
+        cell_df = pd.read_csv(f"{self.data_dir}/{key}cell.csv")
+        seeds = sorted(cell_df.seed.unique())
+
+        metadata_list = []
+
+        for seed in seeds:
+            print("seed: ", seed)
+            for timepoint in self.timepoints:
+                simulation_df = cell_df[(cell_df.seed == seed) & (cell_df.timepoint == timepoint)]
+                return simulation_df
+                
+
+        
+        # file_df.to_csv(f"{self.data_dir}/{key}cell_metrics.csv", index=False)
+        # upload_file(f"{self.data_dir}/{key}cell_metrics.csv", self.bucket, f"{self.object_prefix}/metrics/{key}cell_metrics.csv")
+        os.remove(f"{self.data_dir}/{key}cell.csv")
+
+
+
 class CellParser:
     def __init__(self):
         self.data_dir = "../../data/ARCADE"

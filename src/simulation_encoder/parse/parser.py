@@ -33,6 +33,9 @@ class ArcadeParser:
 
     def parse_files_to_csv(self, keys: list[str]) -> None:
         for key in keys:
+            print(key)
+
+            # Cell parsing
             cell_files = list_s3_files(
                 self.bucket, self.load_prefix, include=[key], exclude=[".GRAPH"]
             )
@@ -42,7 +45,20 @@ class ArcadeParser:
                 local_path = f"{self.data_dir}/{file_name}"
                 s3_path = f"{self.load_prefix}/{file_name}"
                 download_file(self.bucket, s3_path, local_path)
-                parsed_df = self._parse_cells(local_path)
+                parsed_df = self._parse_cells(local_path)     
+                unique_seeds = parsed_df['seed'].unique()
+                unique_times = parsed_df['time'].unique()
+                for seed in unique_seeds:
+                    for time in unique_times:
+                        df = parsed_df[(parsed_df['seed'] == seed) & (parsed_df['time'] == time)]
+                        df.drop(columns=['seed', 'time'], inplace=True)
+                        df.rename(columns=lambda x: x.lower(), inplace=True)
+                        time = str(int(10 * time)).zfill(3)
+                        name = f"{key}{seed}_{time}"
+                        df.to_csv(f"{self.data_dir}/{name}.csv", index=False)
+                        upload_file(f"{self.data_dir}/{name}.csv", self.bucket, f"{self.save_prefix}/individual/{name}.csv")
+                        os.remove(f"{self.data_dir}/{name}.csv")
+
                 file_pd = pd.concat([file_pd, parsed_df], ignore_index=True)
                 os.remove(local_path)
 
@@ -50,6 +66,7 @@ class ArcadeParser:
             upload_file(f"{self.data_dir}/{key}cell.csv", self.bucket, f"{self.save_prefix}/raw/{key}cell.csv")
             os.remove(f"{self.data_dir}/{key}cell.csv")
 
+            # Vasculature parsing
             graph_files = list_s3_files(self.bucket, self.load_prefix, include=[key, ".GRAPH"])
             file_pd = pd.DataFrame()
             for file_name in graph_files:
@@ -57,12 +74,26 @@ class ArcadeParser:
                 s3_path = f"{self.load_prefix}/{file_name}"
                 download_file(self.bucket, s3_path, local_path)
                 parsed_df = self._parse_graph(local_path)
+                unique_seeds = parsed_df['seed'].unique()
+                unique_times = parsed_df['time'].unique()
+                for seed in unique_seeds:
+                    for time in unique_times:
+                        df = parsed_df[(parsed_df['seed'] == seed) & (parsed_df['time'] == time)]
+                        df.drop(columns=['seed', 'time'], inplace=True)
+                        df.rename(columns=lambda x: x.lower(), inplace=True)
+                        df.rename(columns={'code': 'type'}, inplace=True)
+                        time = str(int(10 * time)).zfill(3)
+                        name = f"{key}{seed}_{time}_graph"
+                        df.to_csv(f"{self.data_dir}/{name}.csv", index=False)
+                        upload_file(f"{self.data_dir}/{name}.csv", self.bucket, f"{self.save_prefix}/individual/{name}.csv")
+                        os.remove(f"{self.data_dir}/{name}.csv")
+
                 file_pd = pd.concat([file_pd, parsed_df], ignore_index=True)
                 os.remove(local_path)
 
-            file_pd.to_csv(f"{self.data_dir}/{key}graph.csv", index=False)
-            upload_file(f"{self.data_dir}/{key}graph.csv", self.bucket, f"{self.save_prefix}/raw/{key}graph.csv")
-            os.remove(f"{self.data_dir}/{key}graph.csv")
+            # file_pd.to_csv(f"{self.data_dir}/{key}graph.csv", index=False)
+            # upload_file(f"{self.data_dir}/{key}graph.csv", self.bucket, f"{self.save_prefix}/raw/{key}graph.csv")
+            # os.remove(f"{self.data_dir}/{key}graph.csv")
 
     def parse_graph_metrics_to_csv(self, keys: list[str]) -> None:
         graph_parser = GraphParser()
@@ -87,26 +118,37 @@ class ArcadeParser:
             for location, cells in sim_timepoint:
                 u, v, w, z = map(int, location[:4])
 
+                population_counts = [0] * self.num_populations
+                state_counts = [0] * self.num_states
+                total_volume = 0
+                total_cells = 0
+
                 for cell in cells:
                     population, state, position, volume, cell_cycle = cell[1:6]
                     cycle = np.round(np.mean(cell_cycle)) if cell_cycle else 0
-                    seed = self._get_seed(sim_file)
 
-                    data_list = [
-                        timepoint,
-                        u,
-                        v,
-                        w,
-                        z,
-                        position,
-                        int(population),
-                        int(state),
-                        np.round(volume),
-                        cycle,
-                        seed,
-                    ]
+                    population_counts[int(population)] += 1
+                    state_counts[int(state)] += 1
+                    total_volume += volume
+                    total_cells += 1
 
-                    parsed_data.append(data_list)
+                data_list = [
+                    timepoint,
+                    u,
+                    v,
+                    w,
+                    z,
+                    position,
+                    total_volume,
+                    population_counts[0],
+                    population_counts[1],
+                    total_cells,
+                    *state_counts,
+                    cycle,
+                    self._get_seed(sim_file),
+                ]
+
+                parsed_data.append(data_list)
 
         columns = [
             "timepoint",
@@ -115,12 +157,21 @@ class ArcadeParser:
             "w",
             "z",
             "position",
-            "population",
-            "state",
             "volume",
+            "pop_healthy",
+            "pop_cancer",
+            "count",
+            "state_neutral",
+            "state_apoptotic",
+            "state_quiescent",
+            "state_migrating",
+            "state_proliferating",
+            "state_senescent",
+            "state_necrotic",
             "cycle",
             "seed",
         ]
+
         if parsed_data:
             parsed_df = pd.DataFrame(parsed_data, columns=columns)
 
@@ -202,3 +253,10 @@ class ArcadeParser:
         key = remove_suffix[:-3]
 
         return seed
+    
+
+if __name__ == "__main__":
+    arcade_parser = ArcadeParser()
+    arcade_parser.parse_files_to_csv(["C_Lav_", "C_Lava_", "C_Lvav_", "C_Sav_", "C_Savav_", "CH_Lav_", "CH_Lava_", "CH_Lvav_", "CH_Sav_", "CH_Savav_"])
+    # arcade_parser.parse_cell_metrics_to_csv(["C_Lav_"])
+    # arcade_parser.parse_graph_metrics_to_csv(["C_Lav_"])
