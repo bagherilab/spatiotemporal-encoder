@@ -48,7 +48,13 @@ def upload_file(file_name: str, bucket: str, object_name: str) -> bool:
     """
     # Establish s3 client
     s3_client = boto3.client("s3")
-    response = s3_client.upload_file(file_name, bucket, object_name)
+    try:
+        response = s3_client.upload_file(file_name, bucket, object_name)
+    except:
+        print(f"Could not upload {file_name}")
+        return False
+    
+    print(f"Data successfully uploaded to {object_name}")
 
     return response
 

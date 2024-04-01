@@ -53,6 +53,10 @@ class CellMetrics:
     5: senescent
     6: necrotic
 
+    Cell population mappings (ARCADE < v3.0):
+    0: cancer
+    1: non-cancer
+
     """
 
     num_cells: int

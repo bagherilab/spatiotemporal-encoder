@@ -17,108 +17,107 @@ from utils.s3_utils import download_file, upload_file
 import pandas as pd
 
 
-# class GraphEmbedder:
-#     def __init__(self):
-#         self.data_dir = "../../../data/ARCADE"
-#         self.timepoints = [(x / 2.0) for x in range(2, 31)]
-#         self.object_prefix = "jevarts/encoder/parsed_sims"
-#         self.bucket = "bagherilab-working"
+class GraphEmbedder:
+    def __init__(self):
+        self.data_dir = "../../../data/ARCADE"
+        self.timepoints = [(x / 2.0) for x in range(2, 31)]
+        self.object_prefix = "jevarts/encoder/parsed_sims"
+        self.bucket = "bagherilab-working"
 
-#     def embed_graph(self, key) -> pd.DataFrame:
-#         download_file(self.bucket, f"{self.object_prefix}/raw/{key}graph.csv", f"{self.data_dir}/{key}graph.csv")
-#         graph_df = pd.read_csv(f"{self.data_dir}/{key}graph.csv")
-#         seeds = sorted(graph_df.seed.unique())
+    def embed_graph(self, key) -> pd.DataFrame:
+        download_file(self.bucket, f"{self.object_prefix}/raw/{key}graph.csv", f"{self.data_dir}/{key}graph.csv")
+        graph_df = pd.read_csv(f"{self.data_dir}/{key}graph.csv")
+        seeds = sorted(graph_df.seed.unique())
 
-#         graphs = []
-#         metadata_list = []
+        graphs = []
+        metadata_list = []
 
-#         for seed in seeds:
-#             print("seed: ", seed)
-#             for timepoint in self.timepoints:
-#                 simulation_df = graph_df.loc[
-#                     (graph_df["seed"] == seed) & (graph_df["time"] == timepoint)
-#                 ]
+        for seed in seeds:
+            print("seed: ", seed)
+            for timepoint in self.timepoints:
+                simulation_df = graph_df.loc[
+                    (graph_df["seed"] == seed) & (graph_df["time"] == timepoint)
+                ]
 
-#                 edges = self.get_edges(simulation_df)
-#                 graph = self.make_networkx_graph(edges)
-#                 graphs.append(graph)
+                edges = self.get_edges(simulation_df)
+                graph = self.make_networkx_graph(edges)
+                graphs.append(graph)
 
-#                 metadata = {"seed": seed, "timepoint": timepoint, "name": key}
-#                 metadata_list.append(metadata)
+                metadata = {"seed": seed, "timepoint": timepoint, "name": key}
+                metadata_list.append(metadata)
 
-#         graph2vec = Graph2Vec(dimensions=2)
-#         graph2vec.fit(graphs)
-#         graph_embedding = graph2vec.get_embedding()
+        graph2vec = Graph2Vec(dimensions=2)
+        graph2vec.fit(graphs)
+        graph_embedding = graph2vec.get_embedding()
 
-#         metadata_df = pd.DataFrame(metadata_list)
-#         embeddings_df = pd.DataFrame(graph_embedding)
+        metadata_df = pd.DataFrame(metadata_list)
+        embeddings_df = pd.DataFrame(graph_embedding)
 
-#         graph_embedding_df = pd.concat([embeddings_df, metadata_df], axis=1)
-#         graph_embedding_df.to_csv(f"{self.data_dir}/{key}graph_embedding.csv", index=False)
-#         # upload_file(f"{self.data_dir}/{key}graph_embedding.csv", self.bucket, f"{self.object_prefix}/embeddings/{key}graph_embedding.csv")
-#         os.remove(f"{self.data_dir}/{key}graph.csv")
+        graph_embedding_df = pd.concat([embeddings_df, metadata_df], axis=1)
+        graph_embedding_df.to_csv(f"{self.data_dir}/{key}graph_embedding.csv", index=False)
+        # upload_file(f"{self.data_dir}/{key}graph_embedding.csv", self.bucket, f"{self.object_prefix}/embeddings/{key}graph_embedding.csv")
+        os.remove(f"{self.data_dir}/{key}graph.csv")
                 
-#         return graph_embedding_df
+        return graph_embedding_df
 
 
-#     def make_networkx_graph(self, edges: list[Tuple[Any, Any]]) -> nx.DiGraph:
-#         """
-#         Creates a networkx graph from provided edges for certain graph metric calculations and returns
-#         a directed version of the graph
+    def make_networkx_graph(self, edges: list[Tuple[Any, Any]]) -> nx.DiGraph:
+        """
+        Creates a networkx graph from provided edges for certain graph metric calculations and returns
+        a directed version of the graph
 
-#         Parameters
-#         ----------
-#         edges :
-#             List of edges defined by end nodes (i.e. [[1,2], [2,4]...]) of the graph to be analyzed
-#         weights :
-#             (Optional) List of weights in the same order as the list of edges
+        Parameters
+        ----------
+        edges :
+            List of edges defined by end nodes (i.e. [[1,2], [2,4]...]) of the graph to be analyzed
+        weights :
+            (Optional) List of weights in the same order as the list of edges
 
-#         Returns
-#         -------
-#         dir_graph
-#             Directed graph
-#         """
+        Returns
+        -------
+        dir_graph
+            Directed graph
+        """
 
-#         nodes = []
-#         for edge in edges:
-#             nodes.extend(edge)
-#         nodes = list(OrderedDict.fromkeys(nodes))
+        nodes = []
+        for edge in edges:
+            nodes.extend(edge)
+        nodes = list(OrderedDict.fromkeys(nodes))
 
-#         node_mapping = {node: index for index, node in enumerate(nodes)}
+        node_mapping = {node: index for index, node in enumerate(nodes)}
 
-#         nx_graph = nx.DiGraph()
-#         nx_graph.add_nodes_from(range(len(nodes)))
+        nx_graph = nx.DiGraph()
+        nx_graph.add_nodes_from(range(len(nodes)))
 
-#         for edge in edges:
-#             nx_graph.add_edge(node_mapping[edge[0]], node_mapping[edge[1]])
+        for edge in edges:
+            nx_graph.add_edge(node_mapping[edge[0]], node_mapping[edge[1]])
 
-#         return nx_graph
+        return nx_graph
 
-#     def get_edges(self, graph_df: pd.DataFrame) -> list[Tuple[Any, Any]]:
-#         """
-#         Creates a list of edges from a dataframe of edges
+    def get_edges(self, graph_df: pd.DataFrame) -> list[Tuple[Any, Any]]:
+        """
+        Creates a list of edges from a dataframe of edges
 
-#         Parameters
-#         ----------
-#         graph_df :
-#             Dataframe of edges
+        Parameters
+        ----------
+        graph_df :
+            Dataframe of edges
 
-#         Returns
-#         -------
-#         edges
-#             List of edges
-#         """
-#         node_ax_indeces = list(graph_df.loc[:, "fromx"])
-#         node_ay_indeces = list(graph_df.loc[:, "fromy"])
-#         node_a_indeces = list(zip(node_ax_indeces, node_ay_indeces))
+        Returns
+        -------
+        edges
+            List of edges
+        """
+        node_ax_indeces = list(graph_df.loc[:, "fromx"])
+        node_ay_indeces = list(graph_df.loc[:, "fromy"])
+        node_a_indeces = list(zip(node_ax_indeces, node_ay_indeces))
 
-#         node_bx_indeces = list(graph_df.loc[:, "tox"])
-#         node_by_indeces = list(graph_df.loc[:, "toy"])
-#         node_b_indeces = list(zip(node_bx_indeces, node_by_indeces))
+        node_bx_indeces = list(graph_df.loc[:, "tox"])
+        node_by_indeces = list(graph_df.loc[:, "toy"])
+        node_b_indeces = list(zip(node_bx_indeces, node_by_indeces))
 
-#         edges = list(zip(node_a_indeces, node_b_indeces))
-#         return edges
-
+        edges = list(zip(node_a_indeces, node_b_indeces))
+        return edges
 
 class GraphParser:
     def __init__(self):

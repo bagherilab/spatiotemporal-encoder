@@ -1,1 +1,0 @@
-python src/simulation_encoder/parse/parser.py

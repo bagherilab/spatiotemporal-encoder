@@ -36,8 +36,6 @@ class CellEmbedder:
         # upload_file(f"{self.data_dir}/{key}cell_metrics.csv", self.bucket, f"{self.object_prefix}/metrics/{key}cell_metrics.csv")
         os.remove(f"{self.data_dir}/{key}cell.csv")
 
-
-
 class CellParser:
     def __init__(self):
         self.data_dir = "../../data/ARCADE"

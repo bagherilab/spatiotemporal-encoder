@@ -2,11 +2,79 @@ import os
 import numpy as np
 import pandas as pd
 
+from PIL import Image
+
 import torch
 from torch.utils.data import Dataset, Subset
+from torchvision import transforms
 
 from sklearn.model_selection import train_test_split
 
+class UnlabeledImageDataset(Dataset):
+    def __init__(self, image_dir):
+        self.image_dir = image_dir
+        self.groups = self.get_image_groups()
+
+    def get_image_groups(self):
+        groups = {}
+        for filename in os.listdir(self.image_dir):
+            if filename.endswith('.png'):
+                parts = filename.split('_')
+                context = parts[0]  # 'CH' for healthy tissue or 'C' colony
+                vasc_type = parts[1] 
+                seed = int(parts[2])  # Seed value
+                timepoint = int(parts[3])
+                if parts[4].split('.')[0] == 'graph':
+                    image_type = parts[4].split('.')[0]
+                elif parts[4].split('.')[0] == 'cells':
+                    image_type = parts[5].split('.')[0]
+                else:
+                    raise ValueError(f"Invalid name format for image file. Should be \'context_vasc-type_seed_timepoint_image-type.png\' Got: {filename}")
+                group_key = (context, vasc_type, seed, timepoint)
+                if group_key not in groups:
+                    groups[group_key] = {'cancer': None, 'healthy': None, 'graph': None}
+                groups[group_key][image_type] = os.path.join(self.image_dir, filename)
+        return list(groups.values())
+
+    def resize(self, group):
+        cancer_img = Image.open(group['cancer'])
+        healthy_img = Image.open(group['healthy'])
+        graph_img = Image.open(group['graph'])
+        width, height = max(cancer_img.size, healthy_img.size, graph_img.size)
+        cancer_img = cancer_img.resize((width, height))
+        healthy_img = healthy_img.resize((width, height))
+        graph_img = graph_img.resize((width, height))
+        return cancer_img, healthy_img, graph_img
+    
+    def display_image(self, image):
+        image = np.squeeze(image)
+        image = (image * 255).astype('uint8')
+        Image.fromarray(image).show()
+
+    def display_tensor(self, tensor):
+        array = np.moveaxis(tensor.numpy(), 0, -1)
+        array = array.squeeze()
+        image = Image.fromarray(array.astype('uint8'))
+        image.save('output_image.png')
+
+    def __len__(self):
+        return len(self.groups)
+
+    def __getitem__(self, idx):
+        group = self.groups[idx]
+        cancer_path = group['cancer']
+        healthy_path = group['healthy']
+        graph_path = group['graph']
+
+        transformation = transforms.Compose([
+            transforms.ToTensor()
+        ])
+
+        cancer_tensor = transformation(Image.open(cancer_path).convert('L')).squeeze()
+        healthy_tensor = transformation(Image.open(healthy_path).convert('L')).squeeze()
+        graph_tensor =  transformation(Image.open(graph_path).convert('L')).squeeze()
+
+        return torch.stack((cancer_tensor, healthy_tensor, graph_tensor), dim=0)
 
 class ArcadeDataset(Dataset):
     def __init__(

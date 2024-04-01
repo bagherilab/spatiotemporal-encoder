@@ -31,76 +31,123 @@ class ArcadeParser:
         self.load_prefix = "jcain/emulation_sims/outputs"
         self.save_prefix = "jevarts/encoder/parsed_sims"
 
-    def parse_files_to_csv(self, keys: list[str]) -> None:
+        self.num_populations = 2
+        self.num_states = 7
+
+    def parse_files_to_csv(self, keys: list[str], cells: True, vasculature: True) -> None:
+        """
+        Parse ARCADE simulation files to CSV files based on the keys provided
+        
+        Parameters
+        ----------
+        keys : list[str]
+            List of keys to parse (e.g. C_Lava_, CH_Sav_, ...)
+            Should be in the name of the simulation files
+        cells : bool
+            Parse cell data
+        vasculature : bool
+            Parse vasculature data
+            
+        Returns
+        -------
+        None
+        """
         for key in keys:
-            print(key)
+            print(f"Parsing {key}")
 
-            # Cell parsing
-            cell_files = list_s3_files(
-                self.bucket, self.load_prefix, include=[key], exclude=[".GRAPH"]
-            )
-            file_pd = pd.DataFrame()
-            for file_name in cell_files:
+            if cells:
+                # Cell parsing
+                cell_files = list_s3_files(
+                    self.bucket, self.load_prefix, include=[key], exclude=[".GRAPH"]
+                )
+                file_pd = pd.DataFrame()
+                for file_name in cell_files:
+                    local_path = f"{self.data_dir}/{file_name}"
+                    s3_path = f"{self.load_prefix}/{file_name}"
+                    download_file(self.bucket, s3_path, local_path)
+                    parsed_df = self._parse_cells(local_path)     
+                    unique_seeds = parsed_df['seed'].unique()
+                    unique_times = parsed_df['time'].unique()
+                    for seed in unique_seeds:
+                        for time in unique_times:
+                            df = parsed_df[(parsed_df['seed'] == seed) & (parsed_df['time'] == time)]
+                            df.drop(columns=['seed', 'time'], inplace=True)
+                            df.rename(columns=lambda x: x.lower(), inplace=True)
+                            time = str(int(10 * time)).zfill(3)
+                            name = f"{key}{seed}_{time}_cells"
+                            df.to_csv(f"{self.data_dir}/{name}.csv", index=False)
+                            upload_file(f"{self.data_dir}/{name}.csv", self.bucket, f"{self.save_prefix}/individual/{name}.csv")
+                            os.remove(f"{self.data_dir}/{name}.csv")
 
-                local_path = f"{self.data_dir}/{file_name}"
-                s3_path = f"{self.load_prefix}/{file_name}"
-                download_file(self.bucket, s3_path, local_path)
-                parsed_df = self._parse_cells(local_path)     
-                unique_seeds = parsed_df['seed'].unique()
-                unique_times = parsed_df['time'].unique()
-                for seed in unique_seeds:
-                    for time in unique_times:
-                        df = parsed_df[(parsed_df['seed'] == seed) & (parsed_df['time'] == time)]
-                        df.drop(columns=['seed', 'time'], inplace=True)
-                        df.rename(columns=lambda x: x.lower(), inplace=True)
-                        time = str(int(10 * time)).zfill(3)
-                        name = f"{key}{seed}_{time}"
-                        df.to_csv(f"{self.data_dir}/{name}.csv", index=False)
-                        upload_file(f"{self.data_dir}/{name}.csv", self.bucket, f"{self.save_prefix}/individual/{name}.csv")
-                        os.remove(f"{self.data_dir}/{name}.csv")
+                    file_pd = pd.concat([file_pd, parsed_df], ignore_index=True)
+                    os.remove(local_path)
+            
 
-                file_pd = pd.concat([file_pd, parsed_df], ignore_index=True)
-                os.remove(local_path)
+            # file_pd.to_csv(f"{self.data_dir}/{key}cell.csv", index=False)
+            # upload_file(f"{self.data_dir}/{key}cell.csv", self.bucket, f"{self.save_prefix}/raw/{key}cell.csv")
+            # os.remove(f"{self.data_dir}/{key}cell.csv")
 
-            file_pd.to_csv(f"{self.data_dir}/{key}cell.csv", index=False)
-            upload_file(f"{self.data_dir}/{key}cell.csv", self.bucket, f"{self.save_prefix}/raw/{key}cell.csv")
-            os.remove(f"{self.data_dir}/{key}cell.csv")
 
-            # Vasculature parsing
-            graph_files = list_s3_files(self.bucket, self.load_prefix, include=[key, ".GRAPH"])
-            file_pd = pd.DataFrame()
-            for file_name in graph_files:
-                local_path = f"{self.data_dir}/{file_name}"
-                s3_path = f"{self.load_prefix}/{file_name}"
-                download_file(self.bucket, s3_path, local_path)
-                parsed_df = self._parse_graph(local_path)
-                unique_seeds = parsed_df['seed'].unique()
-                unique_times = parsed_df['time'].unique()
-                for seed in unique_seeds:
-                    for time in unique_times:
-                        df = parsed_df[(parsed_df['seed'] == seed) & (parsed_df['time'] == time)]
-                        df.drop(columns=['seed', 'time'], inplace=True)
-                        df.rename(columns=lambda x: x.lower(), inplace=True)
-                        df.rename(columns={'code': 'type'}, inplace=True)
-                        time = str(int(10 * time)).zfill(3)
-                        name = f"{key}{seed}_{time}_graph"
-                        df.to_csv(f"{self.data_dir}/{name}.csv", index=False)
-                        upload_file(f"{self.data_dir}/{name}.csv", self.bucket, f"{self.save_prefix}/individual/{name}.csv")
-                        os.remove(f"{self.data_dir}/{name}.csv")
+            if vasculature:
+                # Vasculature parsing
+                graph_files = list_s3_files(self.bucket, self.load_prefix, include=[key, ".GRAPH"])
+                file_pd = pd.DataFrame()
+                for file_name in graph_files:
+                    local_path = f"{self.data_dir}/{file_name}"
+                    s3_path = f"{self.load_prefix}/{file_name}"
+                    download_file(self.bucket, s3_path, local_path)
+                    parsed_df = self._parse_graph(local_path)
+                    unique_seeds = parsed_df['seed'].unique()
+                    unique_times = parsed_df['time'].unique()
+                    for seed in unique_seeds:
+                        for time in unique_times:
+                            df = parsed_df[(parsed_df['seed'] == seed) & (parsed_df['time'] == time)]
+                            df.drop(columns=['seed', 'time'], inplace=True)
+                            time = str(int(10 * time)).zfill(3)
+                            name = f"{key}{seed}_{time}_graph"
+                            df.to_csv(f"{self.data_dir}/{name}.csv", index=False)
+                            upload_file(f"{self.data_dir}/{name}.csv", self.bucket, f"{self.save_prefix}/individual/{name}.csv")
+                            os.remove(f"{self.data_dir}/{name}.csv")
 
-                file_pd = pd.concat([file_pd, parsed_df], ignore_index=True)
-                os.remove(local_path)
+                    file_pd = pd.concat([file_pd, parsed_df], ignore_index=True)
+                    os.remove(local_path)
 
-            # file_pd.to_csv(f"{self.data_dir}/{key}graph.csv", index=False)
-            # upload_file(f"{self.data_dir}/{key}graph.csv", self.bucket, f"{self.save_prefix}/raw/{key}graph.csv")
-            # os.remove(f"{self.data_dir}/{key}graph.csv")
+                file_pd.to_csv(f"{self.data_dir}/{key}graph.csv", index=False)
+                upload_file(f"{self.data_dir}/{key}graph.csv", self.bucket, f"{self.save_prefix}/raw/{key}graph.csv")
+                os.remove(f"{self.data_dir}/{key}graph.csv")
 
     def parse_graph_metrics_to_csv(self, keys: list[str]) -> None:
+        """
+        Parse graph metrics to CSV files based on the keys provided
+        
+        Parameters
+        ----------
+        keys : list[str]
+            List of keys to parse (e.g. C_Lava_, CH_Sav_, ...)
+            Should be in the name of the simulation files
+            
+        Returns
+        -------
+        None
+        """
         graph_parser = GraphParser()
         for key in keys:
             graph_parser.parse_graph_metrics(key)
 
     def parse_cell_metrics_to_csv(self, keys: list[str]) -> None:
+        """ 
+        Parse cell metrics to CSV files based on the keys provided
+        
+        Parameters
+        ----------
+        keys : list[str]
+            List of keys to parse (e.g. C_Lava_, CH_Sav_, ...)
+            Should be in the name of the simulation files
+        
+        Returns
+        -------
+        None
+        """
         cell_parser = CellParser()
         for key in keys:
             cell_parser.parse_cell_metrics(key)
@@ -133,6 +180,7 @@ class ArcadeParser:
                     total_cells += 1
 
                 data_list = [
+                    self._get_seed(sim_file),
                     timepoint,
                     u,
                     v,
@@ -145,21 +193,21 @@ class ArcadeParser:
                     total_cells,
                     *state_counts,
                     cycle,
-                    self._get_seed(sim_file),
                 ]
 
                 parsed_data.append(data_list)
 
         columns = [
-            "timepoint",
+            "seed",
+            "time",
             "u",
             "v",
             "w",
             "z",
             "position",
             "volume",
-            "pop_healthy",
             "pop_cancer",
+            "pop_healthy",
             "count",
             "state_neutral",
             "state_apoptotic",
@@ -169,7 +217,6 @@ class ArcadeParser:
             "state_senescent",
             "state_necrotic",
             "cycle",
-            "seed",
         ]
 
         if parsed_data:
@@ -198,13 +245,13 @@ class ArcadeParser:
             "toz",
             "topressure",
             "tooxygen",
-            "CODE",
-            "RADIUS",
-            "LENGTH",
-            "WALL",
-            "SHEAR",
-            "CIRCUM",
-            "FLOW",
+            "type",
+            "radius",
+            "length",
+            "wall",
+            "shear",
+            "circum",
+            "flow",
         ]
 
         for timepoint in graph_json["timepoints"]:
@@ -257,6 +304,7 @@ class ArcadeParser:
 
 if __name__ == "__main__":
     arcade_parser = ArcadeParser()
-    arcade_parser.parse_files_to_csv(["C_Lav_", "C_Lava_", "C_Lvav_", "C_Sav_", "C_Savav_", "CH_Lav_", "CH_Lava_", "CH_Lvav_", "CH_Sav_", "CH_Savav_"])
+    keys = ["C_Lav_"]
+    arcade_parser.parse_files_to_csv(keys, cells=True, vasculature=False)
     # arcade_parser.parse_cell_metrics_to_csv(["C_Lav_"])
     # arcade_parser.parse_graph_metrics_to_csv(["C_Lav_"])
