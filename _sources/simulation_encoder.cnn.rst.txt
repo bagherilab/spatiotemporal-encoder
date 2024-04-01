@@ -1,0 +1,7 @@
+simulation\_encoder.cnn module
+==============================
+
+.. automodule:: simulation_encoder.cnn
+   :members:
+   :undoc-members:
+   :show-inheritance:

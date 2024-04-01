@@ -22,5 +22,7 @@ Submodules
 .. toctree::
    :maxdepth: 4
 
+   simulation_encoder.cnn
    simulation_encoder.data_classes
    simulation_encoder.logger
+   simulation_encoder.main
