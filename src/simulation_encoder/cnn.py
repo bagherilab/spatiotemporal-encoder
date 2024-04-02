@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 
+DEBUG = True
+
 class BaseCNN(nn.Module):
     def __init__(self):
         super(BaseCNN, self).__init__()
@@ -22,26 +24,28 @@ class BaseCNN(nn.Module):
             print(f"Epoch {epoch + 1}, Loss: {running_loss / len(train_loader)}")
 
 class ConvolutionalAutoencoder(BaseCNN):
-    def __init__(self, input_shape, dim_z=10):
+    def __init__(self, input_shape, out_channels=16, dim_z=100):
         super(ConvolutionalAutoencoder, self).__init__()
         self.input_shape = input_shape
         self.dim_z = dim_z
+        self.in_channels = self.input_shape[0]
+        self.out_channels = out_channels
         
         # Encoder
-        self.enc_conv1 = nn.Conv2d(input_shape[0], 32, kernel_size=3, padding=1)
+        self.enc_conv1 = nn.Conv2d(self.input_shape[0], self.out_channels, kernel_size=3, padding=1)
         self.enc_pool1 = nn.MaxPool2d(2, 2)
-        self.enc_conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
+        self.enc_conv2 = nn.Conv2d(self.out_channels, self.out_channels, kernel_size=3, padding=1)
         self.enc_pool2 = nn.MaxPool2d(2, 2)
-        self.enc_conv3 = nn.Conv2d(64, 128, kernel_size=3, padding=1)
-        self.enc_fc = nn.Linear(128 * (input_shape[1] // 8) * (input_shape[2] // 8), self.dim_z)
+        self.enc_conv3 = nn.Conv2d(self.out_channels, self.out_channels, kernel_size=3, padding=1)
+        self.enc_fc = nn.Linear(self.out_channels * 64 * 64, self.dim_z)
         
         # Decoder
-        self.dec_fc = nn.Linear(self.dim_z, 128 * (input_shape[1] // 8) * (input_shape[2] // 8))
-        self.dec_conv1 = nn.ConvTranspose2d(128, 64, kernel_size=3, padding=1)
+        self.dec_fc = nn.Linear(self.dim_z, self.out_channels * 64 * 64)
+        self.dec_conv1 = nn.ConvTranspose2d(self.out_channels, self.out_channels, kernel_size=3, padding=1)
         self.dec_upsample1 = nn.UpsamplingBilinear2d(scale_factor=2)
-        self.dec_conv2 = nn.ConvTranspose2d(64, 32, kernel_size=3, padding=1)
+        self.dec_conv2 = nn.ConvTranspose2d(self.out_channels, self.out_channels, kernel_size=3, padding=1)
         self.dec_upsample2 = nn.UpsamplingBilinear2d(scale_factor=2)
-        self.dec_conv3 = nn.ConvTranspose2d(32, input_shape[0], kernel_size=3, padding=1)
+        self.dec_conv3 = nn.ConvTranspose2d(self.out_channels, self.input_shape[0], kernel_size=3, padding=1)
         
     def forward(self, x):
         x = self.encode(x)
@@ -49,23 +53,43 @@ class ConvolutionalAutoencoder(BaseCNN):
         return x
     
     def encode(self, x):
+        debug("Input:", x.size())
         x = torch.relu(self.enc_conv1(x))
+        debug("After enc_conv1:", x.size())
         x = self.enc_pool1(x)
+        debug("After enc_pool1:", x.size())
         x = torch.relu(self.enc_conv2(x))
+        debug("After enc_conv2:", x.size())
         x = self.enc_pool2(x)
+        debug("After enc_pool2:", x.size())
         x = torch.relu(self.enc_conv3(x))
-        x = x.view(-1, 128 * (self.input_shape[1] // 8) * (self.input_shape[2] // 8))
+        debug("After enc_conv3:", x.size())
+        x = x.view(-1, self.out_channels * 64 * 64)
+        debug("After view:", x.size())
         x = self.enc_fc(x)
-        
+        debug("After enc_fc:", x.size())
+        debug("-----------------------")
         return x
     
     def decode(self, x):
         x = self.dec_fc(x)
-        x = x.view(-1, 128, self.input_shape[1] // 8, self.input_shape[2] // 8)
+        ("After dec_fc:", x.size())
+        x = x.view(-1, self.out_channels, 64, 64)
+        debug("After view:", x.size())
         x = torch.relu(self.dec_conv1(x))
+        debug("After dec_conv1:", x.size())
         x = self.dec_upsample1(x)
+        debug("After dec_upsample1:", x.size())
         x = torch.relu(self.dec_conv2(x))
+        debug("After dec_conv2:", x.size()) 
         x = self.dec_upsample2(x)
+        debug("After dec_upsample2:", x.size())
         x = self.dec_conv3(x)
-        
+        debug("After dec_conv3:", x.size())
+        debug("-----------------------")
         return x
+    
+
+def debug(*args, **kwargs):
+    if DEBUG:
+        print(*args, **kwargs)

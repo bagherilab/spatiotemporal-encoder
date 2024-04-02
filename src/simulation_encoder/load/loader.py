@@ -51,11 +51,12 @@ class UnlabeledImageDataset(Dataset):
         image = (image * 255).astype('uint8')
         Image.fromarray(image).show()
 
-    def display_tensor(self, tensor):
-        array = np.moveaxis(tensor.numpy(), 0, -1)
+    @staticmethod
+    def display_tensor(tensor, name='output_image.png'):
+        array = np.moveaxis(tensor.detach().numpy()*255, 0, -1)
         array = array.squeeze()
         image = Image.fromarray(array.astype('uint8'))
-        image.save('output_image.png')
+        image.save(name)
 
     def __len__(self):
         return len(self.groups)
