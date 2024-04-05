@@ -5,9 +5,9 @@ from sklearn.model_selection import train_test_split
 import torch
 from torch.utils.data import DataLoader
 
-from src.simulation_encoder.models.cnn import ConvolutionalAutoencoder
-from src.simulation_encoder.load.loader import UnlabeledImageDataset
-from src.simulation_encoder.logger import Logger
+from simulation_encoder.models.cnn import ConvolutionalAutoencoder
+from simulation_encoder.loader import UnlabeledImageDataset
+from simulation_encoder.logger import ExperimentLogger
 
 BATCH_SIZE = 10
 LOAD = False
@@ -19,12 +19,11 @@ def run_experiment() -> None:
     """
     Run a convolutional autoencoder experiment on the ARCADE dataset.
     """
-    logger = Logger(EXP_NAME)
-    print("Logger")
+    logger = ExperimentLogger(EXP_NAME)
     dataset = UnlabeledImageDataset(DATA_DIR, logger=logger, healthy_flag=False)
-    print("Dataset")
     train_data, test_data = train_test_split(dataset, test_size=0.2, random_state=42)
     print(f"Training on {len(train_data)} examples. Testing on {len(test_data)} examples.")
+
     train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True)
     test_loader = DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False)
 

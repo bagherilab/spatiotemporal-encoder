@@ -1,8 +1,8 @@
-import logging
 import os
+import logging
 
 
-class Logger:
+class ExperimentLogger:
     """
     Attributes
     ----------

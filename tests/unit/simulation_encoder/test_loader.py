@@ -5,11 +5,12 @@ import os
 import tempfile
 from PIL import Image
 
-from src.simulation_encoder.load.loader import UnlabeledImageDataset
+from simulation_encoder.loader import UnlabeledImageDataset
 
 
 class TestUnlabeledImageDataset(unittest.TestCase):
     def setUp(self):
+        print("HERE")
         self.temp_dir = tempfile.TemporaryDirectory()
         self.image_files = [
             "CH_type1_1_1_cells_cancer.png",
@@ -42,11 +43,11 @@ class TestUnlabeledImageDataset(unittest.TestCase):
 
     def test_getitem_returns_correct_shape(self):
         dataset = UnlabeledImageDataset(self.temp_dir.name)
-        tensor = dataset.__getitem__(0)
+        tensor = dataset[0]
 
         self.assertEqual(tensor.shape, (3, 10, 10))
 
-    @patch("src.simulation_encoder.logger.Logger")
+    @patch("simulation_encoder.logger.ExperimentLogger")
     def test_missing_image_logging(self, mock_logger):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.image_files = [

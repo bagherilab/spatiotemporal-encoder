@@ -1,2 +1,2 @@
 #!/bin/sh
-python -m src.simulation_encoder.main
+python src/simulation_encoder/main.py

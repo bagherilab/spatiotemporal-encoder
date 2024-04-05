@@ -8,7 +8,7 @@ import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
 
-from src.simulation_encoder.logger import Logger
+from simulation_encoder.logger import ExperimentLogger
 
 
 class UnlabeledImageDataset(Dataset):
@@ -25,7 +25,9 @@ class UnlabeledImageDataset(Dataset):
         Flag to include healthy tissue images, by default True
     """
 
-    def __init__(self, image_dir: str, logger: Optional[Logger] = None, healthy_flag: bool = True):
+    def __init__(
+        self, image_dir: str, logger: Optional[ExperimentLogger] = None, healthy_flag: bool = True
+    ):
         self.image_dir = image_dir
         self.logger = logger
         self.healthy_flag = healthy_flag
@@ -42,7 +44,7 @@ class UnlabeledImageDataset(Dataset):
                 parts = filename.split("_")
                 context = parts[0]  # 'CH' for healthy tissue or 'C' colony
                 vasc_type = parts[1]
-                seed = int(parts[2])  # Seed value
+                seed = int(parts[2])
                 timepoint = int(parts[3])
                 if parts[4].split(".")[0] == "graph":
                     image_type = parts[4].split(".")[0]
@@ -94,18 +96,15 @@ class UnlabeledImageDataset(Dataset):
     def __getitem__(self, idx: int) -> torch.Tensor:
         group = self.groups[idx]
         cancer_path = group["cancer"]
-        if self.healthy_flag:
-            healthy_path = group["healthy"]
+        healthy_path = group.get("healthy", "")
         graph_path = group["graph"]
 
         transformation = transforms.Compose([transforms.ToTensor()])
 
         cancer_tensor = transformation(Image.open(cancer_path).convert("L")).squeeze()
-        if self.healthy_flag:
-            healthy_tensor = transformation(Image.open(healthy_path).convert("L")).squeeze()
         graph_tensor = transformation(Image.open(graph_path).convert("L")).squeeze()
 
-        if self.healthy_flag:
+        if self.healthy_flag and healthy_path:
+            healthy_tensor = transformation(Image.open(healthy_path).convert("L")).squeeze()
             return torch.stack((cancer_tensor, healthy_tensor, graph_tensor), dim=0)
-
         return torch.stack((cancer_tensor, graph_tensor), dim=0)

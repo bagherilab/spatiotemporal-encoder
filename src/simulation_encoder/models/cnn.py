@@ -1,10 +1,10 @@
-from typing import Optional, Any
+from typing import Optional, Any, TYPE_CHECKING
 
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
-from src.simulation_encoder.logger import Logger
+from simulation_encoder.logger import ExperimentLogger
 
 DEBUG = False
 
@@ -19,7 +19,7 @@ class BaseCNN(nn.Module):
         Logger object for logging, by default None
     """
 
-    def __init__(self, logger: Optional[Logger] = None):
+    def __init__(self, logger: Optional[ExperimentLogger] = None):
         super().__init__()
         self.logger = logger
 
@@ -174,7 +174,7 @@ class ConvolutionalAutoencoder(BaseCNN):
         input_shape: tuple[int],
         out_channels: int = 16,
         dim_z: int = 2,
-        logger: Optional[Logger] = None,
+        logger: Optional[ExperimentLogger] = None,
     ):
         super().__init__(logger=logger)
 
