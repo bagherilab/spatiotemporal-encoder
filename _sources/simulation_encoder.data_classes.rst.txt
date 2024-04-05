@@ -1,7 +1,0 @@
-simulation\_encoder.data\_classes module
-========================================
-
-.. automodule:: simulation_encoder.data_classes
-   :members:
-   :undoc-members:
-   :show-inheritance:

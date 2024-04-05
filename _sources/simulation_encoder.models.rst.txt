@@ -1,0 +1,15 @@
+simulation\_encoder.models package
+==================================
+
+.. automodule:: simulation_encoder.models
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 4
+
+   simulation_encoder.models.cnn

@@ -13,8 +13,7 @@ Subpackages
    :maxdepth: 4
 
    simulation_encoder.load
-   simulation_encoder.parse
-   simulation_encoder.utils
+   simulation_encoder.models
 
 Submodules
 ----------
@@ -22,7 +21,5 @@ Submodules
 .. toctree::
    :maxdepth: 4
 
-   simulation_encoder.cnn
-   simulation_encoder.data_classes
    simulation_encoder.logger
    simulation_encoder.main
