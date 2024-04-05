@@ -1,9 +1,16 @@
+import sys
+from pathlib import Path
+
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 
 import torch
 from torch.utils.data import DataLoader
+
+# For local imports in the module
+if str(Path(__file__).parent.parent) not in sys.path:
+    sys.path.append(str(Path(__file__).parent.parent))
 
 from simulation_encoder.models.cnn import ConvolutionalAutoencoder
 from simulation_encoder.loader import UnlabeledImageDataset
