@@ -22,7 +22,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="simulation_encoder.main module" href="simulation_encoder.main.html" />
-    <link rel="prev" title="simulation_encoder.models.cnn module" href="simulation_encoder.models.cnn.html" /> 
+    <link rel="prev" title="simulation_encoder.loader module" href="simulation_encoder.loader.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -51,6 +51,7 @@
 <li class="toctree-l2 current"><a class="reference internal" href="simulation_encoder.html">simulation_encoder package</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="simulation_encoder.html#subpackages">Subpackages</a></li>
 <li class="toctree-l3 current"><a class="reference internal" href="simulation_encoder.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="simulation_encoder.loader.html">simulation_encoder.loader module</a></li>
 <li class="toctree-l4 current"><a class="current reference internal" href="#">simulation_encoder.logger module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="simulation_encoder.main.html">simulation_encoder.main module</a></li>
 </ul>
@@ -90,12 +91,12 @@
   <section id="module-simulation_encoder.logger">
 <span id="simulation-encoder-logger-module"></span><h1>simulation_encoder.logger module<a class="headerlink" href="#module-simulation_encoder.logger" title="Link to this heading"></a></h1>
 <dl class="py class">
-<dt class="sig sig-object py" id="simulation_encoder.logger.Logger">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Logger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">exp_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'logs/'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">format_str</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'%(asctime)s:%(name)s:%(message)s'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">20</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simulation_encoder/logger.html#Logger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simulation_encoder.logger.Logger" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="simulation_encoder.logger.ExperimentLogger">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ExperimentLogger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">exp_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'logs/'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">format_str</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'%(asctime)s:%(name)s:%(message)s'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">20</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simulation_encoder/logger.html#ExperimentLogger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simulation_encoder.logger.ExperimentLogger" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="simulation_encoder.logger.Logger.exp_name">
-<span class="sig-name descname"><span class="pre">exp_name</span></span><a class="headerlink" href="#simulation_encoder.logger.Logger.exp_name" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="simulation_encoder.logger.ExperimentLogger.exp_name">
+<span class="sig-name descname"><span class="pre">exp_name</span></span><a class="headerlink" href="#simulation_encoder.logger.ExperimentLogger.exp_name" title="Link to this definition"></a></dt>
 <dd><p>Name of the experiment.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -105,8 +106,8 @@
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="simulation_encoder.logger.Logger.log_dir">
-<span class="sig-name descname"><span class="pre">log_dir</span></span><a class="headerlink" href="#simulation_encoder.logger.Logger.log_dir" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="simulation_encoder.logger.ExperimentLogger.log_dir">
+<span class="sig-name descname"><span class="pre">log_dir</span></span><a class="headerlink" href="#simulation_encoder.logger.ExperimentLogger.log_dir" title="Link to this definition"></a></dt>
 <dd><p>Directory where the log file is stored.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -116,8 +117,8 @@
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="simulation_encoder.logger.Logger.format_str">
-<span class="sig-name descname"><span class="pre">format_str</span></span><a class="headerlink" href="#simulation_encoder.logger.Logger.format_str" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="simulation_encoder.logger.ExperimentLogger.format_str">
+<span class="sig-name descname"><span class="pre">format_str</span></span><a class="headerlink" href="#simulation_encoder.logger.ExperimentLogger.format_str" title="Link to this definition"></a></dt>
 <dd><p>Format string for the logger.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -127,8 +128,8 @@
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="simulation_encoder.logger.Logger.level">
-<span class="sig-name descname"><span class="pre">level</span></span><a class="headerlink" href="#simulation_encoder.logger.Logger.level" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="simulation_encoder.logger.ExperimentLogger.level">
+<span class="sig-name descname"><span class="pre">level</span></span><a class="headerlink" href="#simulation_encoder.logger.ExperimentLogger.level" title="Link to this definition"></a></dt>
 <dd><p>Level of the logger.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -138,20 +139,20 @@
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="simulation_encoder.logger.Logger._set_up_logger">
-<span class="sig-name descname"><span class="pre">_set_up_logger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">format_str</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simulation_encoder/logger.html#Logger._set_up_logger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simulation_encoder.logger.Logger._set_up_logger" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="simulation_encoder.logger.ExperimentLogger._set_up_logger">
+<span class="sig-name descname"><span class="pre">_set_up_logger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">format_str</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simulation_encoder/logger.html#ExperimentLogger._set_up_logger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simulation_encoder.logger.ExperimentLogger._set_up_logger" title="Link to this definition"></a></dt>
 <dd><p>Sets up the logger.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="simulation_encoder.logger.Logger.log">
-<span class="sig-name descname"><span class="pre">log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simulation_encoder/logger.html#Logger.log"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simulation_encoder.logger.Logger.log" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="simulation_encoder.logger.ExperimentLogger.log">
+<span class="sig-name descname"><span class="pre">log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/simulation_encoder/logger.html#ExperimentLogger.log"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simulation_encoder.logger.ExperimentLogger.log" title="Link to this definition"></a></dt>
 <dd><p>Logs the message.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="id0">
-<span class="sig-name descname"><span class="pre">log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/simulation_encoder/logger.html#Logger.log"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id0" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/simulation_encoder/logger.html#ExperimentLogger.log"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id0" title="Link to this definition"></a></dt>
 <dd><p>Logs the message.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -164,8 +165,8 @@
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="simulation_encoder.logger.Logger.warning">
-<span class="sig-name descname"><span class="pre">warning</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/simulation_encoder/logger.html#Logger.warning"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simulation_encoder.logger.Logger.warning" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="simulation_encoder.logger.ExperimentLogger.warning">
+<span class="sig-name descname"><span class="pre">warning</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/simulation_encoder/logger.html#ExperimentLogger.warning"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#simulation_encoder.logger.ExperimentLogger.warning" title="Link to this definition"></a></dt>
 <dd><p>Logs a warning message.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -182,7 +183,7 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="simulation_encoder.models.cnn.html" class="btn btn-neutral float-left" title="simulation_encoder.models.cnn module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="simulation_encoder.loader.html" class="btn btn-neutral float-left" title="simulation_encoder.loader module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="simulation_encoder.main.html" class="btn btn-neutral float-right" title="simulation_encoder.main module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

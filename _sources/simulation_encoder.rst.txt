@@ -12,7 +12,6 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   simulation_encoder.load
    simulation_encoder.models
 
 Submodules
@@ -21,5 +20,6 @@ Submodules
 .. toctree::
    :maxdepth: 4
 
+   simulation_encoder.loader
    simulation_encoder.logger
    simulation_encoder.main
