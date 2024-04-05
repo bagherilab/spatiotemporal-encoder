@@ -26,12 +26,14 @@ class Logger:
     def __init__(
         self,
         exp_name: str,
-        log_dir: str = "/logs/",
+        log_dir: str = "logs/",
         format_str: str = "%(asctime)s:%(name)s:%(message)s",
         level: int = logging.INFO,
     ):
         self.log_path = os.path.join(log_dir, f"{exp_name}.log")
         self.exp_name = exp_name
+
+        self._create_log_file()
 
         self.logger = logging.getLogger(self.exp_name)
         self._set_up_logger(format_str, level)
@@ -43,5 +45,34 @@ class Logger:
         file_handler.setFormatter(formatter)
         self.logger.addHandler(file_handler)
 
+    def _create_log_file(self) -> None:
+        if not os.path.exists(self.log_path):
+            with open(self.log_path, "w", encoding="utf-8") as f:
+                f.write("")
+
     def log(self, msg: str) -> None:
+        """
+        Logs the message.
+
+        Parameters
+        ----------
+        msg : str
+            Message to log.
+
+        Returns
+        -------
+        None
+        """
         self.logger.info(msg)
+
+    def warning(self, msg: str) -> None:
+        """
+        Logs a warning message.
+
+        Parameters
+        ----------
+        msg : str
+            Warning message to log.
+
+        """
+        self.logger.warning(msg)

@@ -2,6 +2,9 @@
 data/
 *.png
 
+logs/
+archive/
+
 # Editors
 .vscode/
 .idea/
