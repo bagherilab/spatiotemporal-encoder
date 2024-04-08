@@ -1,5 +1,5 @@
 import os
-from typing import Any, Optional
+from typing import Optional
 
 import numpy as np
 from PIL import Image
@@ -36,27 +36,14 @@ class UnlabeledImageDataset(Dataset):
     def _get_image_groups(self) -> list[dict[str, str]]:
         """
         Returns groups of images based on the filename format.
-
         """
         groups = {}
         for filename in os.listdir(self.image_dir):
             if filename.endswith(".png"):
-                parts = filename.split("_")
-                context = parts[0]  # 'CH' for healthy tissue or 'C' colony
-                vasc_type = parts[1]
-                seed = int(parts[2])
-                timepoint = int(parts[3])
-                if parts[4].split(".")[0] == "graph":
-                    image_type = parts[4].split(".")[0]
-                elif parts[4].split(".")[0] == "cells":
-                    image_type = parts[5].split(".")[0]
-                    if not self.healthy_flag and image_type == "healthy":
-                        continue
-                else:
-                    raise ValueError(
-                        f"Invalid name format for image file. Should be \
-                            'context_vasc-type_seed_timepoint_image-type.png' Got: {filename}"
-                    )
+                context, vasc_type, seed, timepoint, image_type = self._parse_filename(filename)
+                if image_type == "healthy" and not self.healthy_flag:
+                    continue
+
                 group_key = (context, vasc_type, seed, timepoint)
                 if group_key not in groups:
                     if self.healthy_flag:
@@ -108,3 +95,20 @@ class UnlabeledImageDataset(Dataset):
             healthy_tensor = transformation(Image.open(healthy_path).convert("L")).squeeze()
             return torch.stack((cancer_tensor, healthy_tensor, graph_tensor), dim=0)
         return torch.stack((cancer_tensor, graph_tensor), dim=0)
+
+    def _parse_filename(self, filename: str) -> tuple[str, str, int, int, str]:
+        parts = filename.split("_")
+        context = parts[0]  # 'CH' for healthy tissue or 'C' colony
+        vasc_type = parts[1]
+        seed = int(parts[2])
+        timepoint = int(parts[3])
+        if parts[4].split(".")[0] == "graph":
+            image_type = parts[4].split(".")[0]
+        elif parts[4].split(".")[0] == "cells":
+            image_type = parts[5].split(".")[0]
+        else:
+            raise ValueError(
+                f"Invalid name format for image file. Should be \
+                            'context_vasc-type_seed_timepoint_image-type.png' Got: {filename}"
+            )
+        return context, vasc_type, seed, timepoint, image_type
