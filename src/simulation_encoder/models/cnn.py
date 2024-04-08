@@ -35,7 +35,7 @@ class BaseCNN(nn.Module):
         epochs: int,
         optimizer: torch.optim.Optimizer,
         loss_fn: torch.nn.Module,
-        val_loader: DataLoader = None,
+        val_loader: Optional[DataLoader] = None,
     ) -> tuple[list[float], list[float]]:
         """
         Fits the netwrok over the training data for a number of epochs.
