@@ -33,7 +33,7 @@ class UnlabeledImageDataset(Dataset):
         self.healthy_flag = healthy_flag
         self.groups = self._get_image_groups()
 
-    def _get_image_groups(self) -> list[Any]:
+    def _get_image_groups(self) -> list[dict[str, str]]:
         """
         Returns groups of images based on the filename format.
 

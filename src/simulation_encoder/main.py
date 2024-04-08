@@ -19,7 +19,7 @@ from simulation_encoder.logger import ExperimentLogger
 BATCH_SIZE = 10
 LOAD = False
 EXP_NAME = "autoencoder2d"
-DATA_DIR = "data/ARCADE"
+DATA_DIR = "data/test"
 
 
 def run_experiment() -> None:
