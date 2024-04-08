@@ -47,7 +47,7 @@ def run_experiment() -> None:
     loss_fn = torch.nn.MSELoss()
 
     losses, val_losses = autoencoder.fit(
-        train_loader, epochs=5, optimizer=optimizer, loss_fn=loss_fn, val_loader=test_loader
+        train_loader, epochs=10, optimizer=optimizer, loss_fn=loss_fn, val_loader=test_loader
     )
 
     plot_loss(losses, val_losses)
