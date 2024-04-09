@@ -1,9 +1,9 @@
-# Python project template repository
+# Simulation encoder repository
 
-[![Build Status](https://github.com/bagherilab/python_project_template/workflows/build/badge.svg)](https://github.com/bagherilab/python_project_template/actions?query=workflow%3Abuild)
-[![Codecov](https://img.shields.io/codecov/c/gh/bagherilab/python_project_template?token=HYF4KEB84L)](https://codecov.io/gh/bagherilab/python_project_template)
-[![Lint Status](https://github.com/bagherilab/python_project_template/workflows/lint/badge.svg)](https://github.com/bagherilab/python_project_template/actions?query=workflow%3Alint)
-[![Documentation](https://github.com/bagherilab/python_project_template/workflows/documentation/badge.svg)](https://bagherilab.github.io/python_project_template/)
+[![Build Status](https://github.com/bagherilab/simulation-encoder/workflows/build/badge.svg)](https://github.com/bagherilab/simulation-encoder/actions?query=workflow%3Abuild)
+[![Codecov](https://img.shields.io/codecov/c/gh/bagherilab/simulation-encoder?token=HYF4KEB84L)](https://codecov.io/gh/bagherilab/simulation-encoder)
+[![Lint Status](https://github.com/bagherilab/simulation-encoder/workflows/lint/badge.svg)](https://github.com/bagherilab/simulation-encoder/actions?query=workflow%3Alint)
+[![Documentation](https://github.com/bagherilab/simulation-encoder/workflows/documentation/badge.svg)](https://bagherilab.github.io/simulation-encoder/)
 [![Code style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 This repository is a template for Python projects that uses the GitHub Actions and the following tools:
