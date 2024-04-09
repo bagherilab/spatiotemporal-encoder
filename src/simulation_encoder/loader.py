@@ -5,7 +5,7 @@ import numpy as np
 from PIL import Image
 
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader, Subset
 from torchvision import transforms
 
 from simulation_encoder.logger import ExperimentLogger
@@ -29,12 +29,14 @@ class PNGLoader(Dataset):
         self,
         image_dir: str,
         test_split: float = 0.2,
+        batch_size: int = 10,
         logger: Optional[ExperimentLogger] = None,
         healthy_flag: bool = True,
         random_seed: int = 42,
     ):
         self.image_dir = image_dir
         self.test_split = test_split
+        self.batch_size = batch_size
         self.logger = logger
         self.healthy_flag = healthy_flag
         self.random_seed = random_seed
@@ -59,14 +61,28 @@ class PNGLoader(Dataset):
             healthy_tensor = transformation(Image.open(healthy_path).convert("L")).squeeze()
             return torch.stack((cancer_tensor, healthy_tensor, graph_tensor), dim=0)
         return torch.stack((cancer_tensor, graph_tensor), dim=0)
+    
+    def get_train_data(self) -> DataLoader:
+        """
+        Returns training DataLoader
+        """
+        train_dataset = Subset(self, self._get_train_indices())
+        return DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
 
-    def get_train_indices(self) -> list[int]:
+    def get_test_data(self) -> DataLoader:
+        """
+        Returns test DataLoader
+        """
+        test_dataset = Subset(self, self._get_test_indices())
+        return DataLoader(test_dataset, batch_size=self.batch_size, shuffle=False)
+
+    def _get_train_indices(self) -> list[int]:
         """
         Returns a list of training indices for the dataset
         """
         return self._train_indices
 
-    def get_test_indices(self) -> list[int]:
+    def _get_test_indices(self) -> list[int]:
         """
         Returns a list of test indices for the dataset
         """

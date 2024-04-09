@@ -1,0 +1,55 @@
+architecture:
+  encoder_layers:
+    - type: Conv2d
+      in_channels: 2
+      out_channels: 16
+      kernel_size: 3
+      padding: 1
+    - type: MaxPool2d
+      kernel_size: 2
+      stride: 2
+    - type: Conv2d
+      in_channels: 16
+      out_channels: 16
+      kernel_size: 3
+      padding: 1
+    - type: MaxPool2d
+      kernel_size: 2
+      stride: 2
+    - type: Conv2d
+      in_channels: 16
+      out_channels: 16
+      kernel_size: 3
+      padding: 1
+    - type: Linear
+      in_features: 16384
+      out_features: 32
+    - type: Linear
+      in_features: 32
+      out_features: 2
+  decoder_layers:
+    - type: Linear
+      in_features: 2
+      out_features: 32
+    - type: Linear
+      in_features: 32
+      out_features: 16384
+    - type: ConvTranspose2d
+      in_channels: 16
+      out_channels: 16
+      kernel_size: 3
+      padding: 1
+    - type: UpsampleBilinear2d
+      scale_factor: 2
+    - type: ConvTranspose2d
+      in_channels: 16
+      out_channels: 16
+      kernel_size: 3
+      padding: 1
+    - type: UpsampleBilinear2d
+      scale_factor: 2
+    - type: ConvTranspose2d
+      in_channels: 16
+      out_channels: 3
+      kernel_size: 3
+      padding: 1

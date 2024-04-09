@@ -1,0 +1,8 @@
+exp_name: "autoencoder2channel"
+data_dir: "data/ARCADE"
+model_configs:
+  batch_size: 10
+  test_split: 0.2
+  load_prev_model: false
+  prev_model_path: ""
+  verbose: true

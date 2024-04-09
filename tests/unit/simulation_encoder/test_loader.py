@@ -8,9 +8,8 @@ from PIL import Image
 from simulation_encoder.loader import PNGLoader
 
 
-class TestUnlabeledImageDataset(unittest.TestCase):
+class TestPNGLoader(unittest.TestCase):
     def setUp(self):
-        print("HERE")
         self.temp_dir = tempfile.TemporaryDirectory()
         self.image_files = [
             "CH_type1_1_1_cells_cancer.png",
@@ -47,19 +46,23 @@ class TestUnlabeledImageDataset(unittest.TestCase):
 
         self.assertEqual(tensor.shape, (3, 10, 10))
 
-    def test_train_test_split_gives_disjoint_sets(self):
-        dataset = PNGLoader(self.temp_dir.name, test_split=0.2, random_seed=123)
-        train_indices = dataset.get_train_indices()
-        test_indices = dataset.get_test_indices()
+    def test_train_test_loaders_have_correct_lengths(self):
+        test_split = 0.4
+        dataset = PNGLoader(self.temp_dir.name, test_split=test_split, random_seed=123)
+        train_loader = dataset.get_train_data()
+        test_loader = dataset.get_test_data()
 
-        expected_test_size = int(len(dataset) * 0.2)
+        expected_test_size = int(len(dataset) * test_split)
         expected_train_size = len(dataset) - expected_test_size
 
-        # Assert that the lengths of train and test indices match the expected split
-        self.assertEqual(len(train_indices), expected_train_size)
-        self.assertEqual(len(test_indices), expected_test_size)
+        self.assertEqual(len(train_loader), expected_train_size)
+        self.assertEqual(len(test_loader), expected_test_size)
 
-        # Assert that there is no overlap between train and test indices
+    def test_train_test_split_gives_disjoint_sets(self):
+        dataset = PNGLoader(self.temp_dir.name, test_split=0.2, random_seed=123)
+        train_indices = dataset._get_train_indices()
+        test_indices = dataset._get_test_indices()
+
         self.assertTrue(set(train_indices).isdisjoint(set(test_indices)))
 
     @patch("simulation_encoder.logger.ExperimentLogger")

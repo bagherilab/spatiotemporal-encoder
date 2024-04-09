@@ -73,13 +73,14 @@ class BaseCNN(nn.Module):
                 val_loss = min(val_loss, best_vloss)
                 val_losses.append(val_loss)
 
+            if self.verbose:
+                print(f"Epoch {e+1}/{epochs}: Train loss: {epoch_loss}, Val loss: {val_loss}")
+
             if (e + 1) % 5 == 0:
                 if self.logger:
                     self.logger.log(
                         f"Epoch {e+1}/{epochs}: Train loss: {epoch_loss}, Val loss: {val_loss}"
                     )
-                if self.verbose:
-                    print(f"Epoch {e+1}/{epochs}: Train loss: {epoch_loss}, Val loss: {val_loss}")
 
         if val_loader:
             if self.logger:
@@ -158,7 +159,7 @@ class BaseCNN(nn.Module):
         return avg_epoch_loss
 
 
-class ConvolutionalAutoencoder(BaseCNN):
+class CAE(BaseCNN):
     """
     Convolutional neural network class for autoencoding image data.
 
@@ -166,112 +167,47 @@ class ConvolutionalAutoencoder(BaseCNN):
     ----------
     input_shape : tuple[int]
         Shape of the input data
+    conf : str
+        Config file with model layers
     logger : Logger, optional
         Logger object for logging, by default None
-    out_channels : int, optional
-        Number of output channels for convolutional layers
-    dim_z : int, optional
-        Dimension of the latent space
+    verbose : bool
+        Controls if model training is output to console
     """
 
     def __init__(
         self,
-        input_shape: tuple[int],
-        out_channels: int = 16,
-        dim_z: int = 2,
+        params: dict[str, Any],
         logger: Optional[ExperimentLogger] = None,
         verbose: bool = True,
     ):
         super().__init__(logger=logger, verbose=verbose)
 
-        self.input_shape = input_shape
-        self.dim_z = dim_z
-        self.in_channels = self.input_shape[0]
-        self.out_channels = out_channels
+        self.params = params
 
-        # Encoder
-        self.enc_conv1 = nn.Conv2d(self.input_shape[0], self.out_channels, kernel_size=3, padding=1)
-        self.enc_pool1 = nn.MaxPool2d(2, 2)
-        self.enc_conv2 = nn.Conv2d(self.out_channels, self.out_channels, kernel_size=3, padding=1)
-        self.enc_pool2 = nn.MaxPool2d(2, 2)
-        self.enc_conv3 = nn.Conv2d(self.out_channels, self.out_channels, kernel_size=3, padding=1)
-        self.enc_fc1 = nn.Linear(self.out_channels * 64 * 64, 32)
-        self.enc_fc2 = nn.Linear(self.out_channels * 2, self.dim_z)
+        encoder_layers = self._create_layers(self.params["architecture"]["encoder_layers"])
+        decoder_layers = self._create_layers(self.params["architecture"]["decoder_layers"])
 
-        # Decoder
-        self.dec_fc1 = nn.Linear(self.dim_z, self.out_channels * 2)
-        self.dec_fc2 = nn.Linear(32, self.out_channels * 64 * 64)
-        self.dec_conv1 = nn.ConvTranspose2d(
-            self.out_channels, self.out_channels, kernel_size=3, padding=1
-        )
-        self.dec_upsample1 = nn.UpsamplingBilinear2d(scale_factor=2)
-        self.dec_conv2 = nn.ConvTranspose2d(
-            self.out_channels, self.out_channels, kernel_size=3, padding=1
-        )
-        self.dec_upsample2 = nn.UpsamplingBilinear2d(scale_factor=2)
-        self.dec_conv3 = nn.ConvTranspose2d(
-            self.out_channels, self.input_shape[0], kernel_size=3, padding=1
-        )
+        self.encoder = nn.Sequential(*encoder_layers)
+        self.decoder = nn.Sequential(*decoder_layers)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Performs encoding and decoding to recreate original tensor
         """
-        x = self.encode(x)
-        x = self.decode(x)
+        x = self.encoder(x)
+        x = self.decoder(x)
         return x
 
-    def encode(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Encodes the input data into a latent space representation.
-        """
-        debug("Input:", x.size())
-        x = torch.relu(self.enc_conv1(x))
-        debug("After enc_conv1:", x.size())
-        x = self.enc_pool1(x)
-        debug("After enc_pool1:", x.size())
-        x = torch.relu(self.enc_conv2(x))
-        debug("After enc_conv2:", x.size())
-        x = self.enc_pool2(x)
-        debug("After enc_pool2:", x.size())
-        x = torch.relu(self.enc_conv3(x))
-        debug("After enc_conv3:", x.size())
-        x = x.view(-1, self.out_channels * 64 * 64)
-        debug("After view:", x.size())
-        x = torch.relu(self.enc_fc1(x))
-        debug("After enc_fc1:", x.size())
-        x = self.enc_fc2(x)
-        debug("After enc_fc2:", x.size())
-        debug("-----------------------")
-        return x
-
-    def decode(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Reconstructs the input data from the latent space representation.
-        """
-        x = torch.relu(self.dec_fc1(x))
-        debug("After dec_fc1:", x.size())
-        x = self.dec_fc2(x)
-        debug("After dec_fc2:", x.size())
-        x = x.view(-1, self.out_channels, 64, 64)
-        debug("After view:", x.size())
-        x = torch.relu(self.dec_conv1(x))
-        debug("After dec_conv1:", x.size())
-        x = self.dec_upsample1(x)
-        debug("After dec_upsample1:", x.size())
-        x = torch.relu(self.dec_conv2(x))
-        debug("After dec_conv2:", x.size())
-        x = self.dec_upsample2(x)
-        debug("After dec_upsample2:", x.size())
-        x = self.dec_conv3(x)
-        debug("After dec_conv3:", x.size())
-        debug("-----------------------")
-        return x
-
-
-def debug(*args: Any, **kwargs: Any) -> None:
-    """
-    Prints debug information if DEBUG is set to True.
-    """
-    if DEBUG:
-        print(*args, **kwargs)
+    def _create_layers(self, layer_configs):
+        layers = []
+        for config in layer_configs:
+            layer_type = getattr(nn, config["type"])
+            if "in_channels" in config and "out_channels" in config:
+                layer = layer_type(config["in_channels"], config["out_channels"])
+            elif "in_features" in config and "out_features" in config:
+                layer = layer_type(config["in_features"], config["out_features"])
+            else:
+                layer = layer_type(**config)
+            layers.append(layer)
+        return layers
