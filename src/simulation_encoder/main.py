@@ -37,6 +37,8 @@ def run_experiment() -> None:
     logger.log(
         f"Training on {len(train_dataset)} examples. Testing on {len(test_dataset)} examples."
     )
+    if VERBOSE:
+        print(f"Training on {len(train_dataset)} examples. Testing on {len(test_dataset)} examples.")
 
     autoencoder = ConvolutionalAutoencoder(
         input_shape=dataset[0].shape, out_channels=16, dim_z=50, logger=logger, verbose=VERBOSE
