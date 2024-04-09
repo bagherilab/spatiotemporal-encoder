@@ -5,7 +5,7 @@ import os
 import tempfile
 from PIL import Image
 
-from simulation_encoder.loader import UnlabeledImageDataset
+from simulation_encoder.loader import PNGLoader
 
 
 class TestUnlabeledImageDataset(unittest.TestCase):
@@ -32,7 +32,7 @@ class TestUnlabeledImageDataset(unittest.TestCase):
         self.temp_dir.cleanup()
 
     def test_get_image_groups_creates_groups(self):
-        dataset = UnlabeledImageDataset(self.temp_dir.name)
+        dataset = PNGLoader(self.temp_dir.name)
         groups = dataset.groups
         self.assertEqual(len(groups), 3)
 
@@ -42,10 +42,25 @@ class TestUnlabeledImageDataset(unittest.TestCase):
             self.assertIn("graph", group)
 
     def test_getitem_returns_correct_shape(self):
-        dataset = UnlabeledImageDataset(self.temp_dir.name)
+        dataset = PNGLoader(self.temp_dir.name)
         tensor = dataset[0]
 
         self.assertEqual(tensor.shape, (3, 10, 10))
+
+    def test_train_test_split_gives_disjoint_sets(self):
+        dataset = PNGLoader(self.temp_dir.name, test_split=0.2, random_seed=123)
+        train_indices = dataset.get_train_indices()
+        test_indices = dataset.get_test_indices()
+
+        expected_test_size = int(len(dataset) * 0.2)
+        expected_train_size = len(dataset) - expected_test_size
+
+        # Assert that the lengths of train and test indices match the expected split
+        self.assertEqual(len(train_indices), expected_train_size)
+        self.assertEqual(len(test_indices), expected_test_size)
+
+        # Assert that there is no overlap between train and test indices
+        self.assertTrue(set(train_indices).isdisjoint(set(test_indices)))
 
     @patch("simulation_encoder.logger.ExperimentLogger")
     def test_missing_image_logging(self, mock_logger):
@@ -61,7 +76,7 @@ class TestUnlabeledImageDataset(unittest.TestCase):
             Image.new = MagicMock(return_value=Image.new("L", (10, 10)))
             Image.new("L", (10, 10)).save(os.path.join(self.temp_dir.name, filename))
 
-        _ = UnlabeledImageDataset(self.temp_dir.name, logger=mock_logger)
+        _ = PNGLoader(self.temp_dir.name, logger=mock_logger)
 
         missing_key = ("CH", "type1", 1, 1)
         missing_images = ["healthy"]

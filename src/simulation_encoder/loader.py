@@ -11,9 +11,9 @@ from torchvision import transforms
 from simulation_encoder.logger import ExperimentLogger
 
 
-class UnlabeledImageDataset(Dataset):
+class PNGLoader(Dataset):
     """
-    Dataset class for loading unlabeled images from a directory.
+    Loader class for loading unlabeled images from a directory.
 
     Parameters
     ----------
@@ -26,14 +26,53 @@ class UnlabeledImageDataset(Dataset):
     """
 
     def __init__(
-        self, image_dir: str, logger: Optional[ExperimentLogger] = None, healthy_flag: bool = True
+        self,
+        image_dir: str,
+        test_split: float = 0.2,
+        logger: Optional[ExperimentLogger] = None,
+        healthy_flag: bool = True,
+        random_seed: int = 42,
     ):
         self.image_dir = image_dir
+        self.test_split = test_split
         self.logger = logger
         self.healthy_flag = healthy_flag
-        self.groups = self._get_image_groups()
+        self.random_seed = random_seed
+        self._get_image_groups()
+        self._split_data()
 
-    def _get_image_groups(self) -> list[dict[str, str]]:
+    def __len__(self) -> int:
+        return len(self.groups)
+
+    def __getitem__(self, idx: int) -> torch.Tensor:
+        group = self.groups[idx]
+        cancer_path = group["cancer"]
+        healthy_path = group.get("healthy", "")
+        graph_path = group["graph"]
+
+        transformation = transforms.Compose([transforms.ToTensor()])
+
+        cancer_tensor = transformation(Image.open(cancer_path).convert("L")).squeeze()
+        graph_tensor = transformation(Image.open(graph_path).convert("L")).squeeze()
+
+        if self.healthy_flag and healthy_path:
+            healthy_tensor = transformation(Image.open(healthy_path).convert("L")).squeeze()
+            return torch.stack((cancer_tensor, healthy_tensor, graph_tensor), dim=0)
+        return torch.stack((cancer_tensor, graph_tensor), dim=0)
+
+    def get_train_indices(self) -> list[int]:
+        """
+        Returns a list of training indices for the dataset
+        """
+        return self._train_indices
+
+    def get_test_indices(self) -> list[int]:
+        """
+        Returns a list of test indices for the dataset
+        """
+        return self._test_indices
+
+    def _get_image_groups(self) -> None:
         """
         Returns groups of images based on the filename format.
         """
@@ -58,43 +97,16 @@ class UnlabeledImageDataset(Dataset):
                     missing_images = [key for key, value in group.items() if value == ""]
                     self.logger.warning(f"Missing images from {group_key}: {missing_images}")
 
-        return list(groups.values())
+        self.groups = list(groups.values())
 
-    @staticmethod
-    def display_tensor(tensor: torch.Tensor, name: str) -> None:
-        """
-        Saves a given tensor as an image
-
-        Parameters
-        ----------
-        tensor : torch.Tensor
-            Tensor to save as an image
-        name : str
-            Name of the file to save the image as
-        """
-        array = np.moveaxis(tensor.detach().numpy() * 255, 0, -1)
-        array = array.squeeze()
-        image = Image.fromarray(array.astype("uint8"))
-        image.save(name)
-
-    def __len__(self) -> int:
-        return len(self.groups)
-
-    def __getitem__(self, idx: int) -> torch.Tensor:
-        group = self.groups[idx]
-        cancer_path = group["cancer"]
-        healthy_path = group.get("healthy", "")
-        graph_path = group["graph"]
-
-        transformation = transforms.Compose([transforms.ToTensor()])
-
-        cancer_tensor = transformation(Image.open(cancer_path).convert("L")).squeeze()
-        graph_tensor = transformation(Image.open(graph_path).convert("L")).squeeze()
-
-        if self.healthy_flag and healthy_path:
-            healthy_tensor = transformation(Image.open(healthy_path).convert("L")).squeeze()
-            return torch.stack((cancer_tensor, healthy_tensor, graph_tensor), dim=0)
-        return torch.stack((cancer_tensor, graph_tensor), dim=0)
+    def _split_data(self, shuffle: bool = True) -> None:
+        n_datapoints = len(self)
+        indices = list(range(n_datapoints))
+        split = int(np.floor(self.test_split * n_datapoints))
+        if shuffle:
+            np.random.seed(self.random_seed)
+            np.random.shuffle(indices)
+        self._train_indices, self._test_indices = indices[split:], indices[:split]
 
     def _parse_filename(self, filename: str) -> tuple[str, str, int, int, str]:
         parts = filename.split("_")
@@ -112,3 +124,20 @@ class UnlabeledImageDataset(Dataset):
                             'context_vasc-type_seed_timepoint_image-type.png' Got: {filename}"
             )
         return context, vasc_type, seed, timepoint, image_type
+
+    @staticmethod
+    def display_tensor(tensor: torch.Tensor, name: str) -> None:
+        """
+        Saves a given tensor as an image
+
+        Parameters
+        ----------
+        tensor : torch.Tensor
+            Tensor to save as an image
+        name : str
+            Name of the file to save the image as
+        """
+        array = np.moveaxis(tensor.detach().numpy() * 255, 0, -1)
+        array = array.squeeze()
+        image = Image.fromarray(array.astype("uint8"))
+        image.save(name)

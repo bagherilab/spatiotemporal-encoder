@@ -3,17 +3,16 @@ from pathlib import Path
 
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.model_selection import train_test_split
 
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 
 # For local imports in the module
 if str(Path(__file__).parent.parent) not in sys.path:
     sys.path.append(str(Path(__file__).parent.parent))
 
 from simulation_encoder.models.cnn import ConvolutionalAutoencoder
-from simulation_encoder.loader import UnlabeledImageDataset
+from simulation_encoder.loader import PNGLoader
 from simulation_encoder.logger import ExperimentLogger
 
 BATCH_SIZE = 10
@@ -27,12 +26,16 @@ def run_experiment() -> None:
     Run a convolutional autoencoder experiment on the ARCADE dataset.
     """
     logger = ExperimentLogger(EXP_NAME)
-    dataset = UnlabeledImageDataset(DATA_DIR, logger=logger, healthy_flag=False)
-    train_data, test_data = train_test_split(dataset, test_size=0.2, random_state=42)
-    print(f"Training on {len(train_data)} examples. Testing on {len(test_data)} examples.")
+    dataset = PNGLoader(DATA_DIR, test_split=0.2, logger=logger, healthy_flag=False)
+    train_dataset = Subset(dataset, dataset.get_train_indices())
+    test_dataset = Subset(dataset, dataset.get_test_indices())
 
-    train_loader = DataLoader(train_data, batch_size=BATCH_SIZE, shuffle=True)
-    test_loader = DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
+
+    logger.log(
+        f"Training on {len(train_dataset)} examples. Testing on {len(test_dataset)} examples."
+    )
 
     autoencoder = ConvolutionalAutoencoder(
         input_shape=dataset[0].shape,
@@ -58,14 +61,12 @@ def run_experiment() -> None:
 
     # Display sample images through trainer
     inputs = next(iter(test_loader))
-    UnlabeledImageDataset.display_tensor(inputs[0][0], name="figures/cancer_input.png")
-    # UnlabeledImageDataset.display_tensor(inputs[1], name="figures/healthy_input.png")
-    UnlabeledImageDataset.display_tensor(inputs[0][1], name="figures/vasc_input.png")
+    PNGLoader.display_tensor(inputs[0][0], name="figures/cancer_input.png")
+    PNGLoader.display_tensor(inputs[0][1], name="figures/vasc_input.png")
 
     out = autoencoder.forward(inputs[0])
-    UnlabeledImageDataset.display_tensor(out[0][0], name="figures/cancer_output.png")
-    # UnlabeledImageDataset.display_tensor(out[0][1], name="figures/healthy_output.png")
-    UnlabeledImageDataset.display_tensor(out[0][1], name="figures/vasc_output.png")
+    PNGLoader.display_tensor(out[0][0], name="figures/cancer_output.png")
+    PNGLoader.display_tensor(out[0][1], name="figures/vasc_output.png")
 
 
 def plot_loss(loss: list[float], vloss: list[float]) -> None:
