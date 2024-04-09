@@ -28,9 +28,10 @@ def main() -> None:
 
     runner = Runner(exp_name, verbose)
 
-    for model_yaml in os.listdir("src/conf/models"):
+    model_yaml_dir = "src/conf/models"
+    for model_yaml in os.listdir(model_yaml_dir):
         if model_yaml.endswith(".yaml"):
-            runner.add_model(model_yaml)
+            runner.add_model(f"{model_yaml_dir}/{model_yaml}")
 
     runner.add_dataset(data_dir, test_split, batch_size)
     runner.run_models()

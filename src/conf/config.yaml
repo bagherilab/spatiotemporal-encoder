@@ -1,4 +1,4 @@
-exp_name: "autoencoder2channel"
+experiment_name: "autoencoder2channel"
 data_dir: "data/ARCADE"
 model_configs:
   batch_size: 10

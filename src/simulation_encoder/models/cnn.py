@@ -74,19 +74,19 @@ class BaseCNN(nn.Module):
                 val_losses.append(val_loss)
 
             if self.verbose:
-                print(f"Epoch {e+1}/{epochs}: Train loss: {epoch_loss}, Val loss: {val_loss}")
+                msg = f"Epoch {e+1}/{epochs}: Train loss: {epoch_loss}"
+                print(msg)
 
             if (e + 1) % 5 == 0:
                 if self.logger:
-                    self.logger.log(
-                        f"Epoch {e+1}/{epochs}: Train loss: {epoch_loss}, Val loss: {val_loss}"
-                    )
+                    self.logger.log(msg)
 
         if val_loader:
+            msg = f"Best validation loss: {best_vloss}"
             if self.logger:
-                self.logger.log(f"Best validation loss: {best_vloss}")
+                self.logger.log(msg)
             if self.verbose:
-                print(f"Best validation loss: {best_vloss}")
+                print(msg)
 
         return (train_losses, val_losses)
 
@@ -199,15 +199,33 @@ class CAE(BaseCNN):
         x = self.decoder(x)
         return x
 
-    def _create_layers(self, layer_configs):
+    def _create_layers(self, layer_configs: dict[Any, Any]) -> list[nn.Module]:
         layers = []
+        torch_layer_types = [
+            "Conv2d",
+            "ConvTranspose2d",
+            "Linear",
+            "MaxPool2d",
+            "UpsamplingBilinear2d",
+            "Flatten",
+        ]
         for config in layer_configs:
-            layer_type = getattr(nn, config["type"])
-            if "in_channels" in config and "out_channels" in config:
-                layer = layer_type(config["in_channels"], config["out_channels"])
-            elif "in_features" in config and "out_features" in config:
-                layer = layer_type(config["in_features"], config["out_features"])
-            else:
+            layer_type = config.pop("type")
+            if layer_type in torch_layer_types:
+                layer_type = getattr(nn, layer_type)
+                activation = config.pop("activation", None)
                 layer = layer_type(**config)
-            layers.append(layer)
+                layers.append(layer)
+                if activation:
+                    activation = getattr(nn, activation)
+                    layers.append(activation())
+
+            elif layer_type == "Unflatten":
+                layer_type = getattr(nn, layer_type)
+                shape = config.pop("shape")
+                layer = layer_type(1, tuple(shape))
+                layers.append(layer)
+            else:
+                raise ValueError(f"Layer type {layer_type} not recognized")
+
         return layers

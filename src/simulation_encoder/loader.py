@@ -61,7 +61,7 @@ class PNGLoader(Dataset):
             healthy_tensor = transformation(Image.open(healthy_path).convert("L")).squeeze()
             return torch.stack((cancer_tensor, healthy_tensor, graph_tensor), dim=0)
         return torch.stack((cancer_tensor, graph_tensor), dim=0)
-    
+
     def get_train_data(self) -> DataLoader:
         """
         Returns training DataLoader
