@@ -16,7 +16,8 @@ from simulation_encoder.loader import PNGLoader
 from simulation_encoder.logger import ExperimentLogger
 
 BATCH_SIZE = 10
-LOAD = False
+LOAD_MODEL = False
+VERBOSE = True
 EXP_NAME = "autoencoder2d"
 DATA_DIR = "data/ARCADE"
 
@@ -38,12 +39,9 @@ def run_experiment() -> None:
     )
 
     autoencoder = ConvolutionalAutoencoder(
-        input_shape=dataset[0].shape,
-        out_channels=16,
-        dim_z=50,
-        logger=logger,
+        input_shape=dataset[0].shape, out_channels=16, dim_z=50, logger=logger, verbose=VERBOSE
     )
-    if LOAD:
+    if LOAD_MODEL:
         autoencoder.load_state_dict(torch.load(f"saved_models/{EXP_NAME}.pth"))
 
     optimizer = torch.optim.Adam(autoencoder.parameters())

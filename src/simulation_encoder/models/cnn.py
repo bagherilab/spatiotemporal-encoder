@@ -17,11 +17,14 @@ class BaseCNN(nn.Module):
     ----------
     logger : Logger, optional
         Logger object for logging, by default None
+    verbose : bool
+        Boolean to control if training information is printed to the console
     """
 
-    def __init__(self, logger: Optional[ExperimentLogger] = None):
+    def __init__(self, logger: Optional[ExperimentLogger] = None, verbose: bool = True):
         super().__init__()
         self.logger = logger
+        self.verbose = verbose
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -75,10 +78,14 @@ class BaseCNN(nn.Module):
                     self.logger.log(
                         f"Epoch {e+1}/{epochs}: Train loss: {epoch_loss}, Val loss: {val_loss}"
                     )
-                print(f"Epoch {e+1}/{epochs}: Train loss: {epoch_loss}, Val loss: {val_loss}")
+                if self.verbose:
+                    print(f"Epoch {e+1}/{epochs}: Train loss: {epoch_loss}, Val loss: {val_loss}")
 
-        if self.logger and val_loader:
-            self.logger.log(f"Best validation loss: {best_vloss}")
+        if val_loader:
+            if self.logger:
+                self.logger.log(f"Best validation loss: {best_vloss}")
+            if self.verbose:
+                print(f"Best validation loss: {best_vloss}")
 
         return (train_losses, val_losses)
 
@@ -102,7 +109,6 @@ class BaseCNN(nn.Module):
         float
             Average loss for the epoch
         """
-
         # Sets dropout and batch normalization layers to training mode
         self.train()
 
@@ -136,7 +142,6 @@ class BaseCNN(nn.Module):
         float
             Average validation loss for the epoch
         """
-
         # Sets dropout and batch normalization layers to evaluation mode
         self.eval()
 
@@ -175,8 +180,9 @@ class ConvolutionalAutoencoder(BaseCNN):
         out_channels: int = 16,
         dim_z: int = 2,
         logger: Optional[ExperimentLogger] = None,
+        verbose: bool = True,
     ):
-        super().__init__(logger=logger)
+        super().__init__(logger=logger, verbose=verbose)
 
         self.input_shape = input_shape
         self.dim_z = dim_z
