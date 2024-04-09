@@ -1,8 +1,7 @@
 # Data
-data/
-*.png
-
-logs/
+data/*
+logs/*
+figures/*
 archive/
 
 # Editors
