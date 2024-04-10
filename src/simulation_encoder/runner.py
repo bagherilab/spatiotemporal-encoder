@@ -58,7 +58,7 @@ class Runner:
             healthy_flag=healthy_flag,
         )
 
-    def run_models(self) -> None:
+    def run_models(self, num_epochs: int) -> None:
         """
         Runs all models currently in runner
         """
@@ -73,10 +73,11 @@ class Runner:
             print(msg)
 
         for model_name, model in self.models.items():
+            print(f"Training {model_name}")
             self.logger.log("----------------------------")
             self.logger.log(f"Training model {model_name}")
             self.logger.log(f"Model: {model}")
-            self._run_model(model_name, model)
+            self._run_model(model_name, model, num_epochs)
 
     def save_model(self, model_name: str, model: CAE) -> None:
         """
@@ -119,7 +120,7 @@ class Runner:
         plt.ylabel("Loss")
         plt.savefig(f"figures/{name}.png")
 
-    def _run_model(self, model_name: str, model: CAE) -> None:
+    def _run_model(self, model_name: str, model: CAE, num_epochs: int) -> None:
         """
         Run a convolutional autoencoder on the ARCADE dataset.
         """
@@ -130,7 +131,11 @@ class Runner:
         loss_fn = torch.nn.MSELoss()
 
         losses, val_losses = model.fit(
-            train_loader, epochs=10, optimizer=optimizer, loss_fn=loss_fn, val_loader=test_loader
+            train_loader,
+            epochs=num_epochs,
+            optimizer=optimizer,
+            loss_fn=loss_fn,
+            val_loader=test_loader,
         )
 
         self.losses[model_name] = losses

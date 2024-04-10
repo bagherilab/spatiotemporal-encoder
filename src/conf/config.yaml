@@ -1,7 +1,10 @@
-experiment_name: "autoencoder2channel"
-data_dir: "data/ARCADE"
+experiment_name: small_autoencoder
+data_dir: data/ARCADE
+models:
+  - small_cnn
 model_configs:
-  batch_size: 10
+  num_epochs: 3
+  batch_size: 16
   test_split: 0.2
   load_prev_model: false
   prev_model_path: ""

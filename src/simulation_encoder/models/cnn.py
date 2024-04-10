@@ -70,7 +70,7 @@ class BaseCNN(nn.Module):
 
             if val_loader:
                 val_loss = self.eval_one_epoch(val_loader, loss_fn)
-                val_loss = min(val_loss, best_vloss)
+                best_vloss = min(val_loss, best_vloss)
                 val_losses.append(val_loss)
 
             if self.verbose:
@@ -82,7 +82,7 @@ class BaseCNN(nn.Module):
                     self.logger.log(msg)
 
         if val_loader:
-            msg = f"Best validation loss: {best_vloss}"
+            msg = f"Best batch validation loss: {best_vloss}"
             if self.logger:
                 self.logger.log(msg)
             if self.verbose:
