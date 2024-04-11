@@ -7,7 +7,11 @@ from simulation_encoder.runner import Runner
 
 
 class TestRunner(unittest.TestCase):
-    def test_save_results_formats_correctly(self):
+    @patch("simulation_encoder.logger.ExperimentLogger")
+    @patch("builtins.open")
+    @patch("json.dump")
+    def test_save_results_formats_correctly(self, mock_dump, mock_open, mock_logger):
+        mock_logger.log = MagicMock()
         runner = Runner("test_experiment_name")
         runner.models = {"model1": None, "model2": None}
         runner.losses = {
@@ -37,12 +41,9 @@ class TestRunner(unittest.TestCase):
                 },
             }
         }
-        with patch("builtins.open", mock_open()) as mock_file, patch("json.dump") as mock_dump:
-            runner.save_results()
-            # Get the actual value passed to json.dump() in the call
-            actual_call_args = mock_dump.call_args[0][0]
-            # Compare only the values of the models and losses dictionaries
-            self.assertEqual(actual_call_args["models"], expected_results["models"])
+        runner.save_results()
+        actual_call_args = mock_dump.call_args[0][0]
+        self.assertEqual(actual_call_args["models"], expected_results["models"])
 
 
 if __name__ == "__main__":
