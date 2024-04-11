@@ -3,7 +3,8 @@
 clean: # clean all build, python, and testing files
 	rm -fr build/
 	rm -fr dist/
-	rm -rf logs/
+	rm -rf logs/*
+	rm -rf results/*
 	rm -fr .eggs/
 	find . -name '*.egg-info' -exec rm -fr {} +
 	find . -name '*.egg' -exec rm -f {} +
