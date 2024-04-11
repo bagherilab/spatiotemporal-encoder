@@ -120,15 +120,15 @@ class Runner:
     def plot_loss(self) -> None:
         """Plot the loss and validation loss against epochs."""
         for model_name, _ in self.models.items():
-            plt.plot(np.arange(len(self.losses[model_name])), self.losses[model_name])
-            plt.plot(np.arange(len(self.val_losses[model_name])), self.val_losses[model_name])
+            plt.plot(np.arange(len(self.losses[model_name])), self.losses[model_name][0])
+            plt.plot(np.arange(len(self.val_losses[model_name])), self.val_losses[model_name][0])
             plt.legend(["Train loss", "Validation loss"])
             plt.xlabel("Epoch")
             plt.ylabel("Loss")
-            plt.savefig(f"figures/{self.exp_name}_{model_name}.png")
+            plt.savefig(f"figures/loss_{self.exp_name}_{model_name}.png")
 
     def _train_model(self, model_name: str, model: CAE, num_epochs: int) -> None:
-        for train_loader, val_loader in self.dataset.get_cv_splits(k_folds=3):
+        for train_loader, val_loader in self.dataset.get_cv_splits(k_folds=2):
             self.losses[model_name] = []
             self.val_losses[model_name] = []
             optimizer = torch.optim.Adam(model.parameters())

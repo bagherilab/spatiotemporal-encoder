@@ -35,6 +35,7 @@ def main() -> None:
     runner.add_models(model_files)
     runner.add_dataset(data_dir, test_split, batch_size)
     runner.train_models(num_epochs=num_epochs)
+    runner.eval_models()
     runner.plot_loss()
     runner.save_results()
 

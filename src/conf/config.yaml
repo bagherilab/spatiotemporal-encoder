@@ -3,7 +3,7 @@ data_dir: data/ARCADE
 models:
   - small_cnn
 model_configs:
-  num_epochs: 3
+  num_epochs: 20
   batch_size: 16
   test_split: 0.2
   load_prev_model: false
