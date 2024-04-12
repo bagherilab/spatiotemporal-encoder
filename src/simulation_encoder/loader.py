@@ -31,8 +31,10 @@ class PNGLoader(Dataset):
         test_split: float = 0.2,
         batch_size: int = 10,
         logger: Optional[ExperimentLogger] = None,
-        healthy_flag: bool = True,
+        healthy_flag: bool = False,
         random_seed: int = 42,
+        indices_file: Optional[str] = None,
+        uuid: Optional[str] = None,
     ):
         self.image_dir = image_dir
         self.test_split = test_split
@@ -40,8 +42,14 @@ class PNGLoader(Dataset):
         self.logger = logger
         self.healthy_flag = healthy_flag
         self.random_seed = random_seed
+        self.indices_file = indices_file
+        self.uuid = uuid
         self._get_image_groups()
-        self._split_data()
+        
+        if indices_file and os.path.exists(indices_file):
+            self._load_from_indices(indices_file)
+        else:
+            self._split_data()
 
     def __len__(self) -> int:
         return len(self.groups)
@@ -64,17 +72,17 @@ class PNGLoader(Dataset):
 
     def get_train_dataloader(self) -> DataLoader:
         """Returns training DataLoader"""
-        train_dataset = Subset(self, self._get_train_indices())
+        train_dataset = Subset(self, self._train_indices)
         return DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
 
     def get_test_dataloader(self) -> DataLoader:
         """Returns test DataLoader"""
-        test_dataset = Subset(self, self._get_test_indices())
+        test_dataset = Subset(self, self._test_indices)
         return DataLoader(test_dataset, batch_size=self.batch_size, shuffle=False)
 
     def get_cv_splits(self, k_folds: int) -> list[tuple[DataLoader, DataLoader]]:
         """Returns list of k-folds of training and validation DataLoader"""
-        indices = self._get_train_indices()
+        indices = self._train_indices
         np.random.seed(self.random_seed)
         np.random.shuffle(indices)
         fold_size = len(indices) // k_folds
@@ -93,21 +101,22 @@ class PNGLoader(Dataset):
 
         return folds
 
+    def get_timepoints(self, idx: int) -> int:
+        """Returns timepoint of the image at the given index"""
+        group = self.groups[idx]
+        file_name = group["cancer"]
+        timepoint = int(file_name.split("_")[3])
+        return timepoint
+    
     @property
     def n_train(self) -> int:
         """Number of training points"""
-        return len(self._get_train_indices())
+        return len(self._train_indices)
 
     @property
     def n_test(self) -> int:
         """Number of test points"""
-        return len(self._get_test_indices())
-
-    def _get_train_indices(self) -> list[int]:
-        return self._train_indices
-
-    def _get_test_indices(self) -> list[int]:
-        return self._test_indices
+        return len(self._test_indices)
 
     def _get_image_groups(self) -> None:
         """Returns groups of images based on the filename format."""
@@ -143,6 +152,21 @@ class PNGLoader(Dataset):
             np.random.shuffle(indices)
         self._train_indices, self._test_indices = indices[split:], indices[:split]
 
+        with open(f"src/simulation_encoder/train_test_indices/{self.uuid}.txt", 'w', encoding='utf-8') as f:
+            f.write(f"train: {self._train_indices}\n")
+            f.write(f"test: {self._test_indices}\n")
+
+    def _load_from_indices(self, indices_file: str) -> None:
+        with open(indices_file, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+            for line in lines:
+                if line.startswith("train:"):
+                    numbers_str = line.split("[")[1].split("]")[0]
+                    self._train_indices = [int(num) for num in numbers_str.split(",")]
+                elif line.startswith("test:"):
+                    numbers_str = line.split("[")[1].split("]")[0]
+                    self._test_indices = [int(num) for num in numbers_str.split(",")]
+
     def _parse_filename(self, filename: str) -> tuple[str, str, int, int, str]:
         parts = filename.split("_")
         context = parts[0]  # 'CH' for healthy tissue or 'C' colony
@@ -159,20 +183,3 @@ class PNGLoader(Dataset):
                             'context_vasc-type_seed_timepoint_image-type.png' Got: {filename}"
             )
         return context, vasc_type, seed, timepoint, image_type
-
-    @staticmethod
-    def display_tensor(tensor: torch.Tensor, name: str) -> None:
-        """
-        Saves a given tensor as an image
-
-        Parameters
-        ----------
-        tensor : torch.Tensor
-            Tensor to save as an image
-        name : str
-            Name of the file to save the image as
-        """
-        array = np.moveaxis(tensor.detach().numpy() * 255, 0, -1)
-        array = array.squeeze()
-        image = Image.fromarray(array.astype("uint8"))
-        image.save(name)

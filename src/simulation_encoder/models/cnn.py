@@ -6,8 +6,6 @@ from torch.utils.data import DataLoader
 
 from simulation_encoder.logger import ExperimentLogger
 
-DEBUG = False
-
 
 class BaseCNN(nn.Module):
     """
@@ -187,9 +185,27 @@ class CAE(BaseCNN):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Performs encoding and decoding to recreate original tensor"""
-        x = self.encoder(x)
-        x = self.decoder(x)
+        x = self.encode(x)
+        x = self.decode(x)
         return x
+    
+    def encode(self, x: torch.Tensor) -> torch.Tensor:
+        """Encodes input tensor"""
+        return self.encoder(x)
+    
+    def decode(self, x: torch.Tensor) -> torch.Tensor:
+        """Decodes input tensor"""
+        return self.decoder(x)
+    
+    def encode_loader(self, dataloader: DataLoader) -> torch.Tensor:
+        """Encodes a loader of data"""
+        self.eval()
+        encoded = []
+        with torch.no_grad():
+            for inputs in dataloader:
+                encoded.append(self.encode(inputs))
+        
+        return torch.cat(encoded, dim=0)
 
     def _create_layers(self, layer_configs: dict[Any, Any]) -> list[nn.Module]:
         layers = []

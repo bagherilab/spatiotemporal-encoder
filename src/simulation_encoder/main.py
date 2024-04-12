@@ -18,7 +18,6 @@ def main() -> None:
     with open("src/conf/config.yaml", "r", encoding="utf-8") as file:
         config = yaml.safe_load(file)
 
-    exp_name = config["experiment_name"]
     data_dir = config["data_dir"]
 
     model_configs = config["model_configs"]
@@ -31,13 +30,14 @@ def main() -> None:
 
     model_files = get_model_files(models)
 
-    runner = Runner(exp_name, verbose)
+    runner = Runner(verbose)
     runner.add_models(model_files)
     runner.add_dataset(data_dir, test_split, batch_size)
-    runner.train_models(num_epochs=num_epochs)
+    runner.train_models(num_epochs)
     runner.eval_models()
     runner.plot_loss()
     runner.save_results()
+    runner.save_models()
 
 
 def get_model_files(models: list[str]) -> list[str]:

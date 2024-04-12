@@ -1,5 +1,6 @@
 import os
 import json
+import uuid
 from typing import Any
 
 import yaml
@@ -25,16 +26,16 @@ class Runner:
         Controls if model training is output to console
     """
 
-    def __init__(self, exp_name: str, verbose: bool = False) -> None:
+    def __init__(self, verbose: bool = False) -> None:
         self.models: dict[str, CAE] = {}
         self.dataset: PNGLoader = None
-        self.logger = ExperimentLogger(exp_name)
+        self.verbose = verbose
+        self._UUID = uuid.uuid4()
+        self.logger = ExperimentLogger(uuid=self._UUID)
+
         self.losses: dict[str, list[float]] = {}
         self.val_losses: dict[str, list[float]] = {}
         self.test_losses: dict[str, float] = {}
-
-        self.exp_name = exp_name
-        self.verbose = verbose
 
     def add_models(self, model_files: list[str]) -> None:
         """Add models to be trained by the runner"""
@@ -59,6 +60,7 @@ class Runner:
             batch_size=batch_size,
             logger=self.logger,
             healthy_flag=healthy_flag,
+            uuid=self._UUID,
         )
 
     def train_models(self, num_epochs: int) -> None:
@@ -99,10 +101,11 @@ class Runner:
             self.logger.log(f"Evaluating model {model_name}")
             self._eval_model(model_name, model)
 
-    def save_model(self, model_name: str, model: CAE) -> None:
+    def save_models(self) -> None:
         """Saves trained model parameters"""
-        self.logger.log(f"Trained model saved at saved_models/{self.exp_name}-{model_name}.pth")
-        torch.save(model.state_dict(), f"saved_models/{self.exp_name}-{model_name}.pth")
+        for model_name, model in self.models.items():
+            torch.save(model.state_dict(), f"saved_models/{model_name}_{self._UUID}.pth")
+            self.logger.log(f"Trained model saved at saved_models/{model_name}_{self._UUID}.pth")
 
     def save_results(self) -> None:
         """Writes the results of running the models to disk"""
@@ -114,18 +117,18 @@ class Runner:
                 "test_loss": self.test_losses[model_name],
             }
 
-        with open(f"results/{self.exp_name}.json", "w", encoding="utf-8") as r_file:
+        with open(f"results/{self._UUID}.json", "w", encoding="utf-8") as r_file:
             json.dump(results, r_file, indent=4)
 
     def plot_loss(self) -> None:
         """Plot the loss and validation loss against epochs."""
         for model_name, _ in self.models.items():
-            plt.plot(np.arange(len(self.losses[model_name])), self.losses[model_name][0])
-            plt.plot(np.arange(len(self.val_losses[model_name])), self.val_losses[model_name][0])
+            plt.plot(np.arange(len(self.losses[model_name][0])), self.losses[model_name][0])
+            plt.plot(np.arange(len(self.val_losses[model_name][0])), self.val_losses[model_name][0])
             plt.legend(["Train loss", "Validation loss"])
             plt.xlabel("Epoch")
             plt.ylabel("Loss")
-            plt.savefig(f"figures/loss_{self.exp_name}_{model_name}.png")
+            plt.savefig(f"figures/loss_{model_name}_{self._UUID}.png")
 
     def _train_model(self, model_name: str, model: CAE, num_epochs: int) -> None:
         for train_loader, val_loader in self.dataset.get_cv_splits(k_folds=2):

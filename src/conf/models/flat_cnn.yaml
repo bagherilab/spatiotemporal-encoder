@@ -31,10 +31,10 @@ architecture:
       activation: ReLU
     - type: Linear
       in_features: 32
-      out_features: 2
+      out_features: 16
   decoder_layers:
     - type: Linear
-      in_features: 2
+      in_features: 16
       out_features: 32
       activation: ReLU
     - type: Linear

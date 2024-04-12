@@ -2,7 +2,9 @@
 data/*
 logs/*
 figures/*
+results/*
 archive/
+
 
 *.ipynb
 

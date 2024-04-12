@@ -1,9 +1,11 @@
-experiment_name: small_autoencoder
 data_dir: data/ARCADE
 models:
-  - small_cnn
+  - 2d
+  - 10d
+  - 25d
+  - 100d
 model_configs:
-  num_epochs: 20
+  num_epochs: 8
   batch_size: 16
   test_split: 0.2
   load_prev_model: false
