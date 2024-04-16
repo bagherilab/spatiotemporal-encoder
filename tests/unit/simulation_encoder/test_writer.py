@@ -1,10 +1,7 @@
 import unittest
-from unittest.mock import patch, mock_open, MagicMock
-
-import json
+from unittest.mock import patch, MagicMock
 
 from simulation_encoder.writer import Writer
-from simulation_encoder.runner import Runner
 
 
 class TestWriter(unittest.TestCase):
