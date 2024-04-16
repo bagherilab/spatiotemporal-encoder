@@ -76,7 +76,7 @@ class Runner:
             print(test_msg)
 
         for model_name, model in self.models.items():
-            msg = f"---------------- {model_name} ----------------"
+            msg = f"------------------- {model_name} -------------------"
             self.logger.log(msg)
             if self.verbose:
                 print(msg)
@@ -84,7 +84,6 @@ class Runner:
             self._train_model(model_name, model, num_epochs)
             self._eval_model(model_name, model)
             self._save_model(model_name, model)
-            self.writer.write_loss_plots(model_name, self.losses)
 
     def _train_model(self, model_name: str, model: CAE, num_epochs: int) -> None:
         """Trains model on dataset"""
@@ -104,11 +103,10 @@ class Runner:
 
             self.losses[model_name]["train_loss"].append(losses)
             self.losses[model_name]["val_loss"].append(val_losses)
-            break # Only train on first fold
-        
+            break  # Only train on first fold
 
     def _eval_model(self, model_name: str, model: CAE) -> None:
-        """Evaluates all models currently in runner"""    
+        """Evaluates all models currently in runner"""
         test_loader = self.dataset.get_test_dataloader()
         loss_fn = torch.nn.MSELoss()
         test_loss = model.eval_one_epoch(test_loader, loss_fn)

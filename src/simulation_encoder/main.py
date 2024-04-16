@@ -45,5 +45,6 @@ def get_model_files(models: list[str]) -> list[str]:
         model_files.append(f"{MODEL_YAML_DIR}/{model_yaml}")
     return model_files
 
+
 if __name__ == "__main__":
     main()

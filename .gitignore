@@ -1,11 +1,9 @@
 # Project specific
 data/*
 logs/*
-figures/*
 results/*
 saved_models/*
 archive/
-
 
 *.ipynb
 

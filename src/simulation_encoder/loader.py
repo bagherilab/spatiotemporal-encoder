@@ -48,7 +48,7 @@ class PNGLoader(Dataset):
         self.healthy_flag = healthy_flag
         self.indices_file = indices_file
         self.random_seed = random_seed
-        
+
         self._get_image_groups()
 
         if indices_file and os.path.exists(indices_file):

@@ -1,11 +1,11 @@
 import os
 import json
-import numpy as np
 import matplotlib.pyplot as plt
 
 
 class Writer:
     """Class for writing information to disk"""
+
     def __init__(self, results_dir: str = "results/", uuid: str = "none"):
         self.uuid = uuid
         self.results_path = os.path.join(results_dir, str(self.uuid))
@@ -37,12 +37,14 @@ class Writer:
         with open(indices_path, "w", encoding="utf-8") as i_file:
             json.dump(indices, i_file, indent=4)
 
-    def write_loss_plots(self, model_name: str, losses: dict[str, dict[str, list[float]]]) -> None:
+    def write_loss_plots(
+        self, model_name: str, losses: dict[str, dict[str, list[list[float]]]]
+    ) -> None:
         """Saves plots of the training and validation loss for each model"""
         train_loss = losses[model_name]["train_loss"][-1]
         val_loss = losses[model_name]["val_loss"][-1]
-        plt.plot(np.arange(len(train_loss)), train_loss)
-        plt.plot(np.arange(len(val_loss)), val_loss)
+        plt.plot(range(len(train_loss)), train_loss)
+        plt.plot(range(len(val_loss)), val_loss)
         plt.legend(["Train loss", "Validation loss"])
         plt.xlabel("Epoch")
         plt.ylabel("Loss")
