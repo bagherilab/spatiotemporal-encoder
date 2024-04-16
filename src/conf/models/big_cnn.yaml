@@ -1,0 +1,83 @@
+architecture:
+  encoder_layers:
+    - type: Conv2d
+      in_channels: 2
+      out_channels: 32
+      kernel_size: 3
+      padding: 1
+      activation: ReLU
+    - type: MaxPool2d
+      kernel_size: 2
+      stride: 2
+    - type: Conv2d
+      in_channels: 32
+      out_channels: 16
+      kernel_size: 3
+      padding: 1
+      activation: ReLU
+    - type: MaxPool2d
+      kernel_size: 2
+      stride: 2
+    - type: Conv2d
+      in_channels: 16
+      out_channels: 8
+      kernel_size: 3
+      padding: 1
+      activation: ReLU
+    - type: MaxPool2d
+      kernel_size: 2
+      stride: 2
+    - type: Conv2d
+      in_channels: 8
+      out_channels: 4
+      kernel_size: 3
+      padding: 1
+      activation: ReLU
+    - type: Flatten
+    - type: Linear
+      in_features: 4096
+      out_features: 32
+      activation: ReLU
+    - type: Linear
+      in_features: 32
+      out_features: 16
+  decoder_layers:
+    - type: Linear
+      in_features: 16
+      out_features: 32
+      activation: ReLU
+    - type: Linear
+      in_features: 32
+      out_features: 4096
+      activation: ReLU
+    - type: Unflatten
+      shape: [4, 32, 32]
+    - type: ConvTranspose2d
+      in_channels: 4
+      out_channels: 8
+      kernel_size: 3
+      padding: 1
+      activation: ReLU
+    - type: UpsamplingBilinear2d
+      scale_factor: 2
+    - type: ConvTranspose2d
+      in_channels: 8
+      out_channels: 16
+      kernel_size: 3
+      padding: 1
+      activation: ReLU
+    - type: UpsamplingBilinear2d
+      scale_factor: 2
+    - type: ConvTranspose2d
+      in_channels: 16
+      out_channels: 32
+      kernel_size: 3
+      padding: 1
+      activation: ReLU
+    - type: UpsamplingBilinear2d
+      scale_factor: 2
+    - type: ConvTranspose2d
+      in_channels: 32
+      out_channels: 2
+      kernel_size: 3
+      padding: 1

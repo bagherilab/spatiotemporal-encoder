@@ -1,17 +1,13 @@
 import os
-import json
 import uuid
-from typing import Any
 
 import yaml
-import numpy as np
-import matplotlib.pyplot as plt
-
 import torch
 
 from simulation_encoder.models.cnn import CAE
 from simulation_encoder.loader import PNGLoader
 from simulation_encoder.logger import ExperimentLogger
+from simulation_encoder.writer import Writer
 
 
 class Runner:
@@ -31,11 +27,9 @@ class Runner:
         self.dataset: PNGLoader = None
         self.verbose = verbose
         self._UUID = uuid.uuid4()
+        self.writer = Writer(uuid=self._UUID)
         self.logger = ExperimentLogger(uuid=self._UUID)
-
-        self.losses: dict[str, list[float]] = {}
-        self.val_losses: dict[str, list[float]] = {}
-        self.test_losses: dict[str, float] = {}
+        self.losses: dict[str, dict[str, list[float]]] = {}
 
     def add_models(self, model_files: list[str]) -> None:
         """Add models to be trained by the runner"""
@@ -59,6 +53,7 @@ class Runner:
             test_split=test_split,
             batch_size=batch_size,
             logger=self.logger,
+            writer=self.writer,
             healthy_flag=healthy_flag,
             uuid=self._UUID,
         )
@@ -82,6 +77,10 @@ class Runner:
             self.logger.log(f"Training model {model_name}")
             self.logger.log(f"Model: {model}")
             self._train_model(model_name, model, num_epochs)
+            self.save_model(model_name, model)
+
+            self.writer.write_results(model_name, self.losses)
+            self.writer.write_loss_plots(model_name, self.losses)
 
     def eval_models(self) -> None:
         """Evaluates all models currently in runner"""
@@ -101,39 +100,15 @@ class Runner:
             self.logger.log(f"Evaluating model {model_name}")
             self._eval_model(model_name, model)
 
-    def save_models(self) -> None:
+    def save_model(self, model_name: str, model: CAE) -> None:
         """Saves trained model parameters"""
-        for model_name, model in self.models.items():
-            torch.save(model.state_dict(), f"saved_models/{model_name}_{self._UUID}.pth")
-            self.logger.log(f"Trained model saved at saved_models/{model_name}_{self._UUID}.pth")
-
-    def save_results(self) -> None:
-        """Writes the results of running the models to disk"""
-        results: dict[str, Any] = {"models": {}}
-        for model_name, _ in self.models.items():
-            results["models"][model_name] = {
-                "train_loss": self.losses[model_name],
-                "val_loss": self.val_losses[model_name],
-                "test_loss": self.test_losses[model_name],
-            }
-
-        with open(f"results/{self._UUID}.json", "w", encoding="utf-8") as r_file:
-            json.dump(results, r_file, indent=4)
-
-    def plot_loss(self) -> None:
-        """Plot the loss and validation loss against epochs."""
-        for model_name, _ in self.models.items():
-            plt.plot(np.arange(len(self.losses[model_name][0])), self.losses[model_name][0])
-            plt.plot(np.arange(len(self.val_losses[model_name][0])), self.val_losses[model_name][0])
-            plt.legend(["Train loss", "Validation loss"])
-            plt.xlabel("Epoch")
-            plt.ylabel("Loss")
-            plt.savefig(f"figures/loss_{model_name}_{self._UUID}.png")
+        torch.save(model.state_dict(), f"saved_models/{model_name}_{self._UUID}.pth")
+        self.logger.log(f"Trained model saved at saved_models/{model_name}_{self._UUID}.pth")
 
     def _train_model(self, model_name: str, model: CAE, num_epochs: int) -> None:
         for train_loader, val_loader in self.dataset.get_cv_splits(k_folds=2):
-            self.losses[model_name] = []
-            self.val_losses[model_name] = []
+            self.losses[model_name]["train_loss"] = []
+            self.losses[model_name]["val_loss"] = []
             optimizer = torch.optim.Adam(model.parameters())
             loss_fn = torch.nn.MSELoss()
 
@@ -145,14 +120,14 @@ class Runner:
                 val_loader=val_loader,
             )
 
-            self.losses[model_name].append(losses)
-            self.val_losses[model_name].append(val_losses)
+            self.losses[model_name]["train_loss"].append(losses)
+            self.losses[model_name]["val_loss"].append(val_losses)
 
     def _eval_model(self, model_name: str, model: CAE) -> None:
         test_loader = self.dataset.get_test_dataloader()
         loss_fn = torch.nn.MSELoss()
         test_loss = model.eval_one_epoch(test_loader, loss_fn)
-        self.test_losses[model_name] = test_loss
+        self.losses[model_name]["test_loss"] = test_loss
         self.logger.log(f"Test loss for {model_name}: {test_loss}")
         if self.verbose:
             print(f"Test loss for {model_name}: {test_loss}")

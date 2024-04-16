@@ -19,14 +19,13 @@ def main() -> None:
         config = yaml.safe_load(file)
 
     data_dir = config["data_dir"]
-
+    models = config["models"]
     model_configs = config["model_configs"]
+
     num_epochs = model_configs["num_epochs"]
     batch_size = model_configs["batch_size"]
     test_split = model_configs["test_split"]
     verbose = model_configs["verbose"]
-
-    models = config["models"]
 
     model_files = get_model_files(models)
 
@@ -35,9 +34,6 @@ def main() -> None:
     runner.add_dataset(data_dir, test_split, batch_size)
     runner.train_models(num_epochs)
     runner.eval_models()
-    runner.plot_loss()
-    runner.save_results()
-    runner.save_models()
 
 
 def get_model_files(models: list[str]) -> list[str]:

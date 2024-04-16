@@ -1,4 +1,5 @@
 import os
+import json
 from typing import Optional
 
 import numpy as np
@@ -9,6 +10,7 @@ from torch.utils.data import Dataset, DataLoader, Subset
 from torchvision import transforms
 
 from simulation_encoder.logger import ExperimentLogger
+from simulation_encoder.writer import Writer
 
 
 class PNGLoader(Dataset):
@@ -21,6 +23,8 @@ class PNGLoader(Dataset):
         Path to the directory containing the images.
     logger : Logger, optional
         Logger object for logging missing images, by default None
+    writer : Writer, optional
+        Writer object for saving things to disk
     healthy_flag : bool, optional
         Flag to include healthy tissue images, by default True
     """
@@ -31,6 +35,7 @@ class PNGLoader(Dataset):
         test_split: float = 0.2,
         batch_size: int = 10,
         logger: Optional[ExperimentLogger] = None,
+        writer: Optional[Writer] = None,
         healthy_flag: bool = False,
         random_seed: int = 42,
         indices_file: Optional[str] = None,
@@ -40,12 +45,13 @@ class PNGLoader(Dataset):
         self.test_split = test_split
         self.batch_size = batch_size
         self.logger = logger
+        self.writer = writer
         self.healthy_flag = healthy_flag
         self.random_seed = random_seed
         self.indices_file = indices_file
         self.uuid = uuid
         self._get_image_groups()
-        
+
         if indices_file and os.path.exists(indices_file):
             self._load_from_indices(indices_file)
         else:
@@ -107,7 +113,7 @@ class PNGLoader(Dataset):
         file_name = group["cancer"]
         timepoint = int(file_name.split("_")[3])
         return timepoint
-    
+
     @property
     def n_train(self) -> int:
         """Number of training points"""
@@ -152,20 +158,14 @@ class PNGLoader(Dataset):
             np.random.shuffle(indices)
         self._train_indices, self._test_indices = indices[split:], indices[:split]
 
-        with open(f"src/simulation_encoder/train_test_indices/{self.uuid}.txt", 'w', encoding='utf-8') as f:
-            f.write(f"train: {self._train_indices}\n")
-            f.write(f"test: {self._test_indices}\n")
+        if self.writer:
+            self.writer.write_indices(self._train_indices, self._test_indices)
 
     def _load_from_indices(self, indices_file: str) -> None:
-        with open(indices_file, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
-            for line in lines:
-                if line.startswith("train:"):
-                    numbers_str = line.split("[")[1].split("]")[0]
-                    self._train_indices = [int(num) for num in numbers_str.split(",")]
-                elif line.startswith("test:"):
-                    numbers_str = line.split("[")[1].split("]")[0]
-                    self._test_indices = [int(num) for num in numbers_str.split(",")]
+        with open(indices_file, "r", encoding="utf-8") as i_file:
+            indices = json.load(i_file)
+        self._train_indices = indices["train"]
+        self._test_indices = indices["test"]
 
     def _parse_filename(self, filename: str) -> tuple[str, str, int, int, str]:
         parts = filename.split("_")
