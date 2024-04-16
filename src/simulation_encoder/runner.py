@@ -90,14 +90,10 @@ class Runner:
         for train_loader, val_loader in self.dataset.get_cv_splits(k_folds=5):
             self.losses[model_name]["train_loss"] = []
             self.losses[model_name]["val_loss"] = []
-            optimizer = torch.optim.Adam(model.parameters())
-            loss_fn = torch.nn.MSELoss()
 
             losses, val_losses = model.fit(
                 train_loader,
                 epochs=num_epochs,
-                optimizer=optimizer,
-                loss_fn=loss_fn,
                 val_loader=val_loader,
             )
 
