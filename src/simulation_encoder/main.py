@@ -32,8 +32,7 @@ def main() -> None:
     runner = Runner(verbose)
     runner.add_models(model_files)
     runner.add_dataset(data_dir, test_split, batch_size)
-    runner.train_models(num_epochs)
-    runner.eval_models()
+    runner.run(num_epochs)
 
 
 def get_model_files(models: list[str]) -> list[str]:
@@ -45,7 +44,6 @@ def get_model_files(models: list[str]) -> list[str]:
             raise FileNotFoundError(f"Model config file {model_yaml} not found in {MODEL_YAML_DIR}")
         model_files.append(f"{MODEL_YAML_DIR}/{model_yaml}")
     return model_files
-
 
 if __name__ == "__main__":
     main()

@@ -36,18 +36,26 @@ architecture:
     - type: Flatten
     - type: Linear
       in_features: 4096
-      out_features: 32
+      out_features: 256
       activation: ReLU
     - type: Linear
-      in_features: 32
+      in_features: 256
+      out_features: 64
+      activation: ReLU
+    - type: Linear
+      in_features: 64
       out_features: 16
   decoder_layers:
     - type: Linear
       in_features: 16
-      out_features: 32
+      out_features: 64
       activation: ReLU
     - type: Linear
-      in_features: 32
+      in_features: 64
+      out_features: 256
+      activation: ReLU
+    - type: Linear
+      in_features: 256
       out_features: 4096
       activation: ReLU
     - type: Unflatten

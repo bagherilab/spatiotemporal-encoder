@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 
 class Writer:
     """Class for writing information to disk"""
-
     def __init__(self, results_dir: str = "results/", uuid: str = "none"):
         self.uuid = uuid
         self.results_path = os.path.join(results_dir, str(self.uuid))
@@ -40,8 +39,10 @@ class Writer:
 
     def write_loss_plots(self, model_name: str, losses: dict[str, dict[str, list[float]]]) -> None:
         """Saves plots of the training and validation loss for each model"""
-        plt.plot(np.arange(len(losses[model_name]["train_loss"]), losses[model_name]["train_loss"]))
-        plt.plot(np.arange(len(losses[model_name]["val_loss"]), losses[model_name]["val_loss"]))
+        train_loss = losses[model_name]["train_loss"][-1]
+        val_loss = losses[model_name]["val_loss"][-1]
+        plt.plot(np.arange(len(train_loss)), train_loss)
+        plt.plot(np.arange(len(val_loss)), val_loss)
         plt.legend(["Train loss", "Validation loss"])
         plt.xlabel("Epoch")
         plt.ylabel("Loss")

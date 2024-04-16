@@ -1,8 +1,6 @@
 import unittest
 from unittest.mock import patch, mock_open, MagicMock
 
-import json
-
 from simulation_encoder.runner import Runner
 
 

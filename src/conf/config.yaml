@@ -5,7 +5,7 @@ models:
 model_configs:
   num_epochs: 1
   batch_size: 16
-  test_split: 0.3
+  test_split: 0.2
   load_prev_model: false
   prev_model_path: ""
   verbose: true

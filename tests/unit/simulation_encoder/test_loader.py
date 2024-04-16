@@ -51,8 +51,8 @@ class TestPNGLoader(unittest.TestCase):
         dataset = PNGLoader(
             self.temp_dir.name,
             test_split=test_split,
-            healthy_flag=True,
             batch_size=1,
+            healthy_flag=True,
             random_seed=123,
         )
         train_loader = dataset.get_train_dataloader()

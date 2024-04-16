@@ -37,9 +37,8 @@ class PNGLoader(Dataset):
         logger: Optional[ExperimentLogger] = None,
         writer: Optional[Writer] = None,
         healthy_flag: bool = False,
-        random_seed: int = 42,
         indices_file: Optional[str] = None,
-        uuid: Optional[str] = None,
+        random_seed: int = 42,
     ):
         self.image_dir = image_dir
         self.test_split = test_split
@@ -47,9 +46,9 @@ class PNGLoader(Dataset):
         self.logger = logger
         self.writer = writer
         self.healthy_flag = healthy_flag
-        self.random_seed = random_seed
         self.indices_file = indices_file
-        self.uuid = uuid
+        self.random_seed = random_seed
+        
         self._get_image_groups()
 
         if indices_file and os.path.exists(indices_file):

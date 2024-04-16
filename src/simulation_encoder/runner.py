@@ -23,13 +23,13 @@ class Runner:
     """
 
     def __init__(self, verbose: bool = False) -> None:
+        self._UUID = uuid.uuid4()
         self.models: dict[str, CAE] = {}
         self.dataset: PNGLoader = None
-        self.verbose = verbose
-        self._UUID = uuid.uuid4()
         self.writer = Writer(uuid=self._UUID)
         self.logger = ExperimentLogger(uuid=self._UUID)
         self.losses: dict[str, dict[str, list[float]]] = {}
+        self.verbose = verbose
 
     def add_models(self, model_files: list[str]) -> None:
         """Add models to be trained by the runner"""
@@ -43,6 +43,7 @@ class Runner:
         model_name = os.path.splitext(os.path.basename(model_yaml))[0]
         model = CAE(params)
         self.models[model_name] = model
+        self.losses[model_name] = {}
 
     def add_dataset(
         self, data_dir: str, test_split: float, batch_size: int, healthy_flag: bool = False
@@ -55,58 +56,39 @@ class Runner:
             logger=self.logger,
             writer=self.writer,
             healthy_flag=healthy_flag,
-            uuid=self._UUID,
         )
 
-    def train_models(self, num_epochs: int) -> None:
-        """Trains all models currently in runner"""
+    def run(self, num_epochs: int) -> None:
+        """Runs the training and evaluation of models"""
         if not self.dataset:
             raise ValueError("No dataset has been added to runner.")
         if not self.models:
             raise ValueError("No models have been added to runner.")
-
-        self.logger.log("---- TRAINING ----")
-        msg = f"Training points: {self.dataset.n_train}"
-        self.logger.log(msg)
+        uuid_msg = f"Run ID: {self._UUID}"
+        train_msg = f"Training points: {self.dataset.n_train}"
+        test_msg = f"Testing points: {self.dataset.n_test}"
+        self.logger.log(uuid_msg)
+        self.logger.log(train_msg)
+        self.logger.log(test_msg)
         if self.verbose:
-            print(msg)
+            print(uuid_msg)
+            print(train_msg)
+            print(test_msg)
 
         for model_name, model in self.models.items():
-            print(f"Training {model_name}")
-            self.logger.log("----------------------------")
-            self.logger.log(f"Training model {model_name}")
-            self.logger.log(f"Model: {model}")
-            self._train_model(model_name, model, num_epochs)
-            self.save_model(model_name, model)
+            msg = f"---------------- {model_name} ----------------"
+            self.logger.log(msg)
+            if self.verbose:
+                print(msg)
 
-            self.writer.write_results(model_name, self.losses)
+            self._train_model(model_name, model, num_epochs)
+            self._eval_model(model_name, model)
+            self._save_model(model_name, model)
             self.writer.write_loss_plots(model_name, self.losses)
 
-    def eval_models(self) -> None:
-        """Evaluates all models currently in runner"""
-        if not self.dataset:
-            raise ValueError("No dataset has been added to runner.")
-        if not self.models:
-            raise ValueError("No models have been added to runner.")
-
-        self.logger.log("---- Testing ----")
-        msg = f"Testing points: {self.dataset.n_test}"
-        self.logger.log(msg)
-        if self.verbose:
-            print(msg)
-
-        for model_name, model in self.models.items():
-            self.logger.log("----------------------------")
-            self.logger.log(f"Evaluating model {model_name}")
-            self._eval_model(model_name, model)
-
-    def save_model(self, model_name: str, model: CAE) -> None:
-        """Saves trained model parameters"""
-        torch.save(model.state_dict(), f"saved_models/{model_name}_{self._UUID}.pth")
-        self.logger.log(f"Trained model saved at saved_models/{model_name}_{self._UUID}.pth")
-
     def _train_model(self, model_name: str, model: CAE, num_epochs: int) -> None:
-        for train_loader, val_loader in self.dataset.get_cv_splits(k_folds=2):
+        """Trains model on dataset"""
+        for train_loader, val_loader in self.dataset.get_cv_splits(k_folds=5):
             self.losses[model_name]["train_loss"] = []
             self.losses[model_name]["val_loss"] = []
             optimizer = torch.optim.Adam(model.parameters())
@@ -122,12 +104,20 @@ class Runner:
 
             self.losses[model_name]["train_loss"].append(losses)
             self.losses[model_name]["val_loss"].append(val_losses)
+            break # Only train on first fold
+        
 
     def _eval_model(self, model_name: str, model: CAE) -> None:
+        """Evaluates all models currently in runner"""    
         test_loader = self.dataset.get_test_dataloader()
         loss_fn = torch.nn.MSELoss()
         test_loss = model.eval_one_epoch(test_loader, loss_fn)
         self.losses[model_name]["test_loss"] = test_loss
-        self.logger.log(f"Test loss for {model_name}: {test_loss}")
+        self.logger.log(f"Test loss: {test_loss}")
         if self.verbose:
-            print(f"Test loss for {model_name}: {test_loss}")
+            print(f"Test loss: {test_loss}")
+
+    def _save_model(self, model_name: str, model: CAE) -> None:
+        """Saves trained model parameters"""
+        torch.save(model.state_dict(), f"saved_models/{model_name}_{self._UUID}.pth")
+        self.logger.log(f"Trained model saved at saved_models/{model_name}_{self._UUID}.pth")

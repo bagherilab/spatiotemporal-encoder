@@ -11,6 +11,7 @@ class TestWriter(unittest.TestCase):
     @patch("json.dump")
     def test_save_results_formats_correctly(self, mock_dump, mock_open, mock_logger, mock_runner):
         mock_logger.log = MagicMock()
+        Writer._create_dir = MagicMock()
         mock_runner.writer = Writer(uuid="1234")
         mock_runner.models = {"test_model": None}
         mock_runner.losses = {

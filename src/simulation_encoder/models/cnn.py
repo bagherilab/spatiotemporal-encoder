@@ -70,19 +70,15 @@ class BaseCNN(nn.Module):
                 val_losses.append(val_loss)
 
             if self.verbose:
-                msg = f"Epoch {e+1}/{epochs}: Train loss: {epoch_loss}"
+                if val_loader:
+                    msg = f"Epoch {e+1}/{epochs}- Train loss: {epoch_loss} Val loss: {val_loss}"
+                else:
+                    msg = f"Epoch {e+1}/{epochs}- Train loss: {epoch_loss}"
                 print(msg)
 
             if (e + 1) % 5 == 0:
                 if self.logger:
                     self.logger.log(msg)
-
-        if val_loader:
-            msg = f"Best batch validation loss: {best_vloss}"
-            if self.logger:
-                self.logger.log(msg)
-            if self.verbose:
-                print(msg)
 
         return (train_losses, val_losses)
 
