@@ -4,10 +4,11 @@ import uuid
 import yaml
 import torch
 
-from simulation_encoder.models.cnn import CAE
 from simulation_encoder.loader import PNGLoader
 from simulation_encoder.logger import ExperimentLogger
 from simulation_encoder.writer import Writer
+from simulation_encoder.models.cnn import CAE
+from simulation_encoder.dataclass.loss_data import LossData
 
 
 class Runner:
@@ -28,7 +29,7 @@ class Runner:
         self.dataset: PNGLoader = None
         self.writer = Writer(uuid=self._UUID)
         self.logger = ExperimentLogger(uuid=self._UUID)
-        self.losses: dict[str, dict[str, list[float]]] = {}
+        self.losses: dict[str, LossData] = {}
         self.verbose = verbose
 
     def add_models(self, model_files: list[str]) -> None:
@@ -43,7 +44,7 @@ class Runner:
         model_name = os.path.splitext(os.path.basename(model_yaml))[0]
         model = CAE(params)
         self.models[model_name] = model
-        self.losses[model_name] = {}
+        self.losses[model_name] = LossData()
 
     def add_dataset(
         self, data_dir: str, test_split: float, batch_size: int, healthy_flag: bool = False
@@ -84,32 +85,30 @@ class Runner:
             self._train_model(model_name, model, num_epochs)
             self._eval_model(model_name, model)
             self._save_model(model_name, model)
+            self.writer.write_results(model_name, self.losses[model_name])
 
     def _train_model(self, model_name: str, model: CAE, num_epochs: int) -> None:
         """Trains model on dataset"""
         for train_loader, val_loader in self.dataset.get_cv_splits(k_folds=5):
-            self.losses[model_name]["train_loss"] = []
-            self.losses[model_name]["val_loss"] = []
-
             losses, val_losses = model.fit(
                 train_loader,
                 epochs=num_epochs,
                 val_loader=val_loader,
             )
 
-            self.losses[model_name]["train_loss"].append(losses)
-            self.losses[model_name]["val_loss"].append(val_losses)
+            self.losses[model_name].add_train_loss(losses)
+            self.losses[model_name].add_val_loss(val_losses)
             break  # Only train on first fold
 
     def _eval_model(self, model_name: str, model: CAE) -> None:
         """Evaluates all models currently in runner"""
         test_loader = self.dataset.get_test_dataloader()
-        loss_fn = torch.nn.MSELoss()
-        test_loss = model.eval_one_epoch(test_loader, loss_fn)
-        self.losses[model_name]["test_loss"] = test_loss
-        self.logger.log(f"Test loss: {test_loss}")
+        test_loss = model.eval_one_epoch(test_loader)
+        self.losses[model_name].add_test_loss(test_loss)
+
+        self.logger.log(f"Test loss: {self.losses[model_name].combined_loss_test}")
         if self.verbose:
-            print(f"Test loss: {test_loss}")
+            print(f"Test loss: {self.losses[model_name].combined_loss_test}")
 
     def _save_model(self, model_name: str, model: CAE) -> None:
         """Saves trained model parameters"""

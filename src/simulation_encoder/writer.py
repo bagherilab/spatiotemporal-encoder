@@ -2,6 +2,8 @@ import os
 import json
 import matplotlib.pyplot as plt
 
+from simulation_encoder.dataclass.loss_data import LossData
+
 
 class Writer:
     """Class for writing information to disk"""
@@ -15,16 +17,26 @@ class Writer:
         self._create_dir(self.results_path)
         self._create_dir(self.figures_dir)
 
-    def write_results(self, model_name: str, losses: dict[str, dict[str, list[float]]]) -> None:
+    def write_results(self, model_name: str, losses: LossData) -> None:
         """Writes the results of running the models to disk"""
         model_path = os.path.join(self.results_path, model_name)
         self._create_dir(model_path)
         results = {
             "model": model_name,
+            "combined_loss": {
+                "train": losses.combined_loss_train,
+                "val": losses.combined_loss_val,
+                "test": losses.combined_loss_test,
+            },
             "reconstruction_loss": {
-                "train": losses[model_name]["train_loss"],
-                "val": losses[model_name]["val_loss"],
-                "test": losses[model_name]["test_loss"],
+                "train": losses.reconstruction_loss_train,
+                "val": losses.reconstruction_loss_val,
+                "test": losses.reconstruction_loss_test,
+            },
+            "timepoint_loss": {
+                "train": losses.timepoint_loss_train,
+                "val": losses.timepoint_loss_val,
+                "test": losses.timepoint_loss_test,
             },
         }
         with open(os.path.join(model_path, "results.json"), "w", encoding="utf-8") as r_file:
@@ -37,18 +49,16 @@ class Writer:
         with open(indices_path, "w", encoding="utf-8") as i_file:
             json.dump(indices, i_file, indent=4)
 
-    def write_loss_plots(
-        self, model_name: str, losses: dict[str, dict[str, list[list[float]]]]
-    ) -> None:
+    def write_loss_plots(self, model_name: str, losses: LossData) -> None:
         """Saves plots of the training and validation loss for each model"""
-        train_loss = losses[model_name]["train_loss"][-1]
-        val_loss = losses[model_name]["val_loss"][-1]
-        plt.plot(range(len(train_loss)), train_loss)
-        plt.plot(range(len(val_loss)), val_loss)
-        plt.legend(["Train loss", "Validation loss"])
-        plt.xlabel("Epoch")
-        plt.ylabel("Loss")
-        plt.savefig(f"{self.figures_dir}/loss_{model_name}.png")
+
+    #     plt.plot(range(len(train_loss)), train_loss)
+    #     plt.plot(range(len(val_loss)), val_loss)
+    #     plt.legend(["Train loss", "Validation loss"])
+    #     plt.xlabel("Epoch")
+    #     plt.ylabel("Loss")
+    #     plt.savefig(f"{self.figures_dir}/loss_{model_name}.png")
+    pass
 
     def _create_dir(self, path: str) -> None:
         if not os.path.exists(path):

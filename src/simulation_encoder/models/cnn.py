@@ -27,11 +27,12 @@ class BaseCNN(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """General forward pass of the network"""
         raise NotImplementedError("forward method should be implemented in the subclass")
-   
-    def fit(self, train_loader: DataLoader, epochs: int, val_loader: Optional[DataLoader] = None) -> tuple[list[float], list[float]]:
+
+    def fit(
+        self, train_loader: DataLoader, epochs: int, val_loader: Optional[DataLoader] = None
+    ) -> tuple[dict[str, list[float]], dict[str, list[float]]]:
         """Fits the network over the training data for a number of epochs."""
         raise NotImplementedError("fit method should be implemented in the subclass")
-
 
 
 class CAE(BaseCNN):
@@ -71,7 +72,7 @@ class CAE(BaseCNN):
         train_loader: DataLoader,
         epochs: int,
         val_loader: Optional[DataLoader] = None,
-    ) -> tuple[list[float], list[float]]:
+    ) -> tuple[dict[str, list[float]], dict[str, list[float]]]:
         """
         Fits the netwrok over the training data for a number of epochs.
 
@@ -86,26 +87,31 @@ class CAE(BaseCNN):
 
         Returns
         -------
-        list[float], list[float]
-            List of training losses and validation losses
+        dict[str, list[float]], dict[str, list[float]]
+            Lists of various types of loss
         """
-        train_losses = []
-        val_losses = []
-        best_vloss = float("inf")
+        optimizers = {
+            "image": torch.optim.Adam(self.image_decoder_params, lr=0.001),
+            "timepoint": torch.optim.Adam(self.timepoint_decoder_params, lr=0.001),
+        }
+
+        train_losses: dict[str, list[float]] = {"image": [], "timepoint": [], "combined": []}
+        val_losses: dict[str, list[float]] = {"image": [], "timepoint": [], "combined": []}
         for e in range(epochs):
-            epoch_loss = self.train_one_epoch(train_loader)
-            train_losses.append(epoch_loss)
+            train_loss = self.train_one_epoch(train_loader, optimizers)
+            for loss_type, loss in train_loss.items():
+                train_losses[loss_type].append(loss)
 
             if val_loader:
                 val_loss = self.eval_one_epoch(val_loader)
-                best_vloss = min(val_loss, best_vloss)
-                val_losses.append(val_loss)
+                for loss_type, loss in val_loss.items():
+                    val_losses[loss_type].append(loss)
 
             if self.verbose:
                 if val_loader:
-                    msg = f"Epoch {e+1}/{epochs}- Train loss: {epoch_loss} Val loss: {val_loss}"
+                    msg = f"Epoch {e+1}/{epochs}- Train loss: {train_loss['combined']} Val loss: {val_loss['combined']}"
                 else:
-                    msg = f"Epoch {e+1}/{epochs}- Train loss: {epoch_loss}"
+                    msg = f"Epoch {e+1}/{epochs}- Train loss: {train_loss['combined']}"
                 print(msg)
 
             if (e + 1) % 5 == 0:
@@ -117,29 +123,29 @@ class CAE(BaseCNN):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Performs encoding and several decoding heads"""
         z = self.encode(x)
-        image_reconstruction = self.image_decode(z)
-        timepoint_prediction = self.timepoint_decode(z)
+        image_reconstruction = self.decode_image(z)
+        timepoint_prediction = self.decode_timepoint(z)
         return image_reconstruction, timepoint_prediction
 
     def encode(self, x: torch.Tensor) -> torch.Tensor:
         """Encodes input tensor"""
         return self.encoder(x)
 
-    def image_decode(self, x: torch.Tensor) -> torch.Tensor:
+    def decode_image(self, x: torch.Tensor) -> torch.Tensor:
         """Decodes latent tensor to reconstruct image"""
         return self.decoder_image(x)
 
-    def timepoint_decode(self, x: torch.Tensor) -> torch.Tensor:
+    def decode_timepoint(self, x: torch.Tensor) -> torch.Tensor:
         """Decodes latent tensor to predict sample timepoint"""
         return self.decoder_timepoint(x)
- 
+
     @property
-    def image_decoder_params(self):
+    def image_decoder_params(self) -> list[torch.nn.Parameter]:
         """Returns the parameters of the image decoder"""
         return self.decoder_image.parameters()
 
     @property
-    def timepoint_decoder_params(self):
+    def timepoint_decoder_params(self) -> list[torch.nn.Parameter]:
         """Returns the parameters of the timepoint decoder"""
         return self.decoder_timepoint.parameters()
 
@@ -154,8 +160,10 @@ class CAE(BaseCNN):
         return torch.cat(encoded, dim=0)
 
     def train_one_epoch(
-        self, train_loader: DataLoader
-    ) -> float:
+        self,
+        train_loader: DataLoader,
+        optimizers: dict[str, torch.optim.Optimizer],
+    ) -> dict[str, float]:
         """
         Trains the network for one epoch with batches of data.
 
@@ -166,30 +174,35 @@ class CAE(BaseCNN):
 
         Returns
         -------
-        float
-            Average loss
+        dict[str, float]
+            Dictionary containing average loss for image, timepoint, and combined
         """
         self.train()  # Sets dropout and batch normalization layers to training mode
-        image_optimizer = torch.optim.Adam(self.image_decoder_params, lr=0.001)
-        timepoint_optimizer = torch.optim.Adam(self.timepoint_decoder_params, lr=0.001)
+
+        image_optimizer = optimizers["image"]
+        timepoint_optimizer = optimizers["timepoint"]
+
+        image_criteria = nn.MSELoss()
+        timepoint_criteria = nn.CrossEntropyLoss()
 
         avg_loss = {"image": 0.0, "timepoint": 0.0, "combined": 0.0}
-        for inputs in train_loader:
+        for inputs, labels in train_loader:
             image_optimizer.zero_grad()
             timepoint_optimizer.zero_grad()
-            
+
             image_reconstruction, timepoint_prediction = self(inputs)
-            reconstruction_loss = nn.MSELoss()(image_reconstruction, inputs)
-            # TODO: Change loss
-            timepoint_loss = nn.CrossEntropyLoss()(timepoint_prediction, inputs)
+            reconstruction_loss = image_criteria(image_reconstruction, inputs)
+            timepoint_loss = timepoint_criteria(timepoint_prediction, labels)
 
-            reconstruction_loss_norm = (reconstruction_loss - min(reconstruction_loss)) / (max(reconstruction_loss) - min(reconstruction_loss))
-            timepoint_loss_norm = (timepoint_loss - min(timepoint_loss)) / (max(timepoint_loss) - min(timepoint_loss))
+            # print(timepoint_prediction)
+            # print(labels)
+            # print(torch.argmax(timepoint_prediction, dim=1))
+            # print(timepoint_loss)
+            # print(reconstruction_loss)
 
-            w_reconstruction = 0.5
-            w_timepoint = 0.5
+            combined_loss = reconstruction_loss + timepoint_loss
+            # combined_loss = timepoint_loss
 
-            combined_loss = (w_reconstruction * reconstruction_loss_norm) + (w_timepoint * timepoint_loss_norm)
             combined_loss.backward()
             image_optimizer.step()
             timepoint_optimizer.step()
@@ -204,7 +217,9 @@ class CAE(BaseCNN):
 
         return avg_loss
 
-    def eval_one_epoch(self, val_loader: DataLoader) -> float:
+    def eval_one_epoch(
+        self, val_loader: DataLoader
+    ) -> dict[str, float]:
         """
         Validates the network during training with batches of data.
 
@@ -215,26 +230,22 @@ class CAE(BaseCNN):
 
         Returns
         -------
-        float
-            Average validation loss
+        dict[str, float]
+            Dictionary containing average loss for image, timepoint, and combined
         """
         self.eval()  # Sets dropout and batch normalization layers to evaluation mode
 
+        image_criteria = nn.MSELoss()
+        timepoint_criteria = nn.CrossEntropyLoss()
+
         avg_loss = {"image": 0.0, "timepoint": 0.0, "combined": 0.0}
         with torch.no_grad():
-            for inputs in val_loader:
+            for inputs, labels in val_loader:
                 image_reconstruction, timepoint_prediction = self(inputs)
-                reconstruction_loss = nn.MSELoss()(image_reconstruction, inputs)
-                # TODO: Change loss
-                timepoint_loss = nn.CrossEntropyLoss()(timepoint_prediction, inputs)
+                reconstruction_loss = image_criteria(image_reconstruction, inputs)
+                timepoint_loss = timepoint_criteria(timepoint_prediction, labels)
 
-                reconstruction_loss_norm = (reconstruction_loss - min(reconstruction_loss)) / (max(reconstruction_loss) - min(reconstruction_loss))
-                timepoint_loss_norm = (timepoint_loss - min(timepoint_loss)) / (max(timepoint_loss) - min(timepoint_loss))
-
-                w_reconstruction = 0.5
-                w_timepoint = 0.5
-
-                combined_loss = (w_reconstruction * reconstruction_loss_norm) + (w_timepoint * timepoint_loss_norm)
+                combined_loss = reconstruction_loss + timepoint_loss
 
                 avg_loss["image"] += reconstruction_loss.item()
                 avg_loss["timepoint"] += timepoint_loss.item()

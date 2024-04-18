@@ -1,8 +1,8 @@
 data_dir: data/ARCADE
 models:
-  - small_multi_cnn
+  - med_multi_cnn
 model_configs:
-  num_epochs: 5
+  num_epochs: 10
   batch_size: 16
   test_split: 0.2
   verbose: true

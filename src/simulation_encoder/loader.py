@@ -59,11 +59,12 @@ class PNGLoader(Dataset):
     def __len__(self) -> int:
         return len(self.groups)
 
-    def __getitem__(self, idx: int) -> torch.Tensor:
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, int]:
         group = self.groups[idx]
         cancer_path = group["cancer"]
         healthy_path = group.get("healthy", "")
         graph_path = group["graph"]
+        timepoint = int(group["timepoint"])
 
         transformation = transforms.Compose([transforms.ToTensor()])
 
@@ -73,17 +74,21 @@ class PNGLoader(Dataset):
         if self.healthy_flag and healthy_path:
             healthy_tensor = transformation(Image.open(healthy_path).convert("L")).squeeze()
             return torch.stack((cancer_tensor, healthy_tensor, graph_tensor), dim=0)
-        return torch.stack((cancer_tensor, graph_tensor), dim=0)
+        return torch.stack((cancer_tensor, graph_tensor), dim=0), timepoint
 
     def get_train_dataloader(self) -> DataLoader:
         """Returns training DataLoader"""
         train_dataset = Subset(self, self._train_indices)
-        return DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
+        return DataLoader(
+            train_dataset, batch_size=self.batch_size, shuffle=True, collate_fn=self._collate_fn
+        )
 
     def get_test_dataloader(self) -> DataLoader:
         """Returns test DataLoader"""
         test_dataset = Subset(self, self._test_indices)
-        return DataLoader(test_dataset, batch_size=self.batch_size, shuffle=False)
+        return DataLoader(
+            test_dataset, batch_size=self.batch_size, shuffle=False, collate_fn=self._collate_fn
+        )
 
     def get_cv_splits(self, k_folds: int) -> list[tuple[DataLoader, DataLoader]]:
         """Returns list of k-folds of training and validation DataLoader"""
@@ -99,19 +104,22 @@ class PNGLoader(Dataset):
             val_dataset = Subset(self, val_indices)
             folds.append(
                 (
-                    DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True),
-                    DataLoader(val_dataset, batch_size=self.batch_size, shuffle=False),
+                    DataLoader(
+                        train_dataset,
+                        batch_size=self.batch_size,
+                        shuffle=True,
+                        collate_fn=self._collate_fn,
+                    ),
+                    DataLoader(
+                        val_dataset,
+                        batch_size=self.batch_size,
+                        shuffle=False,
+                        collate_fn=self._collate_fn,
+                    ),
                 )
             )
 
         return folds
-
-    def get_timepoints(self, idx: int) -> int:
-        """Returns timepoint of the image at the given index"""
-        group = self.groups[idx]
-        file_name = group["cancer"]
-        timepoint = int(file_name.split("_")[3])
-        return timepoint
 
     @property
     def n_train(self) -> int:
@@ -126,19 +134,21 @@ class PNGLoader(Dataset):
     def _get_image_groups(self) -> None:
         """Returns groups of images based on the filename format."""
         groups = {}
-        for filename in os.listdir(self.image_dir):
-            if filename.endswith(".png"):
-                context, vasc_type, seed, timepoint, image_type = self._parse_filename(filename)
+        for file_name in os.listdir(self.image_dir):
+            if file_name.endswith(".png"):
+                context, vasc_type, seed, timepoint, image_type = self._parse_filename(file_name)
                 if image_type == "healthy" and not self.healthy_flag:
                     continue
-
                 group_key = (context, vasc_type, seed, timepoint)
                 if group_key not in groups:
-                    if self.healthy_flag:
-                        groups[group_key] = {"cancer": "", "healthy": "", "graph": ""}
-                    else:
-                        groups[group_key] = {"cancer": "", "graph": ""}
-                groups[group_key][image_type] = os.path.join(self.image_dir, filename)
+                    timepoint_short = str((timepoint // 10) - 1)
+                    groups[group_key] = {
+                        "cancer": "",
+                        "healthy": "",
+                        "graph": "",
+                        "timepoint": timepoint_short,
+                    }
+                groups[group_key][image_type] = os.path.join(self.image_dir, file_name)
 
         if self.logger:
             for group_key, group in groups.items():
@@ -182,3 +192,11 @@ class PNGLoader(Dataset):
                             'context_vasc-type_seed_timepoint_image-type.png' Got: {filename}"
             )
         return context, vasc_type, seed, timepoint, image_type
+
+    def _collate_fn(
+        self, batch: list[tuple[torch.Tensor, int]]
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        images, labels = zip(*batch)
+        images = torch.stack(images)
+        labels = torch.tensor(labels)
+        return images, labels
