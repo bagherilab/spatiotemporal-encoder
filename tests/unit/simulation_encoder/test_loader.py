@@ -15,14 +15,14 @@ class TestPNGLoader(unittest.TestCase):
             "CH_type1_1_1_cells_cancer.png",
             "CH_type1_1_1_cells_healthy.png",
             "CH_type1_1_1_graph.png",
-            "CH_type1_1_2_cells_cancer.png",
-            "CH_type1_1_2_cells_healthy.png",
-            "CH_type1_1_2_graph.png",
+            "CH_type10_1_2_cells_cancer.png",
+            "CH_type10_1_2_cells_healthy.png",
+            "CH_type10_1_2_graph.png",
             "C_type1_1_1_cells_cancer.png",
             "C_type1_1_1_cells_healthy.png",
             "C_type1_1_1_graph.png",
         ]
-        self.keys = ["CH_type1", "C_type1"]
+        self.keys = ["CH_type1", "CH_type10", "C_type1"]
         for filename in self.image_files:
             # Mock the creation of images
             Image.new = MagicMock(return_value=Image.new("L", (10, 10)))
@@ -73,6 +73,10 @@ class TestPNGLoader(unittest.TestCase):
         test_indices = dataset._test_indices
 
         self.assertTrue(set(train_indices).isdisjoint(set(test_indices)))
+
+    def test_keys_load_correct_data(self):
+        dataset = PNGLoader(self.temp_dir.name, keys=["CH_type1"])
+        self.assertEqual(len(dataset), 1)
 
     @patch("simulation_encoder.logger.ExperimentLogger")
     def test_missing_image_logging(self, mock_logger):

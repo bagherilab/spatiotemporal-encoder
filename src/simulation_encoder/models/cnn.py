@@ -15,14 +15,11 @@ class BaseCNN(nn.Module):
     ----------
     logger : Logger, optional
         Logger object for logging, by default None
-    verbose : bool
-        Boolean to control if training information is printed to the console
     """
 
-    def __init__(self, logger: Optional[ExperimentLogger] = None, verbose: bool = True):
+    def __init__(self, logger: Optional[ExperimentLogger] = None):
         super().__init__()
         self.logger = logger
-        self.verbose = verbose
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """General forward pass of the network"""
@@ -45,17 +42,14 @@ class CAE(BaseCNN):
         Dictionary containing model parameters from yaml file
     logger : Logger, optional
         Logger object for logging, by default None
-    verbose : bool
-        Controls if model training is output to console
     """
 
     def __init__(
         self,
         params: dict[str, Any],
         logger: Optional[ExperimentLogger] = None,
-        verbose: bool = True,
     ):
-        super().__init__(logger=logger, verbose=verbose)
+        super().__init__(logger=logger)
 
         self.params = params
 
@@ -66,6 +60,8 @@ class CAE(BaseCNN):
         self.encoder = nn.Sequential(*encoder_layers)
         self.decoder_image = nn.Sequential(*decoder_image)
         self.decoder_timepoint = nn.Sequential(*decoder_timepoint)
+
+        self.loss_weights = {"image": 0.5, "timepoint": 0.5}
 
     def fit(
         self,
@@ -107,16 +103,9 @@ class CAE(BaseCNN):
                 for loss_type, loss in val_loss.items():
                     val_losses[loss_type].append(loss)
 
-            if self.verbose:
-                if val_loader:
-                    msg = f"Epoch {e+1}/{epochs}- Train loss: {train_loss['combined']} \
-                        Val loss: {val_loss['combined']}"
-                else:
-                    msg = f"Epoch {e+1}/{epochs}- Train loss: {train_loss['combined']}"
-                print(msg)
-
-            if (e + 1) % 5 == 0:
-                if self.logger:
+            if self.logger:
+                if (e + 1) % 1 == 0:
+                    msg = f"Epoch {e+1}/{epochs}- Train loss: {train_loss['combined']} Val loss: {val_loss['combined']}"
                     self.logger.log(msg)
 
         return (train_losses, val_losses)
@@ -191,28 +180,24 @@ class CAE(BaseCNN):
             image_optimizer.zero_grad()
             timepoint_optimizer.zero_grad()
 
+            batch_loss = {"image": torch.zeros(1), "timepoint": torch.zeros(1)}
+
             image_reconstruction, timepoint_prediction = self(inputs)
-            reconstruction_loss = image_criteria(image_reconstruction, inputs)
-            timepoint_loss = timepoint_criteria(timepoint_prediction, labels)
+            batch_loss["image"] = image_criteria(image_reconstruction, inputs)
+            batch_loss["timepoint"] = timepoint_criteria(timepoint_prediction, labels)
 
-            # print(labels, torch.argmax(timepoint_prediction, dim=1), timepoint_loss.item())
-
-            # combined_loss = reconstruction_loss + timepoint_loss
-            combined_loss = timepoint_loss
+            combined_loss = self._calc_combined_loss(batch_loss, self.loss_weights)
             combined_loss.backward()
-            # image_optimizer.step()
+            image_optimizer.step()
             timepoint_optimizer.step()
 
-            avg_loss["image"] += reconstruction_loss.item()
-            avg_loss["timepoint"] += timepoint_loss.item()
+            avg_loss["image"] += batch_loss["image"].item()
+            avg_loss["timepoint"] += batch_loss["timepoint"].item()
             avg_loss["combined"] += combined_loss.item()
-            print(labels, torch.argmax(timepoint_prediction, dim=1))
 
         avg_loss["image"] /= len(train_loader)
         avg_loss["timepoint"] /= len(train_loader)
         avg_loss["combined"] /= len(train_loader)
-        
-
 
         return avg_loss
 
@@ -263,9 +248,9 @@ class CAE(BaseCNN):
             "MaxPool2d",
             "UpsamplingBilinear2d",
             "Flatten",
-            "ReLU", 
+            "ReLU",
             "BatchNorm2d",
-            "BatchNorm1d"
+            "BatchNorm1d",
         ]
         for config in layer_configs:
             layer_type = config.pop("type")
@@ -282,3 +267,10 @@ class CAE(BaseCNN):
                 raise ValueError(f"Layer type {layer_type} not recognized")
 
         return layers
+
+    def _calc_combined_loss(
+        self, losses: dict[str, torch.Tensor], weights: dict[str, float]
+    ) -> torch.Tensor:
+        """Calculates the combined loss from individual losses and weights"""
+        combined_loss = sum([losses[key] * weights[key] for key in losses.keys()])
+        return combined_loss

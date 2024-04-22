@@ -38,6 +38,7 @@ class Runner:
 
     def __init__(self, verbose: bool = False) -> None:
         self._UUID = uuid.uuid4()
+        self.verbose = verbose
         self.models: dict[str, CAE] = {}
         self.dataset: PNGLoader = None
         self.writer = Writer(uuid=self._UUID)
@@ -54,7 +55,7 @@ class Runner:
         with open(model_yaml, "r", encoding="utf-8") as file:
             params = yaml.safe_load(file)
         model_name = os.path.splitext(os.path.basename(model_yaml))[0]
-        model = CAE(params)
+        model = CAE(params=params, logger=self.logger)
         self.models[model_name] = model
         self.losses[model_name] = LossData()
 

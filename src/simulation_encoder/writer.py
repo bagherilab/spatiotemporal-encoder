@@ -52,6 +52,7 @@ class Writer:
     def write_loss_plots(self, model_name: str, losses: LossData) -> None:
         """Saves plots of the training and validation loss for each model"""
         pass
+
     #     plt.plot(range(len(train_loss)), train_loss)
     #     plt.plot(range(len(val_loss)), val_loss)
     #     plt.legend(["Train loss", "Validation loss"])
