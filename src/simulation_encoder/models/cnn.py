@@ -186,7 +186,7 @@ class CAE(BaseCNN):
             batch_loss["image"] = image_criteria(image_reconstruction, inputs)
             batch_loss["timepoint"] = timepoint_criteria(timepoint_prediction, labels)
 
-            combined_loss = self._calc_combined_loss(batch_loss, self.loss_weights)
+            combined_loss = self._calc_combined_loss(batch_loss)
             combined_loss.backward()
             image_optimizer.step()
             timepoint_optimizer.step()
@@ -223,14 +223,15 @@ class CAE(BaseCNN):
         avg_loss = {"image": 0.0, "timepoint": 0.0, "combined": 0.0}
         with torch.no_grad():
             for inputs, labels in val_loader:
+                batch_loss = {"image": torch.zeros(1), "timepoint": torch.zeros(1)}
                 image_reconstruction, timepoint_prediction = self(inputs)
-                reconstruction_loss = image_criteria(image_reconstruction, inputs)
-                timepoint_loss = timepoint_criteria(timepoint_prediction, labels)
+                batch_loss["image"] = image_criteria(image_reconstruction, inputs)
+                batch_loss["timepoint"] = timepoint_criteria(timepoint_prediction, labels)
 
-                combined_loss = reconstruction_loss + timepoint_loss
+                combined_loss = self._calc_combined_loss(batch_loss)
 
-                avg_loss["image"] += reconstruction_loss.item()
-                avg_loss["timepoint"] += timepoint_loss.item()
+                avg_loss["image"] += batch_loss["image"].item()
+                avg_loss["timepoint"] += batch_loss["timepoint"].item()
                 avg_loss["combined"] += combined_loss.item()
 
         avg_loss["image"] /= len(val_loader)
@@ -268,9 +269,7 @@ class CAE(BaseCNN):
 
         return layers
 
-    def _calc_combined_loss(
-        self, losses: dict[str, torch.Tensor], weights: dict[str, float]
-    ) -> torch.Tensor:
+    def _calc_combined_loss(self, losses: dict[str, torch.Tensor]) -> torch.Tensor:
         """Calculates the combined loss from individual losses and weights"""
-        combined_loss = sum([losses[key] * weights[key] for key in losses.keys()])
+        combined_loss = sum([losses[key] * self.loss_weights[key] for key in losses.keys()])
         return combined_loss
