@@ -93,6 +93,31 @@ class PNGLoader(Dataset):
             test_dataset, batch_size=self.batch_size, shuffle=False, collate_fn=self._collate_fn
         )
 
+    def get_val_split(self, val_split: float) -> tuple[DataLoader, DataLoader]:
+        """Returns training and validation DataLoader"""
+        n_datapoints = len(self._train_indices)
+        indices = self._train_indices
+        split = int(np.floor(val_split * n_datapoints))
+        np.random.seed(self.random_seed)
+        np.random.shuffle(indices)
+        train_indices, val_indices = indices[split:], indices[:split]
+        train_dataset = Subset(self, train_indices)
+        val_dataset = Subset(self, val_indices)
+        return (
+            DataLoader(
+                train_dataset,
+                batch_size=self.batch_size,
+                shuffle=True,
+                collate_fn=self._collate_fn,
+            ),
+            DataLoader(
+                val_dataset,
+                batch_size=self.batch_size,
+                shuffle=False,
+                collate_fn=self._collate_fn,
+            ),
+        )
+
     def get_cv_splits(self, k_folds: int) -> list[tuple[DataLoader, DataLoader]]:
         """Returns list of k-folds of training and validation DataLoader"""
         indices = self._train_indices
@@ -133,12 +158,12 @@ class PNGLoader(Dataset):
     def n_test(self) -> int:
         """Number of test points"""
         return len(self._test_indices)
-    
+
     @property
     def n_channels(self) -> int:
         """Number of channels in the images"""
         return self[0][0].shape[0]
-    
+
     @property
     def image_shape(self) -> tuple[int, int]:
         """Shape of the images"""

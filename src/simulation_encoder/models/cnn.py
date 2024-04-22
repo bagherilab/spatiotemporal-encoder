@@ -109,7 +109,8 @@ class CAE(BaseCNN):
 
             if self.verbose:
                 if val_loader:
-                    msg = f"Epoch {e+1}/{epochs}- Train loss: {train_loss['combined']} Val loss: {val_loss['combined']}"
+                    msg = f"Epoch {e+1}/{epochs}- Train loss: {train_loss['combined']} \
+                        Val loss: {val_loss['combined']}"
                 else:
                     msg = f"Epoch {e+1}/{epochs}- Train loss: {train_loss['combined']}"
                 print(msg)
@@ -196,19 +197,22 @@ class CAE(BaseCNN):
 
             # print(labels, torch.argmax(timepoint_prediction, dim=1), timepoint_loss.item())
 
-            combined_loss = reconstruction_loss + timepoint_loss
+            # combined_loss = reconstruction_loss + timepoint_loss
+            combined_loss = timepoint_loss
             combined_loss.backward()
-            image_optimizer.step()
+            # image_optimizer.step()
             timepoint_optimizer.step()
 
             avg_loss["image"] += reconstruction_loss.item()
             avg_loss["timepoint"] += timepoint_loss.item()
             avg_loss["combined"] += combined_loss.item()
+            print(labels, torch.argmax(timepoint_prediction, dim=1))
 
         avg_loss["image"] /= len(train_loader)
         avg_loss["timepoint"] /= len(train_loader)
         avg_loss["combined"] /= len(train_loader)
-        print(avg_loss["image"], avg_loss["timepoint"], avg_loss["combined"])
+        
+
 
         return avg_loss
 
@@ -259,17 +263,16 @@ class CAE(BaseCNN):
             "MaxPool2d",
             "UpsamplingBilinear2d",
             "Flatten",
+            "ReLU", 
+            "BatchNorm2d",
+            "BatchNorm1d"
         ]
         for config in layer_configs:
             layer_type = config.pop("type")
             if layer_type in torch_layer_types:
                 layer_type = getattr(nn, layer_type)
-                activation = config.pop("activation", None)
                 layer = layer_type(**config)
                 layers.append(layer)
-                if activation:
-                    activation = getattr(nn, activation)
-                    layers.append(activation())
             elif layer_type == "Unflatten":
                 layer_type = getattr(nn, layer_type)
                 shape = config.pop("shape")

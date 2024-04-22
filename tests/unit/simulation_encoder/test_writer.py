@@ -16,9 +16,17 @@ class TestWriter(unittest.TestCase):
         mock_runner.writer = Writer(uuid="1234")
         mock_runner.models = {"test_model": None}
 
-        train_loss={"image": [0.1, 0.2, 0.3], "timepoint": [0.4, 0.5, 0.6], "combined": [0.7, 0.8, 0.9]}
-        val_loss={"image": [0.2, 0.1, 0.3], "timepoint": [0.5, 0.4, 0.6], "combined": [0.8, 0.7, 0.9]}
-        test_loss={"image": 0.25, "timepoint": 0.55, "combined": 0.85}
+        train_loss = {
+            "image": [0.1, 0.2, 0.3],
+            "timepoint": [0.4, 0.5, 0.6],
+            "combined": [0.7, 0.8, 0.9],
+        }
+        val_loss = {
+            "image": [0.2, 0.1, 0.3],
+            "timepoint": [0.5, 0.4, 0.6],
+            "combined": [0.8, 0.7, 0.9],
+        }
+        test_loss = {"image": 0.25, "timepoint": 0.55, "combined": 0.85}
 
         mock_runner.losses = LossData()
         mock_runner.losses.add_train_loss(train_loss)
@@ -41,7 +49,7 @@ class TestWriter(unittest.TestCase):
                 "train": [0.4, 0.5, 0.6],
                 "val": [0.5, 0.4, 0.6],
                 "test": 0.55,
-            }
+            },
         }
 
         mock_runner.writer.write_results("test_model", mock_runner.losses)

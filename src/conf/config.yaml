@@ -2,7 +2,7 @@ data_dir: data/ARCADE
 models:
   - med_multi_cnn
 model_configs:
-  num_epochs: 1
+  num_epochs: 5
   batch_size: 16
   test_split: 0.2
   verbose: true
@@ -10,5 +10,5 @@ keys:
   - CH_Lav
   - CH_Lava
   - CH_Lvav
-  - CH_Sav
-  - CH_Savav
+  # - CH_Sav
+  # - CH_Savav

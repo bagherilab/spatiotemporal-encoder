@@ -6,7 +6,9 @@ architecture:
       kernel_size: 3
       padding: 1
       stride: 2
-      activation: ReLU
+    - type: BatchNorm2d
+      num_features: 32
+    - type: ReLU
     - type: MaxPool2d
       kernel_size: 2
       stride: 2
@@ -16,7 +18,9 @@ architecture:
       kernel_size: 3
       padding: 1
       stride: 2
-      activation: ReLU
+    - type: BatchNorm2d
+      num_features: 16
+    - type: ReLU
     - type: MaxPool2d
       kernel_size: 2
       stride: 2
@@ -24,11 +28,15 @@ architecture:
     - type: Linear
       in_features: 4096
       out_features: 256
-      activation: ReLU
+    - type: BatchNorm1d
+      num_features: 256
+    - type: ReLU
     - type: Linear
       in_features: 256
       out_features: 64
-      activation: ReLU
+    - type: BatchNorm1d
+      num_features: 64
+    - type: ReLU
     - type: Linear
       in_features: 64
       out_features: 16
@@ -36,15 +44,21 @@ architecture:
     - type: Linear
       in_features: 16
       out_features: 64
-      activation: ReLU
+    - type: BatchNorm1d
+      num_features: 64
+    - type: ReLU
     - type: Linear
       in_features: 64
       out_features: 256
-      activation: ReLU
+    - type: BatchNorm1d
+      num_features: 256
+    - type: ReLU
     - type: Linear
       in_features: 256
       out_features: 4096
-      activation: ReLU
+    - type: BatchNorm1d
+      num_features: 4096
+    - type: ReLU
     - type: Unflatten
       shape: [16, 16, 16]
     - type: UpsamplingBilinear2d
@@ -56,6 +70,9 @@ architecture:
       padding: 1
       output_padding: 1
       stride: 2
+    - type: BatchNorm2d
+      num_features: 32
+    - type: ReLU
     - type: UpsamplingBilinear2d
       scale_factor: 2
     - type: ConvTranspose2d
@@ -69,17 +86,23 @@ architecture:
     - type: Linear
       in_features: 16
       out_features: 64
-      activation: ReLU
+    - type: BatchNorm1d
+      num_features: 64
+    - type: ReLU
     - type: Linear
       in_features: 64
       out_features: 128
-      activation: ReLU
+    - type: BatchNorm1d
+      num_features: 128
+    - type: ReLU
     - type: Linear
       in_features: 128
       out_features: 64
-      activation: ReLU
+    - type: BatchNorm1d
+      num_features: 64
+    - type: ReLU
     - type: Linear
       in_features: 64
       out_features: 15
-    
-    
+      
+      

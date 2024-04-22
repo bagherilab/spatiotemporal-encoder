@@ -66,7 +66,9 @@ class TestPNGLoader(unittest.TestCase):
         self.assertEqual(len(test_loader), expected_test_size)
 
     def test_train_test_split_gives_disjoint_sets(self):
-        dataset = PNGLoader(self.temp_dir.name, keys=self.keys, test_split=0.2, batch_size=1, random_seed=123)
+        dataset = PNGLoader(
+            self.temp_dir.name, keys=self.keys, test_split=0.2, batch_size=1, random_seed=123
+        )
         train_indices = dataset._train_indices
         test_indices = dataset._test_indices
 

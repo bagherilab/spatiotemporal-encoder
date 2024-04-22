@@ -17,10 +17,23 @@ class Runner:
 
     Parameters
     ----------
-    exp_name : str
-        Name of the experiment
     verbose : bool
         Controls if model training is output to console
+
+    Attributes
+    ----------
+    UUID : uuid.UUID
+        Unique identifier for the run
+    models : dict[str, CAE]
+        Dictionary of model names and their corresponding CAE models
+    dataset : PNGLoader
+        Dataset to be used for training and evaluation
+    writer : Writer
+        Writer object for saving things to disk
+    logger : ExperimentLogger
+        Logger object for logging
+    losses : dict[str, LossData]
+        Dictionary of model names and their corresponding loss data
     """
 
     def __init__(self, verbose: bool = False) -> None:
@@ -28,9 +41,8 @@ class Runner:
         self.models: dict[str, CAE] = {}
         self.dataset: PNGLoader = None
         self.writer = Writer(uuid=self._UUID)
-        self.logger = ExperimentLogger(uuid=self._UUID)
+        self.logger = ExperimentLogger(uuid=self._UUID, verbose=verbose)
         self.losses: dict[str, LossData] = {}
-        self.verbose = verbose
 
     def add_models(self, model_files: list[str]) -> None:
         """Add models to be trained by the runner"""
@@ -78,22 +90,13 @@ class Runner:
             raise ValueError("No dataset has been added to runner.")
         if not self.models:
             raise ValueError("No models have been added to runner.")
-        uuid_msg = f"Run ID: {self._UUID}"
-        train_msg = f"Training points: {self.dataset.n_train}"
-        test_msg = f"Testing points: {self.dataset.n_test}"
-        self.logger.log(uuid_msg)
-        self.logger.log(train_msg)
-        self.logger.log(test_msg)
-        if self.verbose:
-            print(uuid_msg)
-            print(train_msg)
-            print(test_msg)
+
+        self.logger.log(f"Run ID: {self._UUID}")
+        self.logger.log(f"Training points: {self.dataset.n_train}")
+        self.logger.log(f"Testing points: {self.dataset.n_test}")
 
         for model_name, model in self.models.items():
-            msg = f"------------------- {model_name} -------------------"
-            self.logger.log(msg)
-            if self.verbose:
-                print(msg)
+            self.logger.log(f"------------------- {model_name} -------------------")
 
             self._train_model(model_name, model, num_epochs)
             self._eval_model(model_name, model)
@@ -101,17 +104,16 @@ class Runner:
             self.writer.write_results(model_name, self.losses[model_name])
 
     def _train_model(self, model_name: str, model: CAE, num_epochs: int) -> None:
-        """Trains model on dataset"""
-        for train_loader, val_loader in self.dataset.get_cv_splits(k_folds=5):
-            losses, val_losses = model.fit(
-                train_loader,
-                epochs=num_epochs,
-                val_loader=val_loader,
-            )
+        """Trains a model on the dataset"""
+        train_loader, val_loader = self.dataset.get_val_split(val_split=0.2)
+        losses, val_losses = model.fit(
+            train_loader,
+            epochs=num_epochs,
+            val_loader=val_loader,
+        )
 
-            self.losses[model_name].add_train_loss(losses)
-            self.losses[model_name].add_val_loss(val_losses)
-            break  # Only train on first fold
+        self.losses[model_name].add_train_loss(losses)
+        self.losses[model_name].add_val_loss(val_losses)
 
     def _eval_model(self, model_name: str, model: CAE) -> None:
         """Evaluates all models currently in runner"""
@@ -120,8 +122,6 @@ class Runner:
         self.losses[model_name].add_test_loss(test_loss)
 
         self.logger.log(f"Test loss: {self.losses[model_name].combined_loss_test}")
-        if self.verbose:
-            print(f"Test loss: {self.losses[model_name].combined_loss_test}")
 
     def _save_model(self, model_name: str, model: CAE) -> None:
         """Saves trained model parameters"""
