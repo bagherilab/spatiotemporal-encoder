@@ -1,7 +1,7 @@
 architecture:
   encoder:
     - type: Conv2d
-      in_channels: 2
+      in_channels: 3
       out_channels: 32
       kernel_size: 3
       padding: 1
@@ -60,7 +60,7 @@ architecture:
       scale_factor: 2
     - type: ConvTranspose2d
       in_channels: 32
-      out_channels: 2
+      out_channels: 3
       kernel_size: 3
       padding: 1
       output_padding: 1

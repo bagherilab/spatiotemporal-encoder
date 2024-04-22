@@ -194,15 +194,9 @@ class CAE(BaseCNN):
             reconstruction_loss = image_criteria(image_reconstruction, inputs)
             timepoint_loss = timepoint_criteria(timepoint_prediction, labels)
 
-            # print(timepoint_prediction)
-            # print(labels)
-            # print(torch.argmax(timepoint_prediction, dim=1))
-            # print(timepoint_loss)
-            # print(reconstruction_loss)
+            # print(labels, torch.argmax(timepoint_prediction, dim=1), timepoint_loss.item())
 
             combined_loss = reconstruction_loss + timepoint_loss
-            # combined_loss = timepoint_loss
-
             combined_loss.backward()
             image_optimizer.step()
             timepoint_optimizer.step()
@@ -214,12 +208,11 @@ class CAE(BaseCNN):
         avg_loss["image"] /= len(train_loader)
         avg_loss["timepoint"] /= len(train_loader)
         avg_loss["combined"] /= len(train_loader)
+        print(avg_loss["image"], avg_loss["timepoint"], avg_loss["combined"])
 
         return avg_loss
 
-    def eval_one_epoch(
-        self, val_loader: DataLoader
-    ) -> dict[str, float]:
+    def eval_one_epoch(self, val_loader: DataLoader) -> dict[str, float]:
         """
         Validates the network during training with batches of data.
 

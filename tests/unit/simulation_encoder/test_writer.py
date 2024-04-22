@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 
 from simulation_encoder.writer import Writer
+from simulation_encoder.dataclass.loss_data import LossData
 
 
 class TestWriter(unittest.TestCase):
@@ -14,22 +15,35 @@ class TestWriter(unittest.TestCase):
         Writer._create_dir = MagicMock()
         mock_runner.writer = Writer(uuid="1234")
         mock_runner.models = {"test_model": None}
-        mock_runner.losses = {
-            "test_model": {
-                "train_loss": [[0.1, 0.2, 0.3], [0.5, 0.6, 0.7]],
-                "val_loss": [[0.2, 0.1, 0.3], [0.9, 0.8, 1.0]],
-                "test_loss": 0.25,
-            },
-        }
+
+        train_loss={"image": [0.1, 0.2, 0.3], "timepoint": [0.4, 0.5, 0.6], "combined": [0.7, 0.8, 0.9]}
+        val_loss={"image": [0.2, 0.1, 0.3], "timepoint": [0.5, 0.4, 0.6], "combined": [0.8, 0.7, 0.9]}
+        test_loss={"image": 0.25, "timepoint": 0.55, "combined": 0.85}
+
+        mock_runner.losses = LossData()
+        mock_runner.losses.add_train_loss(train_loss)
+        mock_runner.losses.add_val_loss(val_loss)
+        mock_runner.losses.add_test_loss(test_loss)
 
         expected_results = {
             "model": "test_model",
+            "combined_loss": {
+                "train": [0.7, 0.8, 0.9],
+                "val": [0.8, 0.7, 0.9],
+                "test": 0.85,
+            },
             "reconstruction_loss": {
-                "train": [[0.1, 0.2, 0.3], [0.5, 0.6, 0.7]],
-                "val": [[0.2, 0.1, 0.3], [0.9, 0.8, 1.0]],
+                "train": [0.1, 0.2, 0.3],
+                "val": [0.2, 0.1, 0.3],
                 "test": 0.25,
             },
+            "timepoint_loss": {
+                "train": [0.4, 0.5, 0.6],
+                "val": [0.5, 0.4, 0.6],
+                "test": 0.55,
+            }
         }
+
         mock_runner.writer.write_results("test_model", mock_runner.losses)
         actual_call_args = mock_dump.call_args[0][0]
         self.assertEqual(actual_call_args, expected_results)

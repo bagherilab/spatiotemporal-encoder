@@ -1,5 +1,6 @@
 import os
 import json
+import glob
 from typing import Optional
 
 import numpy as np
@@ -32,20 +33,20 @@ class PNGLoader(Dataset):
     def __init__(
         self,
         image_dir: str,
+        keys: list[str],
         test_split: float = 0.2,
         batch_size: int = 10,
         logger: Optional[ExperimentLogger] = None,
         writer: Optional[Writer] = None,
-        healthy_flag: bool = False,
         indices_file: Optional[str] = None,
         random_seed: int = 42,
     ):
         self.image_dir = image_dir
+        self.keys = keys
         self.test_split = test_split
         self.batch_size = batch_size
         self.logger = logger
         self.writer = writer
-        self.healthy_flag = healthy_flag
         self.indices_file = indices_file
         self.random_seed = random_seed
 
@@ -71,10 +72,12 @@ class PNGLoader(Dataset):
         cancer_tensor = transformation(Image.open(cancer_path).convert("L")).squeeze()
         graph_tensor = transformation(Image.open(graph_path).convert("L")).squeeze()
 
-        if self.healthy_flag and healthy_path:
+        if healthy_path:
             healthy_tensor = transformation(Image.open(healthy_path).convert("L")).squeeze()
-            return torch.stack((cancer_tensor, healthy_tensor, graph_tensor), dim=0)
-        return torch.stack((cancer_tensor, graph_tensor), dim=0), timepoint
+        else:
+            healthy_tensor = torch.zeros_like(cancer_tensor)
+
+        return torch.stack((cancer_tensor, healthy_tensor, graph_tensor), dim=0), timepoint
 
     def get_train_dataloader(self) -> DataLoader:
         """Returns training DataLoader"""
@@ -130,15 +133,23 @@ class PNGLoader(Dataset):
     def n_test(self) -> int:
         """Number of test points"""
         return len(self._test_indices)
+    
+    @property
+    def n_channels(self) -> int:
+        """Number of channels in the images"""
+        return self[0][0].shape[0]
+    
+    @property
+    def image_shape(self) -> tuple[int, int]:
+        """Shape of the images"""
+        return self[0][0].shape[1:]
 
     def _get_image_groups(self) -> None:
         """Returns groups of images based on the filename format."""
         groups = {}
         for file_name in os.listdir(self.image_dir):
-            if file_name.endswith(".png"):
+            if file_name.endswith(".png") and self._in_keys(file_name):
                 context, vasc_type, seed, timepoint, image_type = self._parse_filename(file_name)
-                if image_type == "healthy" and not self.healthy_flag:
-                    continue
                 group_key = (context, vasc_type, seed, timepoint)
                 if group_key not in groups:
                     timepoint_short = str((timepoint // 10) - 1)
@@ -152,7 +163,7 @@ class PNGLoader(Dataset):
 
         if self.logger:
             for group_key, group in groups.items():
-                if "" in group.values():
+                if context == "CH" and "" in group.values():
                     missing_images = [key for key, value in group.items() if value == ""]
                     self.logger.warning(f"Missing images from {group_key}: {missing_images}")
 
@@ -200,3 +211,8 @@ class PNGLoader(Dataset):
         images = torch.stack(images)
         labels = torch.tensor(labels)
         return images, labels
+
+    def _in_keys(self, file_name: str) -> bool:
+        file_chunks = file_name.split("_")[0:2]
+        prefix = "_".join(file_chunks)
+        return prefix in self.keys

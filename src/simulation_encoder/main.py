@@ -21,6 +21,7 @@ def main() -> None:
     data_dir = config["data_dir"]
     models = config["models"]
     model_configs = config["model_configs"]
+    keys = config["keys"]
 
     num_epochs = model_configs["num_epochs"]
     batch_size = model_configs["batch_size"]
@@ -31,7 +32,7 @@ def main() -> None:
 
     runner = Runner(verbose)
     runner.add_models(model_files)
-    runner.add_dataset(data_dir, test_split, batch_size)
+    runner.add_dataset(data_dir, keys, test_split, batch_size)
     runner.run(num_epochs)
 
 
