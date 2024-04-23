@@ -148,6 +148,10 @@ class PNGLoader(Dataset):
             )
 
         return folds
+    
+    def get_timepoint(self, idx: int) -> int:
+        """Returns the timepoint of the group at index `idx`"""
+        return int(self.groups[idx]["timepoint"])
 
     @property
     def n_train(self) -> int:
