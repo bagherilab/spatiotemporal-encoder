@@ -186,10 +186,11 @@ class CAE(BaseCNN):
             batch_loss["image"] = image_criteria(image_reconstruction, inputs)
             batch_loss["timepoint"] = timepoint_criteria(timepoint_prediction, labels)
 
-            combined_loss = self._calc_combined_loss(batch_loss)
+            # combined_loss = self._calc_combined_loss(batch_loss)
+            combined_loss = batch_loss["image"]
             combined_loss.backward()
             image_optimizer.step()
-            timepoint_optimizer.step()
+            # timepoint_optimizer.step()
 
             avg_loss["image"] += batch_loss["image"].item()
             avg_loss["timepoint"] += batch_loss["timepoint"].item()
@@ -228,7 +229,8 @@ class CAE(BaseCNN):
                 batch_loss["image"] = image_criteria(image_reconstruction, inputs)
                 batch_loss["timepoint"] = timepoint_criteria(timepoint_prediction, labels)
 
-                combined_loss = self._calc_combined_loss(batch_loss)
+                # combined_loss = self._calc_combined_loss(batch_loss)
+                combined_loss = batch_loss["image"]
 
                 avg_loss["image"] += batch_loss["image"].item()
                 avg_loss["timepoint"] += batch_loss["timepoint"].item()

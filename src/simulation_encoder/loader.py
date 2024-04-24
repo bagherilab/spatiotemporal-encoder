@@ -1,6 +1,5 @@
 import os
 import json
-import glob
 from typing import Optional
 
 import numpy as np
@@ -63,21 +62,22 @@ class PNGLoader(Dataset):
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, int]:
         group = self.groups[idx]
         cancer_path = group["cancer"]
-        healthy_path = group.get("healthy", "")
+        # healthy_path = group.get("healthy", "")
         graph_path = group["graph"]
         timepoint = int(group["timepoint"])
 
-        transformation = transforms.Compose([transforms.ToTensor()])
+        transformation = transforms.Compose([transforms.ToTensor(), transforms.Grayscale()])
 
-        cancer_tensor = transformation(Image.open(cancer_path).convert("L")).squeeze()
-        graph_tensor = transformation(Image.open(graph_path).convert("L")).squeeze()
+        cancer_tensor = transformation(Image.open(cancer_path)).squeeze()
+        graph_tensor = transformation(Image.open(graph_path)).squeeze()
 
-        if healthy_path:
-            healthy_tensor = transformation(Image.open(healthy_path).convert("L")).squeeze()
-        else:
-            healthy_tensor = torch.zeros_like(cancer_tensor)
+        # if healthy_path:
+        #     healthy_tensor = transformation(Image.open(healthy_path).convert("L")).squeeze()
+        # else:
+        #     healthy_tensor = torch.zeros_like(cancer_tensor)
 
-        return torch.stack((cancer_tensor, healthy_tensor, graph_tensor), dim=0), timepoint
+        # return torch.stack((cancer_tensor, healthy_tensor, graph_tensor), dim=0), timepoint
+        return torch.stack((cancer_tensor, graph_tensor), dim=0), timepoint
 
     def get_train_dataloader(self) -> DataLoader:
         """Returns training DataLoader"""
@@ -95,14 +95,21 @@ class PNGLoader(Dataset):
 
     def get_val_split(self, val_split: float) -> tuple[DataLoader, DataLoader]:
         """Returns training and validation DataLoader"""
-        n_datapoints = len(self._train_indices)
-        indices = self._train_indices
-        split = int(np.floor(val_split * n_datapoints))
-        np.random.seed(self.random_seed)
-        np.random.shuffle(indices)
-        train_indices, val_indices = indices[split:], indices[:split]
+        groups = self._get_simulation_groups(self._train_indices)
+
+        train_indices = []
+        val_indices = []
+        for indices in groups.values():
+            n_datapoints = len(indices)
+            split = int(np.floor(val_split * n_datapoints))
+            np.random.seed(self.random_seed)
+            np.random.shuffle(indices)
+            train_indices.extend(indices[split:])
+            val_indices.extend(indices[:split])
+
         train_dataset = Subset(self, train_indices)
         val_dataset = Subset(self, val_indices)
+
         return (
             DataLoader(
                 train_dataset,
@@ -184,7 +191,7 @@ class PNGLoader(Dataset):
                     timepoint_short = str((timepoint // 10) - 1)
                     groups[group_key] = {
                         "cancer": "",
-                        "healthy": "",
+                        # "healthy": "",
                         "graph": "",
                         "timepoint": timepoint_short,
                     }
@@ -192,20 +199,31 @@ class PNGLoader(Dataset):
 
         if self.logger:
             for group_key, group in groups.items():
-                if context == "CH" and "" in group.values():
+                if "" in group.values():
                     missing_images = [key for key, value in group.items() if value == ""]
                     self.logger.warning(f"Missing images from {group_key}: {missing_images}")
 
         self.groups = list(groups.values())
 
     def _split_data(self, shuffle: bool = True) -> None:
-        n_datapoints = len(self)
-        indices = list(range(n_datapoints))
-        split = int(np.floor(self.test_split * n_datapoints))
-        if shuffle:
-            np.random.seed(self.random_seed)
-            np.random.shuffle(indices)
-        self._train_indices, self._test_indices = indices[split:], indices[:split]
+        all_indices = list(range(len(self)))
+        groups = self._get_simulation_groups(all_indices)
+
+        train_indices = []
+        test_indices = []
+        for indices in groups.values():
+            n_datapoints = len(indices)
+            split = int(np.floor(self.test_split * n_datapoints))
+
+            if shuffle:
+                np.random.seed(self.random_seed)
+                np.random.shuffle(indices)
+
+            train_indices.extend(indices[split:])
+            test_indices.extend(indices[:split])
+
+        self._train_indices = train_indices
+        self._test_indices = test_indices
 
         if self.writer:
             self.writer.write_indices(self._train_indices, self._test_indices)
@@ -232,6 +250,17 @@ class PNGLoader(Dataset):
                             'context_vasc-type_seed_timepoint_image-type.png' Got: {filename}"
             )
         return context, vasc_type, seed, timepoint, image_type
+
+    def _get_simulation_groups(self, indices) -> dict[str, list[int]]:
+        groups = {}
+        for idx in indices:
+            group = self.groups[idx]
+            context, vasc_type, seed, _, _ = self._parse_filename(group["cancer"].split("/")[-1])
+            key = (context, vasc_type, seed)
+            if key not in groups:
+                groups[key] = []
+            groups[key].append(idx)
+        return groups
 
     def _collate_fn(
         self, batch: list[tuple[torch.Tensor, int]]
