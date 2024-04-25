@@ -144,8 +144,8 @@ class CAE(BaseCNN):
         self.eval()
         encoded = []
         with torch.no_grad():
-            for input, _ in dataloader:
-                encoded.append(self.encode(input))
+            for inputs, _ in dataloader:
+                encoded.append(self.encode(inputs))
 
         return torch.cat(encoded, dim=0)
 
