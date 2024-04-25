@@ -93,7 +93,7 @@ class Runner:
             raise ValueError("No models have been added to runner.")
 
         self.logger.log(f"Run ID: {self._UUID}")
-        self.logger.log(f"Training points: {self.dataset.n_train}")
+        self.logger.log(f"Training points: {self.dataset.n_train} (including augmented images)")
         self.logger.log(f"Testing points: {self.dataset.n_test}")
 
         for model_name, model in self.models.items():

@@ -53,6 +53,8 @@ class PNGLoader(Dataset):
         Path to the directory containing the images.
     keys : list[str]
         List of keys to filter the images by.
+    val_split : float, optional
+        Fraction of the data to use for validation, by default 0.2
     test_split : float, optional
         Fraction of the data to use for testing, by default 0.2
     batch_size : int, optional
@@ -74,6 +76,7 @@ class PNGLoader(Dataset):
         self,
         image_dir: str,
         keys: list[str],
+        val_split: float = 0.2,
         test_split: float = 0.2,
         batch_size: int = 10,
         logger: Optional[ExperimentLogger] = None,
@@ -84,6 +87,7 @@ class PNGLoader(Dataset):
     ):
         self.image_dir = image_dir
         self.keys = keys
+        self.val_split = val_split
         self.test_split = test_split
         self.batch_size = batch_size
         self.logger = logger
@@ -93,12 +97,13 @@ class PNGLoader(Dataset):
         self.random_seed = random_seed
 
         self._get_image_groups()
-        self._create_augmented_groups()
 
         if indices_file:
             self._load_from_indices(indices_file)
         else:
             self._split_data()
+
+        self._augment_training_data()
 
     def __len__(self) -> int:
         return len(self.groups)
@@ -137,6 +142,13 @@ class PNGLoader(Dataset):
             train_dataset, batch_size=self.batch_size, shuffle=True, collate_fn=self._collate_fn
         )
 
+    def get_val_split(self) -> tuple[DataLoader, DataLoader]:
+        """Returnsvalidation DataLoader"""
+        val_dataset = Subset(self, self._val_indices)
+        return DataLoader(
+            val_dataset, batch_size=self.batch_size, shuffle=False, collate_fn=self._collate_fn
+        )
+
     def get_test_dataloader(self) -> DataLoader:
         """Returns test DataLoader"""
         test_dataset = Subset(self, self._test_indices)
@@ -144,41 +156,9 @@ class PNGLoader(Dataset):
             test_dataset, batch_size=self.batch_size, shuffle=False, collate_fn=self._collate_fn
         )
 
-    def get_val_split(self, val_split: float) -> tuple[DataLoader, DataLoader]:
-        """Returns training and validation DataLoader"""
-        groups = self._get_groups_from_indices(self._train_indices)
-
-        train_indices = []
-        val_indices = []
-        for indices in groups.values():
-            n_datapoints = len(indices)
-            split = int(np.floor(val_split * n_datapoints))
-            np.random.seed(self.random_seed)
-            np.random.shuffle(indices)
-            train_indices.extend(indices[split:])
-            val_indices.extend(indices[:split])
-
-        train_dataset = Subset(self, train_indices)
-        val_dataset = Subset(self, val_indices)
-
-        return (
-            DataLoader(
-                train_dataset,
-                batch_size=self.batch_size,
-                shuffle=True,
-                collate_fn=self._collate_fn,
-            ),
-            DataLoader(
-                val_dataset,
-                batch_size=self.batch_size,
-                shuffle=False,
-                collate_fn=self._collate_fn,
-            ),
-        )
-
     def get_cv_splits(self, k_folds: int) -> list[tuple[DataLoader, DataLoader]]:
         """Returns list of k-folds of training and validation DataLoader"""
-        indices = self._train_indices
+        indices = self._train_indices + self._val_indices
         np.random.seed(self.random_seed)
         np.random.shuffle(indices)
         fold_size = len(indices) // k_folds
@@ -236,14 +216,18 @@ class PNGLoader(Dataset):
 
         self.groups = list(groups.values())
 
-    def _create_augmented_groups(self) -> None:
+    def _augment_training_data(self) -> None:
         augmented_groups = []
-        for group in self.groups:
+        for index in self._train_indices:
+            original_group = self.groups[index]
             for aug_name, _ in self.augmentations.items():
-                aug_group = dict(group.items())
+                aug_group = dict(original_group.items())
                 aug_group["augmentation"] = aug_name
                 augmented_groups.append(aug_group)
         self.groups.extend(augmented_groups)
+        self._train_indices.extend(
+            range(len(self.groups) - len(augmented_groups), len(self.groups))
+        )
 
     def _get_image_tensors(self, group: dict) -> torch.Tensor:
         transformation = transforms.Compose(
@@ -251,7 +235,7 @@ class PNGLoader(Dataset):
                 transforms.ToTensor(),
                 transforms.Lambda(lambda x: x[:3]),  # Remove the alpha channel
                 transforms.Grayscale(num_output_channels=1),
-                transforms.Lambda(lambda x: x.squeeze()),  # Squeeze the tensor
+                transforms.Lambda(lambda x: x.squeeze()),
             ]
         )
 
@@ -268,7 +252,7 @@ class PNGLoader(Dataset):
 
     def _split_data(self, shuffle: bool = True) -> None:
         all_indices = list(range(len(self)))
-        groups = self._get_groups_from_indices(all_indices)
+        groups = self._get_indices_of_groups(all_indices)
 
         group_keys = list(groups.keys())
         if shuffle:
@@ -276,23 +260,29 @@ class PNGLoader(Dataset):
             np.random.shuffle(group_keys)
 
         test_groups_count = int(np.floor(len(group_keys) * self.test_split))
+        val_groups_count = int(np.floor(len(group_keys) * self.val_split))
 
         test_group_keys = group_keys[:test_groups_count]
-        train_group_keys = group_keys[test_groups_count:]
+        val_group_keys = group_keys[test_groups_count : test_groups_count + val_groups_count]
+        train_group_keys = group_keys[test_groups_count + val_groups_count :]
 
         train_indices = []
+        val_indices = []
         test_indices = []
 
         for key in train_group_keys:
             train_indices.extend(groups[key])
+        for key in val_group_keys:
+            val_indices.extend(groups[key])
         for key in test_group_keys:
             test_indices.extend(groups[key])
 
         self._train_indices = train_indices
+        self._val_indices = val_indices
         self._test_indices = test_indices
 
         if self.writer:
-            self.writer.write_indices(self._train_indices, self._test_indices)
+            self.writer.write_indices(self._train_indices, self._val_indices, self._test_indices)
 
     def _parse_ARCADE_filename(self, filename: str) -> tuple[str, str, int, int, str]:
         parts = filename.split("_")
@@ -311,12 +301,11 @@ class PNGLoader(Dataset):
             )
         return context, vasc_type, seed, timepoint, image_type
 
-    def _get_groups_from_indices(self, indices: list[int]) -> dict[str, list[int]]:
+    def _get_indices_of_groups(self, indices: list[int]) -> dict[str, list[int]]:
         groups = defaultdict(list)
         for idx in indices:
             group = self.groups[idx]
             key = group["seed_key"]
-            key = f"{key}_{group['augmentation']}"
             groups[key].append(idx)
         return groups
 
@@ -327,6 +316,7 @@ class PNGLoader(Dataset):
         with open(indices_file, "r", encoding="utf-8") as i_file:
             indices = json.load(i_file)
         self._train_indices = indices["train"]
+        self._val_indices = indices["val"]
         self._test_indices = indices["test"]
 
     def _in_keys(self, file_name: str) -> bool:

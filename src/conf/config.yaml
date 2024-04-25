@@ -1,7 +1,6 @@
 data_dir: data/ARCADE
 models:
   - med_multi_cnn
-  - med_multi_cnn_no_bn
 model_configs:
   num_epochs: 3
   batch_size: 64

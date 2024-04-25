@@ -42,9 +42,11 @@ class Writer:
         with open(os.path.join(model_path, "results.json"), "w", encoding="utf-8") as r_file:
             json.dump(results, r_file, indent=4)
 
-    def write_indices(self, train_idices: list[int], test_indices: list[int]) -> None:
+    def write_indices(
+        self, train_idices: list[int], val_indices: list[int], test_indices: list[int]
+    ) -> None:
         """Writes the train and test indices to disk"""
-        indices = {"train": train_idices, "test": test_indices}
+        indices = {"train": train_idices, "val": val_indices, "test": test_indices}
         indices_path = os.path.join(self.results_path, "indices.json")
         with open(indices_path, "w", encoding="utf-8") as i_file:
             json.dump(indices, i_file, indent=4)
