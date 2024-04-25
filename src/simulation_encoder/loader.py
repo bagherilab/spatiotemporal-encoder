@@ -316,6 +316,7 @@ class PNGLoader(Dataset):
         for idx in indices:
             group = self.groups[idx]
             key = group["seed_key"]
+            key = f"{key}_{group['augmentation']}"
             groups[key].append(idx)
         return groups
 
