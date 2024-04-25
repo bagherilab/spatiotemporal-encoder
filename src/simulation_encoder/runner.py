@@ -1,5 +1,6 @@
 import os
 import uuid
+from typing import Optional
 
 import yaml
 import torch
@@ -36,8 +37,9 @@ class Runner:
         Dictionary of model names and their corresponding loss data
     """
 
-    def __init__(self, verbose: bool = False) -> None:
+    def __init__(self, augmentations: Optional[list[str]] = None, verbose: bool = False) -> None:
         self._UUID = uuid.uuid4()
+        self.augmentations = augmentations or []
         self.verbose = verbose
         self.models: dict[str, CAE] = {}
         self.dataset: PNGLoader = None
@@ -83,6 +85,7 @@ class Runner:
             batch_size=batch_size,
             logger=self.logger,
             writer=self.writer,
+            augmentations=self.augmentations,
         )
 
     def run(self, num_epochs: int) -> None:
@@ -106,7 +109,8 @@ class Runner:
 
     def _train_model(self, model_name: str, model: CAE, num_epochs: int) -> None:
         """Trains a model on the dataset"""
-        train_loader, val_loader = self.dataset.get_val_split(val_split=0.2)
+        train_loader = self.dataset.get_train_dataloader()
+        val_loader = self.dataset.get_val_dataloader()
         losses, val_losses = model.fit(
             train_loader,
             epochs=num_epochs,

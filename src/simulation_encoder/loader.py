@@ -81,7 +81,7 @@ class PNGLoader(Dataset):
         batch_size: int = 10,
         logger: Optional[ExperimentLogger] = None,
         writer: Optional[Writer] = None,
-        augmentations: Optional[list[Augmentation]] = None,
+        augmentations: Optional[list[str]] = None,
         indices_file: Optional[str] = None,
         random_seed: int = 42,
     ):
@@ -92,7 +92,7 @@ class PNGLoader(Dataset):
         self.batch_size = batch_size
         self.logger = logger
         self.writer = writer
-        self.augmentations = {aug.name: aug for aug in (augmentations or [])}
+        self.augmentations: dict[str, Augmentation] = self._get_augmentations(augmentations) or {}
         self.indices_file = indices_file
         self.random_seed = random_seed
 
@@ -118,7 +118,7 @@ class PNGLoader(Dataset):
     @property
     def n_train(self) -> int:
         """Number of training points"""
-        return len(self._train_indices)
+        return len(self._train_indices) + len(self._val_indices)
 
     @property
     def n_test(self) -> int:
@@ -142,7 +142,7 @@ class PNGLoader(Dataset):
             train_dataset, batch_size=self.batch_size, shuffle=True, collate_fn=self._collate_fn
         )
 
-    def get_val_split(self) -> tuple[DataLoader, DataLoader]:
+    def get_val_dataloader(self) -> DataLoader:
         """Returnsvalidation DataLoader"""
         val_dataset = Subset(self, self._val_indices)
         return DataLoader(
@@ -216,7 +216,27 @@ class PNGLoader(Dataset):
 
         self.groups = list(groups.values())
 
+    def _get_augmentations(
+        self, augmentations: Optional[list[str]]
+    ) -> Optional[dict[str, Augmentation]]:
+        if not augmentations:
+            return None
+
+        augmentations_dict = {}
+        for aug_name in augmentations:
+            aug_type = aug_name.split("_")[0]
+            if aug_type == "rotate":
+                degree = int(aug_name.split("_")[1])
+                transform = transforms.RandomRotation(degrees=degree)
+            else:
+                raise ValueError(f"Invalid augmentation name: {aug_name}")
+            augmentations_dict[aug_name] = Augmentation(transform, aug_name)
+        return augmentations_dict
+
     def _augment_training_data(self) -> None:
+        if not self.augmentations:
+            return
+
         augmented_groups = []
         for index in self._train_indices:
             original_group = self.groups[index]

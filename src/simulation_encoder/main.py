@@ -26,11 +26,12 @@ def main() -> None:
     num_epochs = model_configs["num_epochs"]
     batch_size = model_configs["batch_size"]
     test_split = model_configs["test_split"]
+    augmentations = model_configs["augmentations"]
     verbose = model_configs["verbose"]
 
     model_files = get_model_files(models)
 
-    runner = Runner(verbose)
+    runner = Runner(augmentations, verbose)
     runner.add_models(model_files)
     runner.add_dataset(data_dir, keys, test_split, batch_size)
     runner.run(num_epochs)

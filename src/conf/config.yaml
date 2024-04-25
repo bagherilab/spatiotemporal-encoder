@@ -5,6 +5,8 @@ model_configs:
   num_epochs: 3
   batch_size: 64
   test_split: 0.2
+  augmentations:
+    - rotate_180
   verbose: true
 keys:
   - CH_Lav
