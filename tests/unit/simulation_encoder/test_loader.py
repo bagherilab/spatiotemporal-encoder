@@ -12,19 +12,20 @@ class TestPNGLoader(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.image_files = [
-            "CH_type1_1_1_cells_cancer.png",
-            "CH_type1_1_1_cells_healthy.png",
-            "CH_type1_1_1_graph.png",
-            "CH_type10_1_2_cells_cancer.png",
-            "CH_type10_1_2_cells_healthy.png",
-            "CH_type10_1_2_graph.png",
-            "C_type1_1_1_cells_cancer.png",
-            "C_type1_1_1_cells_healthy.png",
-            "C_type1_1_1_graph.png",
+            "CH_typeA_1_1_cells_cancer.png",
+            "CH_typeA_1_1_cells_healthy.png",
+            "CH_typeA_1_1_graph.png",
+            "CH_typeA_1_2_cells_cancer.png",
+            "CH_typeA_1_2_cells_healthy.png",
+            "CH_typeA_1_2_graph.png",
+            "CH_typeAB_1_2_cells_healthy.png",
+            "CH_typeAB_1_2_graph.png",
+            "C_typeA_1_1_cells_cancer.png",
+            "C_typeA_1_1_cells_healthy.png",
+            "C_typeA_1_1_graph.png",
         ]
-        self.keys = ["CH_type1", "CH_type10", "C_type1"]
+        self.keys = ["CH_typeA", "CH_typeAB", "C_typeA"]
         for filename in self.image_files:
-            # Mock the creation of images
             Image.new = MagicMock(return_value=Image.new("L", (10, 10)))
             Image.new("L", (10, 10)).save(os.path.join(self.temp_dir.name, filename))
 
@@ -32,23 +33,22 @@ class TestPNGLoader(unittest.TestCase):
         self.temp_dir.cleanup()
 
     def test_get_image_groups_creates_groups(self):
-        dataset = PNGLoader(self.temp_dir.name, keys=self.keys)
+        dataset = PNGLoader(self.temp_dir.name, keys=self.keys, test_split=0.5)
         groups = dataset.groups
-        self.assertEqual(len(groups), 3)
+        self.assertEqual(len(groups), 4)
 
         for group in groups:
             self.assertIn("cancer", group)
-            self.assertIn("healthy", group)
             self.assertIn("graph", group)
 
     def test_getitem_returns_correct_shape(self):
         dataset = PNGLoader(self.temp_dir.name, keys=self.keys)
-        expected_shape = (3, 10, 10)
+        expected_shape = (2, 10, 10)
         actual_shape = (dataset.n_channels, *dataset.image_shape)
         self.assertEqual(actual_shape, expected_shape)
 
     def test_train_test_loaders_have_correct_lengths(self):
-        test_split = 0.4
+        test_split = 0.5
         dataset = PNGLoader(
             self.temp_dir.name,
             keys=self.keys,
@@ -59,8 +59,8 @@ class TestPNGLoader(unittest.TestCase):
         train_loader = dataset.get_train_dataloader()
         test_loader = dataset.get_test_dataloader()
 
-        expected_test_size = int(len(dataset) * test_split)
-        expected_train_size = len(dataset) - expected_test_size
+        expected_test_size = 1
+        expected_train_size = 3
 
         self.assertEqual(len(train_loader), expected_train_size)
         self.assertEqual(len(test_loader), expected_test_size)
@@ -75,27 +75,40 @@ class TestPNGLoader(unittest.TestCase):
         self.assertTrue(set(train_indices).isdisjoint(set(test_indices)))
 
     def test_keys_load_correct_data(self):
-        dataset = PNGLoader(self.temp_dir.name, keys=["CH_type1"])
-        self.assertEqual(len(dataset), 1)
+        dataset = PNGLoader(self.temp_dir.name, keys=["CH_typeA"])
+        self.assertEqual(len(dataset), 2)
+
+    def test_file_parsing_returns_correct_chunks(self):
+        dataset = PNGLoader(self.temp_dir.name, keys=self.keys)
+
+        expected_keys = [
+            ("CH", "typeA", 1, 1, "cancer"),
+            ("CH", "typeA", 1, 1, "healthy"),
+            ("CH", "typeA", 1, 1, "graph"),
+            ("CH", "typeA", 1, 2, "cancer"),
+            ("CH", "typeA", 1, 2, "healthy"),
+            ("CH", "typeA", 1, 2, "graph"),
+            ("CH", "typeAB", 1, 2, "healthy"),
+            ("CH", "typeAB", 1, 2, "graph"),
+            ("C", "typeA", 1, 1, "cancer"),
+            ("C", "typeA", 1, 1, "healthy"),
+            ("C", "typeA", 1, 1, "graph"),
+        ]
+
+        actual_keys = []
+        for file_name in self.image_files:
+            file_name = os.path.basename(file_name)
+            actual_keys.append(dataset._parse_ARCADE_filename(file_name))
+
+        self.assertEqual(actual_keys, expected_keys)
 
     @patch("simulation_encoder.logger.ExperimentLogger")
     def test_missing_image_logging(self, mock_logger):
-        self.temp_dir = tempfile.TemporaryDirectory()
-        self.image_files = [
-            "CH_type1_1_1_cells_cancer.png",
-            "CH_type1_1_1_graph.png",
-            "CH_type1_1_2_cells_cancer.png",
-            "CH_type1_1_2_cells_healthy.png",
-            "CH_type1_1_2_graph.png",
-        ]
-        for filename in self.image_files:
-            Image.new = MagicMock(return_value=Image.new("L", (10, 10)))
-            Image.new("L", (10, 10)).save(os.path.join(self.temp_dir.name, filename))
+        _ = PNGLoader(self.temp_dir.name, keys=["CH_typeAB"], logger=mock_logger)
 
-        _ = PNGLoader(self.temp_dir.name, keys=["CH_type1"], logger=mock_logger)
-
-        missing_key = ("CH", "type1", 1, 1)
-        missing_images = ["healthy"]
+        missing_key = ("CH", "typeAB", 1, 2)
+        missing_key = "CH_typeAB_1_2"
+        missing_images = ["cancer"]
         expected_message = f"Missing images from {missing_key}: {missing_images}"
         mock_logger.warning.assert_called_once_with(expected_message)
 

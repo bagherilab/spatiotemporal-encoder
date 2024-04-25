@@ -4,7 +4,7 @@ models:
   - med_multi_cnn_no_bn
 model_configs:
   num_epochs: 3
-  batch_size: 16
+  batch_size: 64
   test_split: 0.2
   verbose: true
 keys:
