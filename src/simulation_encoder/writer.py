@@ -10,11 +10,9 @@ class Writer:
     def __init__(self, results_dir: str = "results/", uuid: str = "none"):
         self.uuid = uuid
         self.results_path = os.path.join(results_dir, str(self.uuid))
-        self.figures_dir = os.path.join(self.results_path, "figures")
 
         self._create_dir(results_dir)
         self._create_dir(self.results_path)
-        self._create_dir(self.figures_dir)
 
     def write_results(
         self, model_name: str, keys: list[str], augmentations: list[str], losses: LossData

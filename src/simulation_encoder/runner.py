@@ -135,12 +135,11 @@ class Runner:
         test_loader = self.dataset.get_test_dataloader()
         test_loss = model.eval_one_epoch(test_loader)
         self.losses[model_name].add_test_loss(test_loss)
-
         self.logger.log(f"Test loss: {self.losses[model_name].combined_loss_test}")
 
     def _save_model(self, model_name: str, model: CAE) -> None:
         """Saves trained model parameters"""
-        if not os.path.exists("saved_models"):
-            os.makedirs("saved_models")
-        torch.save(model.state_dict(), f"saved_models/{model_name}_{self._UUID}.pth")
-        self.logger.log(f"Trained model saved at saved_models/{model_name}_{self._UUID}.pth")
+        torch.save(model.state_dict(), f"results/{self._UUID}/{model_name}/trained_model.pth")
+        self.logger.log(
+            f"Trained model saved at results/{self._UUID}/{model_name}/trained_model.pth"
+        )

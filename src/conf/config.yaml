@@ -1,15 +1,14 @@
 data_dir: data/ARCADE
 models:
-  - 1c_2l
   - 1c_3l
-  - 2c_3l
-  - 2c_3l_1s
-  - 2c_3l_small
-  - 2c_3l_large
-  - 2c_3l_2d
-  - 3c_3l
+  # - 2c_3l
+  # - 2c_3l_1s
+  # - 2c_3l_small
+  # - 2c_3l_large
+  # - 2c_3l_2d
+  # - 3c_3l
 model_configs:
-  num_epochs: 5
+  num_epochs: 2
   batch_size: 32
   val_split: 0.3
   test_split: 0.2
@@ -18,12 +17,12 @@ model_configs:
   verbose: true
 keys:
   - CH_Lav
-  - CH_Lava
-  - CH_Lvav
-  - CH_Sav
-  - CH_Savav
-  - C_Lav
-  - C_Lava
-  - C_Lvav
-  - C_Sav
-  - C_Savav
+  # - CH_Lava
+  # - CH_Lvav
+  # - CH_Sav
+  # - CH_Savav
+  # - C_Lav
+  # - C_Lava
+  # - C_Lvav
+  # - C_Sav
+  # - C_Savav

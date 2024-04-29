@@ -64,6 +64,14 @@ class CAE(BaseCNN):
         self.decoder_image = nn.Sequential(*decoder_image)
         self.decoder_timepoint = nn.Sequential(*decoder_timepoint)
 
+        self.optimizers = {
+            "combined": torch.optim.Adam(self.parameters(), lr=0.001),
+        }
+        self.criterion = {
+            "image": nn.MSELoss(),
+            "timepoint": nn.CrossEntropyLoss(),
+        }
+
         self.loss_weights = {"image": 0.5, "timepoint": 0.5}
 
     @property
@@ -104,26 +112,19 @@ class CAE(BaseCNN):
         dict[str, list[float]], dict[str, list[float]], dict[str, list[float]]
             Dicts of training loss, validation loss, and gradient norms
         """
-        optimizers = {
-            "combined": torch.optim.Adam(self.parameters(), lr=0.001),
-        }
-
-        criterion = {
-            "image": nn.MSELoss(),
-            "timepoint": nn.CrossEntropyLoss(),
-        }
-
         train_losses: dict[str, list[float]] = defaultdict(list)
         val_losses: dict[str, list[float]] = defaultdict(list)
         grad_norms: dict[str, list[float]] = defaultdict(list)
 
         for e in range(epochs):
-            train_loss = self.train_one_epoch(train_loader, optimizers, criterion, e)
-            train_losses.update({loss_type: [loss] for loss_type, loss in train_loss.items()})
+            train_loss = self.train_one_epoch(train_loader, e)
+            for loss_type, loss in train_loss.items():
+                train_losses[loss_type].append(loss)
 
             if val_loader:
-                val_loss = self.eval_one_epoch(val_loader, criterion)
-                val_losses.update({loss_type: [loss] for loss_type, loss in val_loss.items()})
+                val_loss = self.eval_one_epoch(val_loader)
+                for loss_type, loss in val_loss.items():
+                    val_losses[loss_type].append(loss)
 
             encoder_grad_norm = self._get_grad_norm(self.encoder)
             decoder_image_grad_norm = self._get_grad_norm(self.decoder_image)
@@ -172,8 +173,6 @@ class CAE(BaseCNN):
     def train_one_epoch(
         self,
         train_loader: DataLoader,
-        optimizers: dict[str, torch.optim.Optimizer],
-        criterion: dict[str, nn.Module],
         epoch: int,
     ) -> dict[str, float]:
         """
@@ -183,10 +182,6 @@ class CAE(BaseCNN):
         ----------
         train_loader : DataLoader
             DataLoader containing training data
-        optimizers : dict[str, torch.optim.Optimizer]
-            Dictionary containing optimizers for encoder and decoder heads
-        criterion : dict[str, nn.Module]
-            Dictionary containing loss functions for encoder and decoder heads
         epoch : int
             Current epoch number
 
@@ -197,10 +192,10 @@ class CAE(BaseCNN):
         """
         self.train()  # Sets dropout and batch normalization layers to training mode
 
-        optimizer_combined = optimizers["combined"]
+        optimizer_combined = self.optimizers["combined"]
 
-        image_criteria = criterion["image"]
-        timepoint_criteria = criterion["timepoint"]
+        image_criteria = self.criterion["image"]
+        timepoint_criteria = self.criterion["timepoint"]
 
         avg_loss: dict[str, float] = defaultdict(float)
 
@@ -232,9 +227,7 @@ class CAE(BaseCNN):
 
         return avg_loss
 
-    def eval_one_epoch(
-        self, val_loader: DataLoader, criterion: dict[str, nn.Module]
-    ) -> dict[str, float]:
+    def eval_one_epoch(self, val_loader: DataLoader) -> dict[str, float]:
         """
         Validates the network during training with batches of data.
 
@@ -242,8 +235,6 @@ class CAE(BaseCNN):
         ----------
         val_loader : DataLoader
             DataLoader containing validation data
-        criterion : dict[str, nn.Module]
-            Dictionary containing loss functions for encoder and decoder heads
 
         Returns
         -------
@@ -252,8 +243,8 @@ class CAE(BaseCNN):
         """
         self.eval()  # Sets dropout and batch normalization layers to evaluation mode
 
-        image_criteria = criterion["image"]
-        timepoint_criteria = criterion["timepoint"]
+        image_criteria = self.criterion["image"]
+        timepoint_criteria = self.criterion["timepoint"]
 
         avg_loss: dict[str, float] = defaultdict(float)
         with torch.no_grad():
