@@ -103,7 +103,7 @@ class CAE(BaseCNN):
         }
 
         for e in range(epochs):
-            train_loss = self.train_one_epoch(train_loader, optimizers)
+            train_loss = self.train_one_epoch(train_loader, optimizers, e)
             for loss_type, loss in train_loss.items():
                 train_losses[loss_type].append(loss)
 
@@ -170,6 +170,7 @@ class CAE(BaseCNN):
         self,
         train_loader: DataLoader,
         optimizers: dict[str, torch.optim.Optimizer],
+        epoch: int,
     ) -> dict[str, float]:
         """
         Trains the network for one epoch with batches of data.
@@ -186,8 +187,6 @@ class CAE(BaseCNN):
         """
         self.train()  # Sets dropout and batch normalization layers to training mode
 
-        # optimizer_image = optimizers["image"]
-        # optimizer_timepoint = optimizers["timepoint"]
         optimizer_combined = optimizers["combined"]
 
         image_criteria = nn.MSELoss()
@@ -195,10 +194,8 @@ class CAE(BaseCNN):
 
         avg_loss = {"image": 0.0, "timepoint": 0.0, "combined": 0.0}
 
-        with tqdm(train_loader, unit="batch", ncols=50) as tepoch:
+        with tqdm(train_loader, unit=" batch", ncols=100, desc=f"Epoch {epoch}") as tepoch:
             for inputs, labels in tepoch:
-                # optimizer_image.zero_grad()
-                # optimizer_timepoint.zero_grad()
                 optimizer_combined.zero_grad()
 
                 batch_loss = {"image": torch.zeros(1), "timepoint": torch.zeros(1)}
@@ -209,8 +206,6 @@ class CAE(BaseCNN):
 
                 combined_loss = self._calc_combined_loss(batch_loss)
                 combined_loss.backward()
-                # optimizer_image.step()
-                # optimizer_timepoint.step()
                 optimizer_combined.step()
 
                 avg_loss["image"] += batch_loss["image"].item()

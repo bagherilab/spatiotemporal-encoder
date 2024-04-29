@@ -8,7 +8,7 @@ models:
   # - 2c_3l_small
   # - 2c_3l_large
 model_configs:
-  num_epochs: 3
+  num_epochs: 4
   batch_size: 32
   val_split: 0.3
   test_split: 0.2
@@ -21,8 +21,8 @@ keys:
   - CH_Lvav
   - CH_Sav
   - CH_Savav
-  # - C_Lav
-  # - C_Lava
-  # - C_Lvav
-  # - C_Sav
-  # - C_Savav
+  - C_Lav
+  - C_Lava
+  - C_Lvav
+  - C_Sav
+  - C_Savav

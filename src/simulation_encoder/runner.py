@@ -137,5 +137,7 @@ class Runner:
 
     def _save_model(self, model_name: str, model: CAE) -> None:
         """Saves trained model parameters"""
+        if not os.path.exists("saved_models"):
+            os.makedirs("saved_models")
         torch.save(model.state_dict(), f"saved_models/{model_name}_{self._UUID}.pth")
         self.logger.log(f"Trained model saved at saved_models/{model_name}_{self._UUID}.pth")
