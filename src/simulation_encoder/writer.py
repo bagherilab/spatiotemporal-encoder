@@ -16,12 +16,14 @@ class Writer:
         self._create_dir(self.results_path)
         self._create_dir(self.figures_dir)
 
-    def write_results(self, model_name: str, losses: LossData) -> None:
+    def write_results(self, model_name: str, keys: list[str], augmentations: list[str], losses: LossData) -> None:
         """Writes the results of running the models to disk"""
         model_path = os.path.join(self.results_path, model_name)
         self._create_dir(model_path)
         results = {
             "model": model_name,
+            "keys": keys,
+            "data_augmentations": augmentations,
             "combined_loss": {
                 "train": losses.combined_loss_train,
                 "val": losses.combined_loss_val,

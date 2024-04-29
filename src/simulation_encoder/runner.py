@@ -91,6 +91,7 @@ class Runner:
             writer=self.writer,
             augmentations=self.augmentations,
         )
+        self.keys = keys
 
     def run(self, num_epochs: int) -> None:
         """Runs the training and evaluation of models"""
@@ -100,7 +101,7 @@ class Runner:
             raise ValueError("No models have been added to runner.")
 
         self.logger.log(f"Run ID: {self._UUID}")
-        self.logger.log(f"Training points: {self.dataset.n_train} (including augmented images)")
+        self.logger.log(f"Training points: {self.dataset.n_train} (including any augmented images)")
         self.logger.log(f"Testing points: {self.dataset.n_test}")
 
         for model_name, model in self.models.items():
@@ -109,7 +110,7 @@ class Runner:
             self._train_model(model_name, model, num_epochs)
             self._eval_model(model_name, model)
             self._save_model(model_name, model)
-            self.writer.write_results(model_name, self.losses[model_name])
+            self.writer.write_results(model_name, self.keys, self.augmentations, self.losses[model_name])
 
     def _train_model(self, model_name: str, model: CAE, num_epochs: int) -> None:
         """Trains a model on the dataset"""

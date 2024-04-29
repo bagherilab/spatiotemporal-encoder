@@ -1,6 +1,8 @@
 from typing import Optional, Any
 
 from tqdm import tqdm
+from collections import defaultdict
+
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
@@ -65,6 +67,21 @@ class CAE(BaseCNN):
 
         self.loss_weights = {"image": 0.5, "timepoint": 0.5}
 
+    @property
+    def image_decoder_params(self) -> list[torch.nn.Parameter]:
+        """Returns the parameters of the image decoder"""
+        return self.decoder_image.parameters()
+
+    @property
+    def timepoint_decoder_params(self) -> list[torch.nn.Parameter]:
+        """Returns the parameters of the timepoint decoder"""
+        return self.decoder_timepoint.parameters()
+    
+    @property
+    def encoder_params(self) -> list[torch.nn.Parameter]:
+        """Returns the parameters of the encoder"""
+        return self.encoder.parameters()
+
     def fit(
         self,
         train_loader: DataLoader,
@@ -72,7 +89,7 @@ class CAE(BaseCNN):
         val_loader: Optional[DataLoader] = None,
     ) -> tuple[dict[str, list[float]], dict[str, list[float]], dict[str, list[float]]]:
         """
-        Fits the netwrok over the training data for a number of epochs.
+        Fits the network over the training data for a number of epochs.
 
         Parameters
         ----------
@@ -85,7 +102,7 @@ class CAE(BaseCNN):
 
         Returns
         -------
-        dict[str, list[float]], dict[str, list[float]]
+        dict[str, list[float]], dict[str, list[float]], dict[str, list[float]]
             Lists of various types of loss
         """
         optimizers = {
@@ -94,27 +111,21 @@ class CAE(BaseCNN):
             "combined": torch.optim.Adam(self.parameters(), lr=0.001),
         }
 
-        train_losses: dict[str, list[float]] = {"image": [], "timepoint": [], "combined": []}
-        val_losses: dict[str, list[float]] = {"image": [], "timepoint": [], "combined": []}
-        grad_norms: dict[str, list[float]] = {
-            "encoder": [],
-            "decoder_image": [],
-            "decoder_timepoint": [],
-        }
+        train_losses: dict[str, list[float]] = defaultdict(list)
+        val_losses: dict[str, list[float]] = defaultdict(list)
+        grad_norms: dict[str, list[float]] = defaultdict(list)
 
         for e in range(epochs):
             train_loss = self.train_one_epoch(train_loader, optimizers, e)
-            for loss_type, loss in train_loss.items():
-                train_losses[loss_type].append(loss)
+            train_losses.update({loss_type: [loss] for loss_type, loss in train_loss.items()})
 
             if val_loader:
                 val_loss = self.eval_one_epoch(val_loader)
-                for loss_type, loss in val_loss.items():
-                    val_losses[loss_type].append(loss)
+                val_losses.update({loss_type: [loss] for loss_type, loss in val_loss.items()})
 
-            encoder_grad_norm = torch.norm(self.encoder[-1].weight.grad)
-            decoder_image_grad_norm = torch.norm(self.decoder_image[-1].weight.grad)
-            decoder_timepoint_grad_norm = torch.norm(self.decoder_timepoint[-1].weight.grad)
+            encoder_grad_norm = self._get_grad_norm(self.encoder)
+            decoder_image_grad_norm = self._get_grad_norm(self.decoder_image)
+            decoder_timepoint_grad_norm = self._get_grad_norm(self.decoder_timepoint)
 
             grad_norms["encoder"].append(encoder_grad_norm.item())
             grad_norms["decoder_image"].append(decoder_image_grad_norm.item())
@@ -146,16 +157,6 @@ class CAE(BaseCNN):
         """Decodes latent tensor to predict sample timepoint"""
         return self.decoder_timepoint(x)
 
-    @property
-    def image_decoder_params(self) -> list[torch.nn.Parameter]:
-        """Returns the parameters of the image decoder"""
-        return self.decoder_image.parameters()
-
-    @property
-    def timepoint_decoder_params(self) -> list[torch.nn.Parameter]:
-        """Returns the parameters of the timepoint decoder"""
-        return self.decoder_timepoint.parameters()
-
     def encode_loader(self, dataloader: DataLoader) -> torch.Tensor:
         """Encodes a loader of data"""
         self.eval()
@@ -179,6 +180,10 @@ class CAE(BaseCNN):
         ----------
         train_loader : DataLoader
             DataLoader containing training data
+        optimizers : dict[str, torch.optim.Optimizer]
+            Dictionary containing optimizers for encoder and decoder heads
+        epoch : int
+            Current epoch number
 
         Returns
         -------
@@ -295,3 +300,10 @@ class CAE(BaseCNN):
         """Calculates the combined loss from individual losses and weights"""
         combined_loss = sum([losses[key] * self.loss_weights[key] for key in losses.keys()])
         return combined_loss
+
+    def _get_grad_norm(self, layer: nn.Module) -> float:
+        """Calculates the gradient norm of a model"""
+        try:
+            return torch.norm(layer[-1].weight.grad)
+        except AttributeError:
+            raise AttributeError(f"{layer} does not have a gradient attribute")
