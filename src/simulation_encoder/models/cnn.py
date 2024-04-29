@@ -10,7 +10,6 @@ from torch.utils.data import DataLoader
 from simulation_encoder.logger import ExperimentLogger
 
 
-
 class BaseCNN(nn.Module):
     """
     Base convolutional neural network class.
@@ -76,7 +75,7 @@ class CAE(BaseCNN):
     def timepoint_decoder_params(self) -> list[torch.nn.Parameter]:
         """Returns the parameters of the timepoint decoder"""
         return self.decoder_timepoint.parameters()
-    
+
     @property
     def encoder_params(self) -> list[torch.nn.Parameter]:
         """Returns the parameters of the encoder"""
@@ -103,12 +102,15 @@ class CAE(BaseCNN):
         Returns
         -------
         dict[str, list[float]], dict[str, list[float]], dict[str, list[float]]
-            Lists of various types of loss
+            Dicts of training loss, validation loss, and gradient norms
         """
         optimizers = {
-            "image": torch.optim.Adam(self.image_decoder_params, lr=0.001),
-            "timepoint": torch.optim.Adam(self.timepoint_decoder_params, lr=0.001),
             "combined": torch.optim.Adam(self.parameters(), lr=0.001),
+        }
+
+        criterion = {
+            "image": nn.MSELoss(),
+            "timepoint": nn.CrossEntropyLoss(),
         }
 
         train_losses: dict[str, list[float]] = defaultdict(list)
@@ -116,11 +118,11 @@ class CAE(BaseCNN):
         grad_norms: dict[str, list[float]] = defaultdict(list)
 
         for e in range(epochs):
-            train_loss = self.train_one_epoch(train_loader, optimizers, e)
+            train_loss = self.train_one_epoch(train_loader, optimizers, criterion, e)
             train_losses.update({loss_type: [loss] for loss_type, loss in train_loss.items()})
 
             if val_loader:
-                val_loss = self.eval_one_epoch(val_loader)
+                val_loss = self.eval_one_epoch(val_loader, criterion)
                 val_losses.update({loss_type: [loss] for loss_type, loss in val_loss.items()})
 
             encoder_grad_norm = self._get_grad_norm(self.encoder)
@@ -141,9 +143,9 @@ class CAE(BaseCNN):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Performs encoding and several decoding heads"""
         z = self.encode(x)
-        image_reconstruction = self.decode_image(z)
-        timepoint_prediction = self.decode_timepoint(z)
-        return image_reconstruction, timepoint_prediction
+        pred_image = self.decode_image(z)
+        pred_timepoint = self.decode_timepoint(z)
+        return pred_image, pred_timepoint
 
     def encode(self, x: torch.Tensor) -> torch.Tensor:
         """Encodes input tensor"""
@@ -171,6 +173,7 @@ class CAE(BaseCNN):
         self,
         train_loader: DataLoader,
         optimizers: dict[str, torch.optim.Optimizer],
+        criterion: dict[str, nn.Module],
         epoch: int,
     ) -> dict[str, float]:
         """
@@ -182,6 +185,8 @@ class CAE(BaseCNN):
             DataLoader containing training data
         optimizers : dict[str, torch.optim.Optimizer]
             Dictionary containing optimizers for encoder and decoder heads
+        criterion : dict[str, nn.Module]
+            Dictionary containing loss functions for encoder and decoder heads
         epoch : int
             Current epoch number
 
@@ -194,20 +199,20 @@ class CAE(BaseCNN):
 
         optimizer_combined = optimizers["combined"]
 
-        image_criteria = nn.MSELoss()
-        timepoint_criteria = nn.CrossEntropyLoss()
+        image_criteria = criterion["image"]
+        timepoint_criteria = criterion["timepoint"]
 
-        avg_loss = {"image": 0.0, "timepoint": 0.0, "combined": 0.0}
+        avg_loss: dict[str, float] = defaultdict(float)
 
-        with tqdm(train_loader, unit=" batch", ncols=100, desc=f"Epoch {epoch}") as tepoch:
+        with tqdm(train_loader, unit=" batch", ncols=100, desc=f"Epoch {epoch + 1}") as tepoch:
             for inputs, labels in tepoch:
                 optimizer_combined.zero_grad()
 
                 batch_loss = {"image": torch.zeros(1), "timepoint": torch.zeros(1)}
 
-                image_reconstruction, timepoint_prediction = self(inputs)
-                batch_loss["image"] = image_criteria(image_reconstruction, inputs)
-                batch_loss["timepoint"] = timepoint_criteria(timepoint_prediction, labels)
+                pred_image, pred_timepoint = self(inputs)
+                batch_loss["image"] = image_criteria(pred_image, inputs)
+                batch_loss["timepoint"] = timepoint_criteria(pred_timepoint, labels)
 
                 combined_loss = self._calc_combined_loss(batch_loss)
                 combined_loss.backward()
@@ -217,17 +222,19 @@ class CAE(BaseCNN):
                 avg_loss["timepoint"] += batch_loss["timepoint"].item()
                 avg_loss["combined"] += combined_loss.item()
 
-                tepoch.set_postfix(image_loss=batch_loss["image"].item(), 
-                                   timepoint_loss=batch_loss["timepoint"].item()
+                tepoch.set_postfix(
+                    image_loss=round(batch_loss["image"].item(), 3),
+                    timepoint_loss=round(batch_loss["timepoint"].item(), 3),
                 )
 
-        avg_loss["image"] /= len(train_loader)
-        avg_loss["timepoint"] /= len(train_loader)
-        avg_loss["combined"] /= len(train_loader)
+        # Average loss over all batches
+        avg_loss = {key: value / len(train_loader) for key, value in avg_loss.items()}
 
         return avg_loss
 
-    def eval_one_epoch(self, val_loader: DataLoader) -> dict[str, float]:
+    def eval_one_epoch(
+        self, val_loader: DataLoader, criterion: dict[str, nn.Module]
+    ) -> dict[str, float]:
         """
         Validates the network during training with batches of data.
 
@@ -235,6 +242,8 @@ class CAE(BaseCNN):
         ----------
         val_loader : DataLoader
             DataLoader containing validation data
+        criterion : dict[str, nn.Module]
+            Dictionary containing loss functions for encoder and decoder heads
 
         Returns
         -------
@@ -243,27 +252,24 @@ class CAE(BaseCNN):
         """
         self.eval()  # Sets dropout and batch normalization layers to evaluation mode
 
-        image_criteria = nn.MSELoss()
-        timepoint_criteria = nn.CrossEntropyLoss()
+        image_criteria = criterion["image"]
+        timepoint_criteria = criterion["timepoint"]
 
-        avg_loss = {"image": 0.0, "timepoint": 0.0, "combined": 0.0}
+        avg_loss: dict[str, float] = defaultdict(float)
         with torch.no_grad():
             for inputs, labels in val_loader:
                 batch_loss = {"image": torch.zeros(1), "timepoint": torch.zeros(1)}
-                image_reconstruction, timepoint_prediction = self(inputs)
-                batch_loss["image"] = image_criteria(image_reconstruction, inputs)
-                batch_loss["timepoint"] = timepoint_criteria(timepoint_prediction, labels)
+                pred_image, pred_timepoint = self(inputs)
+                batch_loss["image"] = image_criteria(pred_image, inputs)
+                batch_loss["timepoint"] = timepoint_criteria(pred_timepoint, labels)
 
                 combined_loss = self._calc_combined_loss(batch_loss)
-                # combined_loss = batch_loss["image"]
 
                 avg_loss["image"] += batch_loss["image"].item()
                 avg_loss["timepoint"] += batch_loss["timepoint"].item()
                 avg_loss["combined"] += combined_loss.item()
 
-        avg_loss["image"] /= len(val_loader)
-        avg_loss["timepoint"] /= len(val_loader)
-        avg_loss["combined"] /= len(val_loader)
+        avg_loss = {key: value / len(val_loader) for key, value in avg_loss.items()}
 
         return avg_loss
 
@@ -301,7 +307,7 @@ class CAE(BaseCNN):
         combined_loss = sum([losses[key] * self.loss_weights[key] for key in losses.keys()])
         return combined_loss
 
-    def _get_grad_norm(self, layer: nn.Module) -> float:
+    def _get_grad_norm(self, layer: nn.Module) -> torch.Tensor:
         """Calculates the gradient norm of a model"""
         try:
             return torch.norm(layer[-1].weight.grad)

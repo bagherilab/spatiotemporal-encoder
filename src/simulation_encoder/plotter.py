@@ -2,7 +2,12 @@ import matplotlib.pyplot as plt
 
 
 def line_plot(
-    data: dict[str, list[float]], title: str, uuid: str, x_label: str = "", y_label: str = ""
+    data: dict[str, list[float]],
+    title: str,
+    uuid: str,
+    model_name: str,
+    x_label: str = "",
+    y_label: str = "",
 ) -> None:
     """Creates a line plot of the data"""
     plt.figure()
@@ -12,4 +17,4 @@ def line_plot(
     plt.title(title)
     plt.xlabel(x_label)
     plt.ylabel(y_label)
-    plt.savefig(f"results/{uuid}/figures/{title}.png")
+    plt.savefig(f"results/{uuid}/{model_name}/figures/{title}.png")

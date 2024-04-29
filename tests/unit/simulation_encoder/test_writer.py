@@ -35,6 +35,8 @@ class TestWriter(unittest.TestCase):
 
         expected_results = {
             "model": "test_model",
+            "keys": ["test_key"],
+            "data_augmentations": ["rotate_180", "rotate_90"],
             "combined_loss": {
                 "train": [0.7, 0.8, 0.9],
                 "val": [0.8, 0.7, 0.9],
@@ -52,7 +54,9 @@ class TestWriter(unittest.TestCase):
             },
         }
 
-        mock_runner.writer.write_results("test_model", mock_runner.losses)
+        test_keys = ["test_key"]
+        test_augmentations = ["rotate_180", "rotate_90"]
+        mock_runner.writer.write_results("test_model", test_keys, test_augmentations, mock_runner.losses)
         actual_call_args = mock_dump.call_args[0][0]
         self.assertEqual(actual_call_args, expected_results)
 

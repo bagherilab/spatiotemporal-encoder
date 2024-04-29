@@ -110,7 +110,9 @@ class Runner:
             self._train_model(model_name, model, num_epochs)
             self._eval_model(model_name, model)
             self._save_model(model_name, model)
-            self.writer.write_results(model_name, self.keys, self.augmentations, self.losses[model_name])
+            self.writer.write_results(
+                model_name, self.keys, self.augmentations, self.losses[model_name]
+            )
 
     def _train_model(self, model_name: str, model: CAE, num_epochs: int) -> None:
         """Trains a model on the dataset"""
@@ -125,8 +127,8 @@ class Runner:
         self.losses[model_name].add_train_loss(losses)
         self.losses[model_name].add_val_loss(val_losses)
 
-        line_plot(grad_norms, "grad_norms", self._UUID, "Epoch", "Gradient Norm")
-        line_plot(losses, "train_loss", self._UUID, "Epoch", "Loss")
+        line_plot(grad_norms, "grad_norms", self._UUID, model_name, "Epoch", "Gradient Norm")
+        line_plot(losses, "train_loss", self._UUID, model_name, "Epoch", "Loss")
 
     def _eval_model(self, model_name: str, model: CAE) -> None:
         """Evaluates all models currently in runner"""

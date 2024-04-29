@@ -1,19 +1,20 @@
 data_dir: data/ARCADE
 models:
-  # - 1c_2l
-  # - 1c_3l
+  - 1c_2l
+  - 1c_3l
   - 2c_3l
-  # - 2c_3l_1s
-  # - 3c_3l
-  # - 2c_3l_small
-  # - 2c_3l_large
+  - 2c_3l_1s
+  - 2c_3l_small
+  - 2c_3l_large
+  - 2c_3l_2d
+  - 3c_3l
 model_configs:
-  num_epochs: 4
+  num_epochs: 5
   batch_size: 32
   val_split: 0.3
   test_split: 0.2
   augmentations:
-    - rotate_180
+    # - rotate_180
   verbose: true
 keys:
   - CH_Lav
