@@ -10,6 +10,7 @@ from simulation_encoder.logger import ExperimentLogger
 from simulation_encoder.writer import Writer
 from simulation_encoder.models.cnn import CAE
 from simulation_encoder.dataclass.loss_data import LossData
+from simulation_encoder.plotter import line_plot
 
 
 class Runner:
@@ -114,7 +115,7 @@ class Runner:
         """Trains a model on the dataset"""
         train_loader = self.dataset.get_train_dataloader()
         val_loader = self.dataset.get_val_dataloader()
-        losses, val_losses = model.fit(
+        losses, val_losses, grad_norms = model.fit(
             train_loader,
             epochs=num_epochs,
             val_loader=val_loader,
@@ -122,6 +123,9 @@ class Runner:
 
         self.losses[model_name].add_train_loss(losses)
         self.losses[model_name].add_val_loss(val_losses)
+
+        line_plot(grad_norms, "grad_norms", self._UUID, "Epoch", "Gradient Norm")
+        line_plot(losses, "train_loss", self._UUID, "Epoch", "Loss")
 
     def _eval_model(self, model_name: str, model: CAE) -> None:
         """Evaluates all models currently in runner"""

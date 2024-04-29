@@ -1,10 +1,12 @@
 from typing import Optional, Any
 
+from tqdm import tqdm
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
 from simulation_encoder.logger import ExperimentLogger
+
 
 
 class BaseCNN(nn.Module):
@@ -25,11 +27,11 @@ class BaseCNN(nn.Module):
         """General forward pass of the network"""
         raise NotImplementedError("forward method should be implemented in the subclass")
 
-    def fit(
-        self, train_loader: DataLoader, epochs: int, val_loader: Optional[DataLoader] = None
-    ) -> tuple[dict[str, list[float]], dict[str, list[float]]]:
-        """Fits the network over the training data for a number of epochs."""
-        raise NotImplementedError("fit method should be implemented in the subclass")
+    # def fit(
+    #     self, train_loader: DataLoader, epochs: int, val_loader: Optional[DataLoader] = None
+    # ) -> tuple[dict[str, list[float]], dict[str, list[float]]]:
+    #     """Fits the network over the training data for a number of epochs."""
+    #     raise NotImplementedError("fit method should be implemented in the subclass")
 
 
 class CAE(BaseCNN):
@@ -68,7 +70,7 @@ class CAE(BaseCNN):
         train_loader: DataLoader,
         epochs: int,
         val_loader: Optional[DataLoader] = None,
-    ) -> tuple[dict[str, list[float]], dict[str, list[float]]]:
+    ) -> tuple[dict[str, list[float]], dict[str, list[float]], dict[str, list[float]]]:
         """
         Fits the netwrok over the training data for a number of epochs.
 
@@ -89,10 +91,17 @@ class CAE(BaseCNN):
         optimizers = {
             "image": torch.optim.Adam(self.image_decoder_params, lr=0.001),
             "timepoint": torch.optim.Adam(self.timepoint_decoder_params, lr=0.001),
+            "combined": torch.optim.Adam(self.parameters(), lr=0.001),
         }
 
         train_losses: dict[str, list[float]] = {"image": [], "timepoint": [], "combined": []}
         val_losses: dict[str, list[float]] = {"image": [], "timepoint": [], "combined": []}
+        grad_norms: dict[str, list[float]] = {
+            "encoder": [],
+            "decoder_image": [],
+            "decoder_timepoint": [],
+        }
+
         for e in range(epochs):
             train_loss = self.train_one_epoch(train_loader, optimizers)
             for loss_type, loss in train_loss.items():
@@ -103,12 +112,20 @@ class CAE(BaseCNN):
                 for loss_type, loss in val_loss.items():
                     val_losses[loss_type].append(loss)
 
+            encoder_grad_norm = torch.norm(self.encoder[-1].weight.grad)
+            decoder_image_grad_norm = torch.norm(self.decoder_image[-1].weight.grad)
+            decoder_timepoint_grad_norm = torch.norm(self.decoder_timepoint[-1].weight.grad)
+
+            grad_norms["encoder"].append(encoder_grad_norm.item())
+            grad_norms["decoder_image"].append(decoder_image_grad_norm.item())
+            grad_norms["decoder_timepoint"].append(decoder_timepoint_grad_norm.item())
+
             if self.logger:
                 if (e + 1) % 1 == 0:
                     msg = f"Epoch {e+1}/{epochs}- Train loss: {train_loss['combined']} Val loss: {val_loss['combined']}"
                     self.logger.log(msg)
 
-        return (train_losses, val_losses)
+        return (train_losses, val_losses, grad_norms)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Performs encoding and several decoding heads"""
@@ -169,32 +186,40 @@ class CAE(BaseCNN):
         """
         self.train()  # Sets dropout and batch normalization layers to training mode
 
-        image_optimizer = optimizers["image"]
-        timepoint_optimizer = optimizers["timepoint"]
+        # optimizer_image = optimizers["image"]
+        # optimizer_timepoint = optimizers["timepoint"]
+        optimizer_combined = optimizers["combined"]
 
         image_criteria = nn.MSELoss()
         timepoint_criteria = nn.CrossEntropyLoss()
 
         avg_loss = {"image": 0.0, "timepoint": 0.0, "combined": 0.0}
-        for inputs, labels in train_loader:
-            image_optimizer.zero_grad()
-            timepoint_optimizer.zero_grad()
 
-            batch_loss = {"image": torch.zeros(1), "timepoint": torch.zeros(1)}
+        with tqdm(train_loader, unit="batch", ncols=50) as tepoch:
+            for inputs, labels in tepoch:
+                # optimizer_image.zero_grad()
+                # optimizer_timepoint.zero_grad()
+                optimizer_combined.zero_grad()
 
-            image_reconstruction, timepoint_prediction = self(inputs)
-            batch_loss["image"] = image_criteria(image_reconstruction, inputs)
-            batch_loss["timepoint"] = timepoint_criteria(timepoint_prediction, labels)
+                batch_loss = {"image": torch.zeros(1), "timepoint": torch.zeros(1)}
 
-            combined_loss = self._calc_combined_loss(batch_loss)
-            # combined_loss = batch_loss["image"]
-            combined_loss.backward()
-            image_optimizer.step()
-            timepoint_optimizer.step()
+                image_reconstruction, timepoint_prediction = self(inputs)
+                batch_loss["image"] = image_criteria(image_reconstruction, inputs)
+                batch_loss["timepoint"] = timepoint_criteria(timepoint_prediction, labels)
 
-            avg_loss["image"] += batch_loss["image"].item()
-            avg_loss["timepoint"] += batch_loss["timepoint"].item()
-            avg_loss["combined"] += combined_loss.item()
+                combined_loss = self._calc_combined_loss(batch_loss)
+                combined_loss.backward()
+                # optimizer_image.step()
+                # optimizer_timepoint.step()
+                optimizer_combined.step()
+
+                avg_loss["image"] += batch_loss["image"].item()
+                avg_loss["timepoint"] += batch_loss["timepoint"].item()
+                avg_loss["combined"] += combined_loss.item()
+
+                tepoch.set_postfix(image_loss=batch_loss["image"].item(), 
+                                   timepoint_loss=batch_loss["timepoint"].item()
+                )
 
         avg_loss["image"] /= len(train_loader)
         avg_loss["timepoint"] /= len(train_loader)

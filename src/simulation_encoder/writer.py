@@ -1,6 +1,5 @@
 import os
 import json
-import matplotlib.pyplot as plt
 
 from simulation_encoder.dataclass.loss_data import LossData
 
@@ -50,17 +49,6 @@ class Writer:
         indices_path = os.path.join(self.results_path, "indices.json")
         with open(indices_path, "w", encoding="utf-8") as i_file:
             json.dump(indices, i_file, indent=4)
-
-    def write_loss_plots(self, model_name: str, losses: LossData) -> None:
-        """Saves plots of the training and validation loss for each model"""
-        pass
-
-    #     plt.plot(range(len(train_loss)), train_loss)
-    #     plt.plot(range(len(val_loss)), val_loss)
-    #     plt.legend(["Train loss", "Validation loss"])
-    #     plt.xlabel("Epoch")
-    #     plt.ylabel("Loss")
-    #     plt.savefig(f"{self.figures_dir}/loss_{model_name}.png")
 
     def _create_dir(self, path: str) -> None:
         if not os.path.exists(path):
