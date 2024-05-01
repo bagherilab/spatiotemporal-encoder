@@ -2,7 +2,7 @@
 data/*
 logs/*
 results/*
-saved_models/*
+results_save/*
 archive/
 
 *.ipynb

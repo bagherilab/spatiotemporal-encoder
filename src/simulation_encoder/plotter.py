@@ -11,8 +11,6 @@ def line_plot(
     y_label: str = "",
 ) -> None:
     """Creates a line plot of the data"""
-    print(title)
-    print(data)
     plt.figure()
     for _, values in data.items():
         plt.plot(range(len(values)), values)
@@ -23,6 +21,18 @@ def line_plot(
 
     _create_dir(f"results/{uuid}/{model_name}/figures/")
     plt.savefig(f"results/{uuid}/{model_name}/figures/{title}.png")
+
+def loss_plot(train_loss, val_loss, uuid, model_name):
+    plt.figure()
+    plt.plot(range(len(train_loss)), train_loss, label="Train Loss")
+    plt.plot(range(len(val_loss)), val_loss, label="Validation Loss")
+    plt.legend()
+    plt.title("Loss")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+
+    _create_dir(f"results/{uuid}/{model_name}/figures/")
+    plt.savefig(f"results/{uuid}/{model_name}/figures/loss.png")
 
 
 def _create_dir(path: str) -> None:

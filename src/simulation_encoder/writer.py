@@ -9,15 +9,15 @@ class Writer:
 
     def __init__(self, results_dir: str = "results/", uuid: str = "none"):
         self.uuid = uuid
+        self.results_dir = results_dir
         self.results_path = os.path.join(results_dir, str(self.uuid))
-
-        self._create_dir(results_dir)
-        self._create_dir(self.results_path)
 
     def write_results(
         self, model_name: str, keys: list[str], augmentations: list[str], losses: LossData
     ) -> None:
         """Writes the results of running the models to disk"""
+        self._setup()
+
         model_path = os.path.join(self.results_path, model_name)
         self._create_dir(model_path)
         results = {
@@ -47,10 +47,16 @@ class Writer:
         self, train_idices: list[int], val_indices: list[int], test_indices: list[int]
     ) -> None:
         """Writes the train and test indices to disk"""
+        self._setup()
+
         indices = {"train": train_idices, "val": val_indices, "test": test_indices}
         indices_path = os.path.join(self.results_path, "indices.json")
         with open(indices_path, "w", encoding="utf-8") as i_file:
             json.dump(indices, i_file, indent=4)
+
+    def _setup(self) -> None:
+        self._create_dir(self.results_dir)
+        self._create_dir(self.results_path)
 
     def _create_dir(self, path: str) -> None:
         if not os.path.exists(path):
