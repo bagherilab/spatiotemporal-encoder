@@ -63,7 +63,7 @@ class Runner:
         self.losses[model_name] = LossData()
 
     def add_dataset(
-        self, data_dir: str, keys: list[str], val_split: float, test_split: float, batch_size: int
+        self, data_dir: str, label_dir: str, keys: list[str], val_split: float, test_split: float, batch_size: int
     ) -> None:
         """
         Add dataset on which models should be trained
@@ -72,6 +72,8 @@ class Runner:
         ----------
         data_dir : str
             Path to the directory containing the images
+        label_dir : str
+            Path to the directory containing the labels
         keys : list[str]
             List of prefixes for the images that will be loaded
         val_split : float
@@ -83,6 +85,7 @@ class Runner:
         """
         self.dataset = PNGLoader(
             image_dir=data_dir,
+            label_dir=label_dir,
             keys=keys,
             val_split=val_split,
             test_split=test_split,

@@ -22,7 +22,9 @@ def line_plot(
     _create_dir(f"results/{uuid}/{model_name}/figures/")
     plt.savefig(f"results/{uuid}/{model_name}/figures/{title}.png")
 
-def loss_plot(train_loss, val_loss, uuid, model_name):
+
+def loss_plot(train_loss: list[float], val_loss: list[float], uuid: str, model_name: str) -> None:
+    """Creates a plot of the training and validation loss"""
     plt.figure()
     plt.plot(range(len(train_loss)), train_loss, label="Train Loss")
     plt.plot(range(len(val_loss)), val_loss, label="Validation Loss")

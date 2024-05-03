@@ -72,7 +72,7 @@ class CAE(BaseCNN):
             "timepoint": nn.CrossEntropyLoss(),
         }
 
-        self.loss_weights = {"image": 0.8, "timepoint": 0.2}
+        self.loss_weights = {"image": 0.5, "timepoint": 0.5}
 
     @property
     def image_decoder_params(self) -> list[torch.nn.Parameter]:
@@ -262,23 +262,22 @@ class CAE(BaseCNN):
         avg_loss = {key: value / len(val_loader) for key, value in avg_loss.items()}
 
         return avg_loss
-    
+
     def get_saliency_map(self, x: torch.Tensor) -> torch.Tensor:
         """Calculates the saliency map of the input tensor"""
         self.eval()
         image_criteria = self.criterion["image"]
 
         x.requires_grad = True
-        
+
         pred_image, pred_timepoint = self(x)
-        
+
         loss_image = image_criteria(pred_image, x)
         loss_image.backward()
 
         saliency_map, _ = torch.max(x.grad.data.abs(), dim=1)
 
         return saliency_map
-
 
     def _create_layers(self, layer_configs: dict[Any, Any]) -> list[nn.Module]:
         layers = []

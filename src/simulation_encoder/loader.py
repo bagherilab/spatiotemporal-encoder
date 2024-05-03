@@ -41,7 +41,7 @@ class Augmentation:
             return torch.stack(transformed_tensors, dim=0)
 
         raise ValueError(f"Unsupported tensor shape: {tensor.shape}")
-
+    
 
 class PNGLoader(Dataset):
     """
@@ -51,6 +51,8 @@ class PNGLoader(Dataset):
     ----------
     image_dir : str
         Path to the directory containing the images.
+    label_dir : str
+        Path to the directory containing the labels.
     keys : list[str]
         List of keys to filter the images by.
     val_split : float, optional
@@ -75,6 +77,7 @@ class PNGLoader(Dataset):
     def __init__(
         self,
         image_dir: str,
+        label_dir: str,
         keys: list[str],
         val_split: float = 0.2,
         test_split: float = 0.2,
@@ -86,6 +89,7 @@ class PNGLoader(Dataset):
         random_seed: int = 42,
     ):
         self.image_dir = image_dir
+        self.label_loader = LabelLoader(label_dir)
         self.keys = keys
         self.val_split = val_split
         self.test_split = test_split
@@ -95,6 +99,8 @@ class PNGLoader(Dataset):
         self.augmentations: dict[str, Augmentation] = self._get_augmentations(augmentations) or {}
         self.indices_file = indices_file
         self.random_seed = random_seed
+
+        self.metrics = ["activity", "growth", "symmetry"]
 
         self._get_image_groups()
 
@@ -190,11 +196,15 @@ class PNGLoader(Dataset):
     def get_timepoint(self, idx: int) -> int:
         """Returns the timepoint of the group at index `idx`"""
         return int(self.groups[idx]["timepoint"])
+    
+    def get_seed_key(self, idx: int) -> str:
+        """Returns the seed and key of the group at index `idx`"""
+        return self.groups[idx]["seed_key"]
 
     def _get_image_groups(self) -> None:
         """Returns groups of images based on the filename format."""
-        groups: dict[str, dict[str, str]] = defaultdict(
-            lambda: {"cancer": "", "graph": "", "timepoint": "", "augmentation": "original"}
+        groups: dict[str, dict[str, str|dict[str, float]]] = defaultdict(
+            lambda: {"cancer": "", "graph": "", "timepoint": "", "augmentation": "original", "metrics": defaultdict(float)}
         )
 
         for file_name in os.listdir(self.image_dir):
@@ -207,6 +217,12 @@ class PNGLoader(Dataset):
                 groups[group_key]["timepoint"] = timepoint_short
                 groups[group_key][image_type] = os.path.join(self.image_dir, file_name)
                 groups[group_key]["seed_key"] = f"{context}_{vasc_type}_{seed}"
+
+                for metric in self.metrics:
+                    key = f"{context}_{vasc_type}"
+                    metric_upper = metric.upper()
+                    timepoint_float = float(timepoint_short)
+                    groups[group_key]["metrics"][metric] = self.label_loader.get_metrics(metric_upper, key, timepoint_float, seed)
 
         if self.logger:
             for group_key, group in groups.items():
@@ -351,3 +367,28 @@ class PNGLoader(Dataset):
         images = torch.stack(images)
         labels = torch.tensor(labels)
         return images, labels
+
+
+class LabelLoader():
+    """
+    Loads metrics (activity, growth, and symmetry) to match with corresponding images.
+    
+    Parameters
+    ----------
+    label_dir : str
+        Path to the directory containing the labels.
+    
+    """
+    def __init__(self, label_dir: str):
+        self.label_dir = label_dir
+        
+
+    def get_metrics(self, metric: str, key: str, time: float, seed: int) -> float:
+        file = f"{self.label_dir}/vascular_function/VASCULAR_FUNCTION_{key}.SEEDS.{metric}.json"
+        
+        with open(file, "r", encoding="utf-8") as f:
+            vals = json.load(f)
+        for val in vals:
+            if val["time"] == time:
+                return val["_"][seed]
+            

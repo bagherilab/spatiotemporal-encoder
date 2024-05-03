@@ -19,6 +19,7 @@ def main() -> None:
         config = yaml.safe_load(file)
 
     data_dir = config["data_dir"]
+    label_dir = config["label_dir"]
     models = config["models"]
     model_configs = config["model_configs"]
     keys = config["keys"]
@@ -34,7 +35,7 @@ def main() -> None:
 
     runner = Runner(augmentations, verbose)
     runner.add_models(model_files)
-    runner.add_dataset(data_dir, keys, val_split, test_split, batch_size)
+    runner.add_dataset(data_dir, label_dir, keys, val_split, test_split, batch_size)
     runner.run(num_epochs)
 
 
