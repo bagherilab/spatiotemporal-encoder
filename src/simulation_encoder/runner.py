@@ -63,7 +63,13 @@ class Runner:
         self.losses[model_name] = LossData()
 
     def add_dataset(
-        self, data_dir: str, label_dir: str, keys: list[str], val_split: float, test_split: float, batch_size: int
+        self,
+        data_dir: str,
+        label_dir: str,
+        keys: list[str],
+        val_split: float,
+        test_split: float,
+        batch_size: int,
     ) -> None:
         """
         Add dataset on which models should be trained

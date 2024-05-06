@@ -9,7 +9,7 @@ models:
   # - 2c_3l_2d
   # - 3c_3l
 model_configs:
-  num_epochs: 5
+  num_epochs: 3
   batch_size: 32
   val_split: 0.3
   test_split: 0.2

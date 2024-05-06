@@ -1,6 +1,6 @@
 import os
 import json
-from typing import Optional, Callable
+from typing import Optional, Callable, Any
 from collections import defaultdict
 
 import numpy as np
@@ -41,7 +41,7 @@ class Augmentation:
             return torch.stack(transformed_tensors, dim=0)
 
         raise ValueError(f"Unsupported tensor shape: {tensor.shape}")
-    
+
 
 class PNGLoader(Dataset):
     """
@@ -77,8 +77,8 @@ class PNGLoader(Dataset):
     def __init__(
         self,
         image_dir: str,
-        label_dir: str,
         keys: list[str],
+        label_dir: Optional[str] = None,
         val_split: float = 0.2,
         test_split: float = 0.2,
         batch_size: int = 10,
@@ -89,26 +89,22 @@ class PNGLoader(Dataset):
         random_seed: int = 42,
     ):
         self.image_dir = image_dir
-        self.label_loader = LabelLoader(label_dir)
         self.keys = keys
         self.val_split = val_split
         self.test_split = test_split
         self.batch_size = batch_size
         self.logger = logger
         self.writer = writer
-        self.augmentations: dict[str, Augmentation] = self._get_augmentations(augmentations) or {}
         self.indices_file = indices_file
         self.random_seed = random_seed
+
+        self.label_loader = LabelLoader(label_dir) if label_dir else None
+        self.augmentations: dict[str, Augmentation] = self._get_augmentations(augmentations) or {}
 
         self.metrics = ["activity", "growth", "symmetry"]
 
         self._get_image_groups()
-
-        if indices_file:
-            self._load_from_indices(indices_file)
-        else:
-            self._split_data()
-
+        self._split_data()
         self._augment_training_data()
 
     def __len__(self) -> int:
@@ -196,39 +192,52 @@ class PNGLoader(Dataset):
     def get_timepoint(self, idx: int) -> int:
         """Returns the timepoint of the group at index `idx`"""
         return int(self.groups[idx]["timepoint"])
-    
+
     def get_seed_key(self, idx: int) -> str:
         """Returns the seed and key of the group at index `idx`"""
         return self.groups[idx]["seed_key"]
 
     def _get_image_groups(self) -> None:
         """Returns groups of images based on the filename format."""
-        groups: dict[str, dict[str, str|dict[str, float]]] = defaultdict(
-            lambda: {"cancer": "", "graph": "", "timepoint": "", "augmentation": "original", "metrics": defaultdict(float)}
+        groups: dict[str, Any] = defaultdict(
+            lambda: {
+                "cancer": "",
+                "graph": "",
+                "timepoint": "",
+                "augmentation": "original",
+                "metrics": defaultdict(float),
+            }
         )
 
         for file_name in os.listdir(self.image_dir):
-            if file_name.endswith(".png") and self._in_keys(file_name):
-                context, vasc_type, seed, timepoint, image_type = self._parse_ARCADE_filename(
-                    file_name
-                )
-                group_key = f"{context}_{vasc_type}_{seed}_{timepoint}"
-                timepoint_short = str((timepoint // 10) - 1)
-                groups[group_key]["timepoint"] = timepoint_short
-                groups[group_key][image_type] = os.path.join(self.image_dir, file_name)
-                groups[group_key]["seed_key"] = f"{context}_{vasc_type}_{seed}"
+            if not file_name.endswith(".png") or not self._in_keys(file_name):
+                continue
 
-                for metric in self.metrics:
-                    key = f"{context}_{vasc_type}"
-                    metric_upper = metric.upper()
-                    timepoint_float = float(timepoint_short)
-                    groups[group_key]["metrics"][metric] = self.label_loader.get_metrics(metric_upper, key, timepoint_float, seed)
+            context, vasc_type, seed, timepoint, image_type = self._parse_ARCADE_filename(file_name)
+            group_key = f"{context}_{vasc_type}_{seed}_{timepoint}"
+            timepoint_short = str((timepoint // 10) - 1)
+            groups[group_key]["timepoint"] = timepoint_short
+            groups[group_key][image_type] = os.path.join(self.image_dir, file_name)
+            groups[group_key]["seed_key"] = f"{context}_{vasc_type}_{seed}"
+
+            for metric in self.metrics:
+                if metric in groups[group_key]["metrics"] or not self.label_loader:
+                    continue
+                key = f"{context}_{vasc_type}"
+                metric_upper = metric.upper()
+                timepoint_float = float(timepoint_short)
+                groups[group_key]["metrics"][metric] = self.label_loader.get_metrics(
+                    metric_upper, key, timepoint_float, seed
+                )
 
         if self.logger:
-            for group_key, group in groups.items():
-                if "" in group.values():
-                    missing_images = [key for key, value in group.items() if value == ""]
-                    self.logger.warning(f"Missing images from {group_key}: {missing_images}")
+            missing_images = {
+                group_key: [key for key, value in group.items() if value == ""]
+                for group_key, group in groups.items()
+                if "" in group.values()
+            }
+            for group_key, missing_list in missing_images.items():
+                self.logger.warning(f"Missing images from {group_key}: {missing_list}")
 
         self.groups = list(groups.values())
 
@@ -238,15 +247,23 @@ class PNGLoader(Dataset):
         if not augmentations:
             return None
 
+        augmentation_map: dict[str, Callable[..., Any]] = {
+            "rotate": lambda degree: transforms.RandomRotation(degrees=degree),
+            "flip": lambda: transforms.RandomHorizontalFlip(p=0.5),
+            "scale": lambda size: transforms.Resize(size),
+            "translate": lambda shift: transforms.RandomAffine(0, translate=(shift, shift)),
+            "brightness": lambda factor: transforms.ColorJitter(brightness=factor),
+        }
+
         augmentations_dict = {}
         for aug_name in augmentations:
-            aug_type = aug_name.split("_")[0]
-            if aug_type == "rotate":
-                degree = int(aug_name.split("_")[1])
-                transform = transforms.RandomRotation(degrees=degree)
-            else:
+            aug_type, *args = aug_name.split("_")
+            if aug_type not in augmentation_map:
                 raise ValueError(f"Invalid augmentation name: {aug_name}")
+
+            transform = augmentation_map[aug_type](*map(int, args))
             augmentations_dict[aug_name] = Augmentation(transform, aug_name)
+
         return augmentations_dict
 
     def _augment_training_data(self) -> None:
@@ -287,6 +304,10 @@ class PNGLoader(Dataset):
         return augmentation(full_tensor)
 
     def _split_data(self, shuffle: bool = True) -> None:
+        if self.indices_file:
+            self._load_from_indices(self.indices_file)
+            return
+
         all_indices = list(range(len(self)))
         groups = self._get_indices_of_groups(all_indices)
 
@@ -302,20 +323,9 @@ class PNGLoader(Dataset):
         val_group_keys = group_keys[test_groups_count : test_groups_count + val_groups_count]
         train_group_keys = group_keys[test_groups_count + val_groups_count :]
 
-        train_indices = []
-        val_indices = []
-        test_indices = []
-
-        for key in train_group_keys:
-            train_indices.extend(groups[key])
-        for key in val_group_keys:
-            val_indices.extend(groups[key])
-        for key in test_group_keys:
-            test_indices.extend(groups[key])
-
-        self._train_indices = train_indices
-        self._val_indices = val_indices
-        self._test_indices = test_indices
+        self._train_indices = [index for key in train_group_keys for index in groups[key]]
+        self._val_indices = [index for key in val_group_keys for index in groups[key]]
+        self._test_indices = [index for key in test_group_keys for index in groups[key]]
 
         if self.writer:
             self.writer.write_indices(self._train_indices, self._val_indices, self._test_indices)
@@ -369,26 +379,27 @@ class PNGLoader(Dataset):
         return images, labels
 
 
-class LabelLoader():
+class LabelLoader:
     """
     Loads metrics (activity, growth, and symmetry) to match with corresponding images.
-    
+
     Parameters
     ----------
     label_dir : str
         Path to the directory containing the labels.
-    
+
     """
+
     def __init__(self, label_dir: str):
         self.label_dir = label_dir
-        
 
     def get_metrics(self, metric: str, key: str, time: float, seed: int) -> float:
         file = f"{self.label_dir}/vascular_function/VASCULAR_FUNCTION_{key}.SEEDS.{metric}.json"
-        
+
         with open(file, "r", encoding="utf-8") as f:
             vals = json.load(f)
         for val in vals:
             if val["time"] == time:
                 return val["_"][seed]
-            
+
+        return float("nan")
