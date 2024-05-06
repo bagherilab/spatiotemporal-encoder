@@ -51,10 +51,10 @@ class PNGLoader(Dataset):
     ----------
     image_dir : str
         Path to the directory containing the images.
-    label_dir : str
-        Path to the directory containing the labels.
     keys : list[str]
         List of keys to filter the images by.
+    label_dir : str
+        Path to the directory containing the labels.
     val_split : float, optional
         Fraction of the data to use for validation, by default 0.2
     test_split : float, optional
