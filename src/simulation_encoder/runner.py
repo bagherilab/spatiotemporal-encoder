@@ -19,6 +19,8 @@ class Runner:
 
     Parameters
     ----------
+    augmentations : list[str]
+        List of augmentations to be applied to the dataset
     verbose : bool
         Controls if model training is output to console
 
@@ -41,12 +43,12 @@ class Runner:
     def __init__(self, augmentations: Optional[list[str]] = None, verbose: bool = False) -> None:
         self._UUID = uuid.uuid4()
         self.augmentations = augmentations or []
-        self.verbose = verbose
         self.models: dict[str, CAE] = {}
         self.dataset: PNGLoader = None
         self.writer = Writer(uuid=self._UUID)
         self.logger = ExperimentLogger(uuid=self._UUID, verbose=verbose)
         self.losses: dict[str, LossData] = {}
+        self.verbose = verbose
 
     def add_models(self, model_files: list[str]) -> None:
         """Add models to be trained by the runner"""
