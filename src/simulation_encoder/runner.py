@@ -66,7 +66,7 @@ class Runner:
 
     def add_dataset(
         self,
-        data_dir: str,
+        image_dir: str,
         label_dir: str,
         keys: list[str],
         val_split: float,
@@ -78,7 +78,7 @@ class Runner:
 
         Parameters
         ----------
-        data_dir : str
+        image_dir : str
             Path to the directory containing the images
         label_dir : str
             Path to the directory containing the labels
@@ -92,7 +92,7 @@ class Runner:
             Batch size for the DataLoader
         """
         self.dataset = PNGLoader(
-            image_dir=data_dir,
+            image_dir=image_dir,
             label_dir=label_dir,
             keys=keys,
             val_split=val_split,

@@ -121,7 +121,7 @@ class CAE(BaseCNN):
             "timepoint": nn.CrossEntropyLoss(),
         }
 
-        self.loss_weights = {"image": 0.5, "timepoint": 0.5}
+        self.loss_weights = {"image": 1.0, "timepoint": 0.0}
 
     def fit(
         self,
