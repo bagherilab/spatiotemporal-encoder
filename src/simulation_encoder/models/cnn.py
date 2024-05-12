@@ -19,6 +19,8 @@ class BaseCNN(ABC, nn.Module):
     @abstractmethod
     def __init__(
         self,
+        name: str = "",
+        architecture: dict[str, list[dict[str, Any]]] = {},
         params: dict[str, Any] = {},
         logger: Optional[Any] = None,
     ) -> None:
@@ -90,29 +92,43 @@ class CAE(BaseCNN):
 
     Parameters
     ----------
-    params : dict[str, Any]
-        Dictionary containing model parameters from yaml file
+    name : str
+        Name of the model
+    architecture: dict{str: list[dict{str: Any}]}
+        Dictionary containing the architecture of the network
+    num_epochs : int
+        Number of epochs to train the network
+    params : dict{str: Any}
+        Dictionary containing model hyperparameters
     logger : Logger, optional
         Logger object for logging, by default None
     """
 
     def __init__(
         self,
-        params: dict[str, Any],
+        name: str,
+        architecture: dict[str, list[dict[str, Any]]],
+        num_epochs: int,
+        params: dict[str, Any] = {},
         logger: Optional[ExperimentLogger] = None,
     ):
         super().__init__()
 
+        self.name = name
+        self.architecture = architecture
+        self.num_epochs = num_epochs
         self.params = params
         self.logger = logger
+        self.loss_weights = {
+            "image": params.get("image_loss_weight", 1.0),
+            "timepoint": params.get("timepoint_loss_weight", 1.0),
+        }
 
-        architecture = self.params["architecture"]
-        self.encoder = nn.Sequential(*self._create_layers(architecture["encoder"]))
-        self.decoder_image = nn.Sequential(*self._create_layers(architecture["decoder_image"]))
+        self.encoder = nn.Sequential(*self._create_layers(self.architecture["encoder"]))
+        self.decoder_image = nn.Sequential(*self._create_layers(self.architecture["decoder_image"]))
         self.decoder_timepoint = nn.Sequential(
-            *self._create_layers(architecture["decoder_timepoint"])
+            *self._create_layers(self.architecture["decoder_timepoint"])
         )
-
         self.optimizers = {
             "combined": torch.optim.Adam(self.parameters(), lr=0.001),
         }
@@ -121,12 +137,9 @@ class CAE(BaseCNN):
             "timepoint": nn.CrossEntropyLoss(),
         }
 
-        self.loss_weights = {"image": 1.0, "timepoint": 0.0}
-
     def fit(
         self,
         train_loader: DataLoader,
-        epochs: int,
         val_loader: Optional[DataLoader] = None,
     ) -> tuple[dict[str, list[float]], dict[str, list[float]], dict[str, list[float]]]:
         """
@@ -150,7 +163,7 @@ class CAE(BaseCNN):
         val_losses: dict[str, list[float]] = defaultdict(list)
         grad_norms: dict[str, list[float]] = defaultdict(list)
 
-        for e in range(epochs):
+        for e in range(self.num_epochs):
             train_loss = self.train_one_epoch(train_loader, e)
             for loss_type, loss in train_loss.items():
                 train_losses[loss_type].append(loss)
@@ -169,7 +182,7 @@ class CAE(BaseCNN):
             grad_norms["decoder_timepoint"].append(decoder_timepoint_grad_norm.item())
 
             if self.logger:
-                msg = f"Epoch {e+1}/{epochs}- Train loss: {train_loss['combined']} Val loss: {val_loss['combined']}"
+                msg = f"Epoch {e+1}/{self.num_epochs}- Train loss: {train_loss['combined']} Val loss: {val_loss['combined']}"
                 self.logger.log(msg)
 
         return (train_losses, val_losses, grad_norms)
@@ -312,16 +325,16 @@ class CAE(BaseCNN):
     def _create_layers(self, layer_configs: dict[Any, Any]) -> list[nn.Module]:
         layers = []
         for config in layer_configs:
-            layer_type = config.pop("type")
+            layer_type = config.get("type")
             layer_class = getattr(nn, layer_type, None)
             if layer_class is None:
                 raise ValueError(f"Layer type {layer_type} not recognized")
 
             if layer_type == "Unflatten":
-                shape = config.pop("shape")
+                shape = config.get("shape")
                 layer = layer_class(1, tuple(shape))
             else:
-                layer = layer_class(**config)
+                layer = layer_class(**{k: v for k, v in config.items() if k != "type"})
 
             layers.append(layer)
 

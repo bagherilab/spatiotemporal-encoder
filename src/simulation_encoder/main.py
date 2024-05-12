@@ -28,16 +28,14 @@ def main() -> None:
     verbose = main_config["general_configs"]["verbose"]
 
     for model in main_config["models"]:
-        model_architecture = model["architecture"]
-        
+        model_name = model["architecture"]
         model_hyperparams = load_hyperparams(model["params"])
         dataset_params = create_dataset_params(main_config, model_hyperparams)
-        model_hyperparam_sets = create_model_params(model_architecture, model_hyperparams)
-        
+        model_param_sets = create_model_param_sets(model_name, model_hyperparams)
 
         runner = Runner(verbose)
-        runner.add_models(model_params)
         runner.add_dataset(dataset_params)
+        runner.add_models(model_param_sets)
         runner.run()
 
 def create_dataset_params(main_config: dict[str, Any], model_params: dict[str, Any]) -> DatasetParams:
@@ -52,31 +50,31 @@ def create_dataset_params(main_config: dict[str, Any], model_params: dict[str, A
     )
     return dataset_params
 
-def create_model_params(model_architecture: str, model_params: dict[str, Any]) -> list[ModelParams]:
-    architecture = load_model_architecture(model_architecture)
+def create_model_param_sets(model_name: str, model_params: dict[str, Any]) -> list[ModelParams]:
+    architecture = load_model_architecture(model_name)
+    num_epochs = model_params["num_epochs"]
+
     continuous_params = model_params["continuous"]
     discrete_params = model_params["discrete"]
     param_sets = generate_hyperparameters(continuous_params, discrete_params)
-
-    num_epochs = model_params["num_epochs"]
+    
     model_param_sets = []
     for param_set in param_sets:
         model_params = ModelParams(
-            architecture=architecture,
+            name=model_name,
+            architecture=architecture["architecture"],
             num_epochs=num_epochs,
             params = param_set
         )
-
-        print(model_params.params)
-        print(model_params.num_epochs)
         model_param_sets.append(model_params)
+
     return model_param_sets
     
 def load_yaml(yaml_file):
     try:
         with open(yaml_file, 'r') as file:
-            main_config = yaml.safe_load(file)
-        return main_config
+            config = yaml.safe_load(file)
+        return config
     except FileNotFoundError as e:
         raise FileNotFoundError(f"File {yaml_file} not found") from e
     

@@ -1,8 +1,7 @@
 import os
 import uuid
-from typing import Optional
+from typing import Any
 
-import yaml
 import torch
 
 from simulation_encoder.loader import PNGLoader
@@ -19,8 +18,6 @@ class Runner:
 
     Parameters
     ----------
-    augmentations : list[str]
-        List of augmentations to be applied to the dataset
     verbose : bool
         Controls if model training is output to console
 
@@ -40,71 +37,40 @@ class Runner:
         Dictionary of model names and their corresponding loss data
     """
 
-    def __init__(self, augmentations: Optional[list[str]] = None, verbose: bool = False) -> None:
+    def __init__(self, verbose: bool = False) -> None:
+        self.verbose = verbose
+
         self._UUID = uuid.uuid4()
-        self.augmentations = augmentations or []
         self.models: dict[str, CAE] = {}
         self.dataset: PNGLoader = None
         self.writer = Writer(uuid=self._UUID)
         self.logger = ExperimentLogger(uuid=self._UUID, verbose=verbose)
         self.losses: dict[str, LossData] = {}
-        self.verbose = verbose
 
-    def add_models(self, model_files: list[str]) -> None:
-        """Add models to be trained by the runner"""
-        for model_yaml in model_files:
-            self.add_model(model_yaml)
-
-    def add_model(self, model_yaml: str) -> None:
-        """Add model to be trained by the runner"""
-        with open(model_yaml, "r", encoding="utf-8") as file:
-            params = yaml.safe_load(file)
-        model_name = os.path.splitext(os.path.basename(model_yaml))[0]
-        model = CAE(params=params, logger=self.logger)
-        self.models[model_name] = model
-        self.losses[model_name] = LossData()
-
-    def add_dataset(
-        self,
-        image_dir: str,
-        label_dir: str,
-        keys: list[str],
-        val_split: float,
-        test_split: float,
-        batch_size: int,
-    ) -> None:
+    def add_dataset(self, dataset_params) -> None:
         """
         Add dataset on which models should be trained
 
         Parameters
         ----------
-        image_dir : str
-            Path to the directory containing the images
-        label_dir : str
-            Path to the directory containing the labels
-        keys : list[str]
-            List of prefixes for the images that will be loaded
-        val_split : float
-            Fraction of the dataset to be used for validation
-        test_split : float
-            Fraction of the dataset to be used for testing
-        batch_size : int
-            Batch size for the DataLoader
+        dataset_params : DatasetParams
+            Object containing dataset parameters
         """
         self.dataset = PNGLoader(
-            image_dir=image_dir,
-            label_dir=label_dir,
-            keys=keys,
-            val_split=val_split,
-            test_split=test_split,
-            batch_size=batch_size,
+            **dataset_params.__dict__,
             logger=self.logger,
             writer=self.writer,
-            augmentations=self.augmentations,
         )
-        self.keys = keys
 
-    def run(self, num_epochs: int) -> None:
+    def add_models(self, model_param_sets: list[dict[str, Any]]) -> None:
+        """Add models to be trained by the runner"""
+        for model_param_set in model_param_sets:
+            model = CAE(**model_param_set.__dict__.copy(), logger=self.logger)
+            model_name = model_param_set.name
+            self.models[model_name] = model
+            self.losses[model_name] = LossData()
+
+    def run(self) -> None:
         """Runs the training and evaluation of models"""
         if not self.dataset:
             raise ValueError("No dataset has been added to runner.")
@@ -118,17 +84,18 @@ class Runner:
         for model_name, model in self.models.items():
             self.logger.log(f"------------------- {model_name} -------------------")
 
-            self._train_model(model_name, model, num_epochs)
+            self._train_model(model_name, model)
             self._eval_model(model_name, model)
             self._save_model(model_name, model)
             self.writer.write_results(
                 model_name, self.keys, self.augmentations, self.losses[model_name]
             )
 
-    def _train_model(self, model_name: str, model: CAE, num_epochs: int) -> None:
+    def _train_model(self, model_name: str, model: CAE) -> None:
         """Trains a model on the dataset"""
         train_loader = self.dataset.get_train_dataloader()
         val_loader = self.dataset.get_val_dataloader()
+        num_epochs = model.num_epochs
         losses, val_losses, grad_norms = model.fit(
             train_loader,
             epochs=num_epochs,

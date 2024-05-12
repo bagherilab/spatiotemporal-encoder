@@ -1,5 +1,3 @@
-import yaml
-
 from dataclasses import dataclass
 from typing import Any
 
@@ -13,9 +11,11 @@ class DatasetParams:
     test_split: float
     keys: list[str]
     augmentations: dict[str, dict[str, float]]
-    
+
+
 @dataclass
 class ModelParams:
-    architecture: str
+    name: str
+    architecture: dict[str, Any]
     num_epochs: int
     params: dict[str, Any]

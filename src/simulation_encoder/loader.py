@@ -192,13 +192,13 @@ class PNGLoader(Dataset):
     def get_timepoint(self, idx: int) -> int:
         """Returns the timepoint of the group at index `idx`"""
         return int(self.groups[idx]["timepoint"])
-    
+
     def get_metric(self, idx: int, label_name: str) -> int:
         """Returns metric the group at index `idx`"""
         if label_name in self.metrics:
             metric = self.groups[idx]["metrics"][label_name]
-            return 0 if metric == 'nan' else int(metric)
-            
+            return 0 if metric == "nan" else int(metric)
+
         raise ValueError(f"Invalid label name: {label_name}")
 
     def get_seed_key(self, idx: int) -> str:
@@ -212,6 +212,7 @@ class PNGLoader(Dataset):
                 "cancer": "",
                 "graph": "",
                 "timepoint": "",
+                "seed_key": "",
                 "augmentation": "original",
                 "metrics": defaultdict(float),
             }
@@ -247,7 +248,6 @@ class PNGLoader(Dataset):
             for group_key, missing_list in missing_images.items():
                 self.logger.warning(f"Missing images from {group_key}: {missing_list}")
 
-        
         self.groups = list(groups.values())
 
     def _get_augmentations(
