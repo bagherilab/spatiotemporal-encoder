@@ -40,7 +40,6 @@ class BaseCNN(ABC, nn.Module):
     def fit(
         self,
         train_loader: DataLoader,
-        epochs: int,
         val_loader: Optional[DataLoader] = None,
     ) -> Any:
         """
@@ -254,9 +253,9 @@ class CAE(BaseCNN):
                     "image": image_criteria(pred_image, inputs),
                     "timepoint": timepoint_criteria(pred_timepoint, labels),
                 }
-                combined_loss = self._calc_combined_loss(batch_loss)
+                combined_loss, combined_loss_weighted = self._calc_combined_loss(batch_loss)
 
-                combined_loss.backward()
+                combined_loss_weighted.backward()
                 optimizer_combined.step()
 
                 for key in batch_loss:
@@ -299,7 +298,7 @@ class CAE(BaseCNN):
                     "image": image_criteria(pred_image, inputs),
                     "timepoint": timepoint_criteria(pred_timepoint, labels),
                 }
-                combined_loss = self._calc_combined_loss(batch_loss)
+                combined_loss, _ = self._calc_combined_loss(batch_loss)
 
                 for key in batch_loss:
                     avg_loss[key] += batch_loss[key].item()
@@ -322,17 +321,19 @@ class CAE(BaseCNN):
         saliency_map, _ = torch.max(x.grad.data.abs(), dim=1)
         return saliency_map
 
-    def _create_layers(self, layer_configs: dict[Any, Any]) -> list[nn.Module]:
+    def _create_layers(
+        self, layer_configs: list[dict[str, str | int | list[int]]]
+    ) -> list[nn.Module]:
         layers = []
         for config in layer_configs:
             layer_type = config.get("type")
-            layer_class = getattr(nn, layer_type, None)
+            layer_class = getattr(nn, layer_type, None)  # type: ignore
             if layer_class is None:
                 raise ValueError(f"Layer type {layer_type} not recognized")
 
             if layer_type == "Unflatten":
                 shape = config.get("shape")
-                layer = layer_class(1, tuple(shape))
+                layer = layer_class(1, tuple(shape))  # type: ignore
             else:
                 layer = layer_class(**{k: v for k, v in config.items() if k != "type"})
 
@@ -340,10 +341,15 @@ class CAE(BaseCNN):
 
         return layers
 
-    def _calc_combined_loss(self, losses: dict[str, torch.Tensor]) -> torch.Tensor:
+    def _calc_combined_loss(
+        self, losses: dict[str, torch.Tensor]
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """Calculates the combined loss from individual losses and weights"""
-        combined_loss = sum([losses[key] * self.loss_weights[key] for key in losses.keys()])
-        return combined_loss
+        combined_loss = sum(losses.values()).detach()
+        combined_loss_weighted = sum(
+            [losses[key] * self.loss_weights[key] for key in losses.keys()]
+        )
+        return combined_loss, combined_loss_weighted
 
     def _get_grad_norm(self, layer: nn.Module) -> torch.Tensor:
         """Calculates the gradient norm of a model"""

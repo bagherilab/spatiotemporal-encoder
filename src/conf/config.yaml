@@ -4,14 +4,17 @@ data:
   label_dir: data/ARCADE/vascular_function/labels
 models:
   - architecture: 2c_3l
-    params: grid_no_augment
+    params: grid_loss
   - architecture: 2c_3l_large
-    params: grid_no_augment
+    params: grid_loss
 general_configs:
   batch_size: 32
   val_split: 0.3
   test_split: 0.2
   verbose: true
+augmentations:
+  # rotate:
+  #   degree: 180
 keys:
   - CH_Lav
   - CH_Lava

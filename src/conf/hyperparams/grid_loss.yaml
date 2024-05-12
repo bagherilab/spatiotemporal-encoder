@@ -1,7 +1,4 @@
 num_epochs: 5
-augmentations:
-  # rotate:
-  #   degree: 180
 continuous:
   image_loss_weight:
     range: [0.0, 1.0]

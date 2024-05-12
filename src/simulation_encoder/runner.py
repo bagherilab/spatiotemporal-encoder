@@ -1,4 +1,3 @@
-import os
 import uuid
 from typing import Any
 
@@ -8,6 +7,7 @@ from simulation_encoder.loader import PNGLoader
 from simulation_encoder.logger import ExperimentLogger
 from simulation_encoder.writer import Writer
 from simulation_encoder.models.cnn import CAE
+from simulation_encoder.dataclass.param_sets import DatasetParams, ModelParams
 from simulation_encoder.dataclass.loss_data import LossData
 from simulation_encoder.plotter import line_plot, loss_plot
 
@@ -47,9 +47,9 @@ class Runner:
         self.logger = ExperimentLogger(uuid=self._UUID, verbose=verbose)
         self.losses: dict[str, LossData] = {}
 
-    def add_dataset(self, dataset_params) -> None:
+    def add_dataset(self, dataset_params: DatasetParams) -> None:
         """
-        Add dataset on which models should be trained
+        Set the dataset on which models should be trained
 
         Parameters
         ----------
@@ -59,16 +59,28 @@ class Runner:
         self.dataset = PNGLoader(
             **dataset_params.__dict__,
             logger=self.logger,
-            writer=self.writer,
         )
 
-    def add_models(self, model_param_sets: list[dict[str, Any]]) -> None:
-        """Add models to be trained by the runner"""
+        self.writer.write_indices(self.dataset.get_indices())
+
+    def add_models(self, model_param_sets: list[ModelParams]) -> None:
+        """
+        Add models to be trained by the runner
+
+        Parameters
+        ----------
+        model_param_sets : list[ModelParams]
+            List of dataclasses containing model hyperparameters
+        """
+        model_num = 0
         for model_param_set in model_param_sets:
             model = CAE(**model_param_set.__dict__.copy(), logger=self.logger)
-            model_name = model_param_set.name
-            self.models[model_name] = model
-            self.losses[model_name] = LossData()
+            model_id = f"{model_param_set.name}_{model_num}"
+            while model_id in self.models:
+                model_num += 1
+                model_id = f"{model_param_set.name}_{model_num}"
+            self.models[model_id] = model
+            self.losses[model_id] = LossData()
 
     def run(self) -> None:
         """Runs the training and evaluation of models"""
@@ -81,24 +93,24 @@ class Runner:
         self.logger.log(f"Training points: {self.dataset.n_train} (including any augmented images)")
         self.logger.log(f"Testing points: {self.dataset.n_test}")
 
-        for model_name, model in self.models.items():
-            self.logger.log(f"------------------- {model_name} -------------------")
+        for model_id, model in self.models.items():
+            self.logger.log(f"------------------- {model_id} -------------------")
+            self._train_model(model_id, model)
+            # self._eval_model(model_id, model)
+            self._save_model(model_id, model)
+            self.writer.write_results(model_id, model, self.dataset, self.losses[model_id])
 
-            self._train_model(model_name, model)
-            self._eval_model(model_name, model)
-            self._save_model(model_name, model)
-            self.writer.write_results(
-                model_name, self.keys, self.augmentations, self.losses[model_name]
-            )
+        best_model = min(self.losses, key=lambda x: self.losses[x].combined_loss_val)
+        self.writer.write_results(
+            "_best_model", self.models[best_model], self.dataset, self.losses[best_model]
+        )
 
     def _train_model(self, model_name: str, model: CAE) -> None:
         """Trains a model on the dataset"""
         train_loader = self.dataset.get_train_dataloader()
         val_loader = self.dataset.get_val_dataloader()
-        num_epochs = model.num_epochs
         losses, val_losses, grad_norms = model.fit(
             train_loader,
-            epochs=num_epochs,
             val_loader=val_loader,
         )
 

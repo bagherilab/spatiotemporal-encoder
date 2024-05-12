@@ -1,6 +1,8 @@
 import os
 import json
 
+from simulation_encoder.loader import PNGLoader
+from simulation_encoder.models.cnn import CAE
 from simulation_encoder.dataclass.loss_data import LossData
 
 
@@ -13,7 +15,7 @@ class Writer:
         self.results_path = os.path.join(results_dir, str(self.uuid))
 
     def write_results(
-        self, model_name: str, keys: list[str], augmentations: list[str], losses: LossData
+        self, model_name: str, model: CAE, dataset: PNGLoader, losses: LossData
     ) -> None:
         """Writes the results of running the models to disk"""
         self._setup()
@@ -22,8 +24,9 @@ class Writer:
         self._create_dir(model_path)
         results = {
             "model": model_name,
-            "keys": keys,
-            "data_augmentations": augmentations,
+            "params": model.params,
+            "data_augmentations": dataset.augmentations,
+            "keys": dataset.keys,
             "combined_loss": {
                 "train": losses.combined_loss_train,
                 "val": losses.combined_loss_val,
@@ -43,16 +46,14 @@ class Writer:
         with open(os.path.join(model_path, "results.json"), "w", encoding="utf-8") as r_file:
             json.dump(results, r_file, indent=4)
 
-    def write_indices(
-        self, train_idices: list[int], val_indices: list[int], test_indices: list[int]
-    ) -> None:
+    def write_indices(self, indices: tuple[list[int], list[int], list[int]]) -> None:
         """Writes the train and test indices to disk"""
         self._setup()
-
-        indices = {"train": train_idices, "val": val_indices, "test": test_indices}
         indices_path = os.path.join(self.results_path, "indices.json")
+
+        indices_dict = {"train": indices[0], "val": indices[1], "test": indices[2]}
         with open(indices_path, "w", encoding="utf-8") as i_file:
-            json.dump(indices, i_file, indent=4)
+            json.dump(indices_dict, i_file, indent=4)
 
     def _setup(self) -> None:
         self._create_dir(self.results_dir)

@@ -6,7 +6,9 @@ import numpy as np
 PARAM_RESOLUTION = 5
 
 
-def generate_hyperparameters(continuous_params, discrete_params) -> list[dict[str, Any]]:
+def generate_hyperparameters(
+    continuous_params: dict[str, Any], discrete_params: dict[str, Any]
+) -> list[dict[str, Any]]:
     continuous_values = get_continuous_values(continuous_params)
     discrete_values = get_discrete_values(discrete_params)
 
@@ -26,7 +28,7 @@ def generate_hyperparameters(continuous_params, discrete_params) -> list[dict[st
     return param_sets
 
 
-def get_continuous_values(continuous_params) -> dict[str, list[float]]:
+def get_continuous_values(continuous_params: dict[str, Any]) -> dict[str, list[float]]:
     continuous_values = {}
     if continuous_params:
         for param, param_info in continuous_params.items():
@@ -44,7 +46,7 @@ def get_continuous_values(continuous_params) -> dict[str, list[float]]:
     return continuous_values
 
 
-def get_discrete_values(discrete_params) -> dict[str, list[float]]:
+def get_discrete_values(discrete_params: dict[str, Any]) -> dict[str, list[float]]:
     discrete_values = {}
     if discrete_params:
         for param, param_info in discrete_params.items():

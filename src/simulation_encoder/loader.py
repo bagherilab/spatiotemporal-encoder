@@ -11,7 +11,6 @@ from torch.utils.data import Dataset, DataLoader, Subset
 from torchvision import transforms
 
 from simulation_encoder.logger import ExperimentLogger
-from simulation_encoder.writer import Writer
 
 
 class Augmentation:
@@ -63,8 +62,6 @@ class PNGLoader(Dataset):
         Batch size for the DataLoader, by default 10
     logger : Logger, optional
         Logger object for logging missing images, by default None
-    writer : Writer, optional
-        Writer object for saving things to disk
     augmentations : list[Augmentation], optional
         List of augmentations to apply to the images, by default None
     indices_file : str, optional
@@ -83,7 +80,6 @@ class PNGLoader(Dataset):
         test_split: float = 0.2,
         batch_size: int = 10,
         logger: Optional[ExperimentLogger] = None,
-        writer: Optional[Writer] = None,
         augmentations: Optional[list[str]] = None,
         indices_file: Optional[str] = None,
         random_seed: int = 42,
@@ -94,7 +90,6 @@ class PNGLoader(Dataset):
         self.test_split = test_split
         self.batch_size = batch_size
         self.logger = logger
-        self.writer = writer
         self.indices_file = indices_file
         self.random_seed = random_seed
 
@@ -205,6 +200,10 @@ class PNGLoader(Dataset):
         """Returns the seed and key of the group at index `idx`"""
         return self.groups[idx]["seed_key"]
 
+    def get_indices(self) -> tuple[list[int], list[int], list[int]]:
+        """Returns the train, validation, and test indices"""
+        return self._train_indices, self._val_indices, self._test_indices
+
     def _get_image_groups(self) -> None:
         """Returns groups of images based on the filename format."""
         groups: dict[str, Any] = defaultdict(
@@ -258,10 +257,6 @@ class PNGLoader(Dataset):
 
         augmentation_map: dict[str, Callable[..., Any]] = {
             "rotate": lambda degree: transforms.RandomRotation(degrees=degree),
-            "flip": lambda: transforms.RandomHorizontalFlip(p=0.5),
-            "scale": lambda size: transforms.Resize(size),
-            "translate": lambda shift: transforms.RandomAffine(0, translate=(shift, shift)),
-            "brightness": lambda factor: transforms.ColorJitter(brightness=factor),
         }
 
         augmentations_dict = {}
@@ -335,9 +330,6 @@ class PNGLoader(Dataset):
         self._train_indices = [index for key in train_group_keys for index in groups[key]]
         self._val_indices = [index for key in val_group_keys for index in groups[key]]
         self._test_indices = [index for key in test_group_keys for index in groups[key]]
-
-        if self.writer:
-            self.writer.write_indices(self._train_indices, self._val_indices, self._test_indices)
 
     def _parse_ARCADE_filename(self, filename: str) -> tuple[str, str, int, int, str]:
         parts = filename.split("_")
