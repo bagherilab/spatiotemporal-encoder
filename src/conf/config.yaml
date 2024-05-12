@@ -1,20 +1,16 @@
-data_dir: data/ARCADE
-label_dir: data/labels
+experiment_name: vascular_function
+data:
+  image_dir: data/ARCADE/vascular_function/images
+  label_dir: data/ARCADE/vascular_function/labels
 models:
-  # - 1c_3l
-  - 2c_3l
-  # - 2c_3l_1s
-  # - 2c_3l_small
-  # - 2c_3l_large
-  # - 2c_3l_2d
-  # - 3c_3l
-model_configs:
-  num_epochs: 3
+  - architecture: 2c_3l
+    params: grid_no_augment
+  - architecture: 2c_3l_large
+    params: grid_no_augment
+general_configs:
   batch_size: 32
   val_split: 0.3
   test_split: 0.2
-  augmentations:
-    # - rotate_180
   verbose: true
 keys:
   - CH_Lav
