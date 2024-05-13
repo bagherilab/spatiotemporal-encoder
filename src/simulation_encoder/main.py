@@ -91,11 +91,11 @@ def load_hyperparams(yaml_name: str) -> dict[str, Any]:
     return load_yaml(yaml_path)
 
 
-def load_model_architecture(architecture_name: str) -> dict[str, Any]:
+def load_model_architecture(architecture_name: str, yaml_path : str=f"src/conf/models") -> dict[str, Any]:
     yaml_file = (
         architecture_name if architecture_name.endswith(".yaml") else architecture_name + ".yaml"
     )
-    yaml_path = f"src/conf/models/{yaml_file}"
+    yaml_path = os.path.join(yaml_path, yaml_file)
     return load_yaml(yaml_path)
 
 

@@ -188,11 +188,11 @@ class PNGLoader(Dataset):
         """Returns the timepoint of the group at index `idx`"""
         return int(self.groups[idx]["timepoint"])
 
-    def get_metric(self, idx: int, label_name: str) -> int:
+    def get_metric(self, idx: int, label_name: str) -> float:
         """Returns metric the group at index `idx`"""
         if label_name in self.metrics:
             metric = self.groups[idx]["metrics"][label_name]
-            return 0 if metric == "nan" else int(metric)
+            return 0.0 if metric == "nan" else metric
 
         raise ValueError(f"Invalid label name: {label_name}")
 

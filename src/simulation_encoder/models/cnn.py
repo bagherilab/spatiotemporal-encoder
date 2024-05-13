@@ -107,7 +107,7 @@ class CAE(BaseCNN):
         self,
         name: str,
         architecture: dict[str, list[dict[str, Any]]],
-        num_epochs: int,
+        num_epochs: int = 5,
         params: dict[str, Any] = {},
         logger: Optional[ExperimentLogger] = None,
     ):
