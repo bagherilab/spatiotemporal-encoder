@@ -254,18 +254,17 @@ class PNGLoader(Dataset):
     ) -> Optional[dict[str, Augmentation]]:
         if not augmentations:
             return None
-
         augmentation_map: dict[str, Callable[..., Any]] = {
             "rotate": lambda degree: transforms.RandomRotation(degrees=degree),
         }
 
         augmentations_dict = {}
-        for aug_name in augmentations:
-            aug_type, *args = aug_name.split("_")
-            if aug_type not in augmentation_map:
+        for aug_name, args in augmentations.items():
+            args = args.values()
+            if aug_name not in augmentation_map:
                 raise ValueError(f"Invalid augmentation name: {aug_name}")
 
-            transform = augmentation_map[aug_type](*map(int, args))
+            transform = augmentation_map[aug_name](*map(int, args))
             augmentations_dict[aug_name] = Augmentation(transform, aug_name)
 
         return augmentations_dict

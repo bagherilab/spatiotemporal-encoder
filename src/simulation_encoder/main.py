@@ -32,11 +32,11 @@ def main() -> None:
     dataset_params = create_dataset_params(main_config)
     runner.add_dataset(dataset_params)
 
-    for model in main_config["models"]:
-        model_param_sets = create_model_param_sets(model)
-        runner.add_models(model_param_sets)
+    # for model in main_config["models"]:
+    #     model_param_sets = create_model_param_sets(model)
+    #     runner.add_models(model_param_sets)
 
-    runner.run()
+    # runner.run()
 
 
 def create_dataset_params(main_config: dict[str, Any]) -> DatasetParams:

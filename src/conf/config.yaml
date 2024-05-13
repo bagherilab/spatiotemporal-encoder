@@ -1,4 +1,4 @@
-experiment_name: vascular_function
+experiment_name: vascular_function_aug
 data:
   image_dir: data/ARCADE/vascular_function/images
   label_dir: data/ARCADE/vascular_function/labels
@@ -13,8 +13,8 @@ general_configs:
   test_split: 0.2
   verbose: true
 augmentations:
-  # rotate:
-  #   degree: 180
+  rotate:
+    degree: 180
 keys:
   - CH_Lav
   - CH_Lava
