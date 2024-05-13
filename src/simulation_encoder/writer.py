@@ -24,6 +24,7 @@ class Writer:
         self._create_dir(model_path)
         results = {
             "model": model_name,
+            "architecture": model.name,
             "params": model.params,
             "data_augmentations": dataset.augmentations,
             "keys": dataset.keys,
