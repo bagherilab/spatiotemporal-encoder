@@ -26,7 +26,7 @@ class Writer:
             "model": model_name,
             "architecture": model.name,
             "params": model.params,
-            "data_augmentations": dataset.augmentations,
+            "data_augmentations": [aug for aug in dataset.augmentations],
             "keys": dataset.keys,
             "combined_loss": {
                 "train": losses.combined_loss_train,

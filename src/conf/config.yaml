@@ -3,8 +3,8 @@ data:
   image_dir: data/ARCADE/vascular_function/images
   label_dir: data/ARCADE/vascular_function/labels
 models:
-  - architecture: 2c_3l
-    params: grid_loss
+  # - architecture: 2c_3l
+  #   params: grid_loss
   - architecture: 2c_3l_large
     params: grid_loss
 general_configs:
