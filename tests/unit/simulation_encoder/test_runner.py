@@ -1,11 +1,11 @@
 import unittest
-from unittest.mock import patch, mock_open, MagicMock, PropertyMock
+from unittest.mock import patch
 
 import os
 import tempfile
-import yaml
 
 from simulation_encoder.runner import Runner
+from simulation_encoder.dataclass.param_sets import ModelParams
 
 
 class TestRunner(unittest.TestCase):
@@ -25,31 +25,20 @@ class TestRunner(unittest.TestCase):
         self.temp_dir.cleanup()
 
     @patch("builtins.open")
-    @patch("yaml.safe_load")
-    def test_add_models(self, mock_yaml_load, mock_open):
-        yaml_contents = {
-            "architecture": {
-                "encoder": [
-                    {"type": "Conv2d", "in_channels": 3, "out_channels": 16, "kernel_size": 3}
-                ],
-                "decoder_image": [
-                    {
-                        "type": "ConvTranspose2d",
-                        "in_channels": 16,
-                        "out_channels": 3,
-                        "kernel_size": 3,
-                    }
-                ],
-                "decoder_timepoint": [
-                    {"type": "Conv2d", "in_channels": 16, "out_channels": 1, "kernel_size": 3}
-                ],
-            }
-        }
+    def test_add_models(self, mock_open):
+        model_params = ModelParams(
+            name="test_model",
+            architecture={
+                'encoder': [{'type': 'Linear', 'in_features': 1, 'out_features': 1}], 
+                'decoder_image': [{'type': 'Linear', 'in_features': 1, 'out_features': 1}], 
+                'decoder_timepoint': [{'type': 'Linear', 'in_features': 1, 'out_features': 1}]},
+            num_epochs=1,
+            params={},
+        )
 
-        mock_yaml_load.return_value = yaml_contents
-        yaml_path = os.path.join(self.temp_dir.name, "test_model.yaml")
-        self.runner.add_models([yaml_path])
-        self.assertIn("test_model", self.runner.models)
+        self.runner.add_models([model_params])
+        model_id = self.runner.models.keys()
+        self.assertIn("test_model_0", model_id)
 
 
 if __name__ == "__main__":

@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 from simulation_encoder.logger import ExperimentLogger
 from simulation_encoder.models.abstract_cnn import BaseCNN
 
+
 class CAE(BaseCNN):
     """
     Convolutional autoencoder class for encoding image data.
@@ -248,7 +249,8 @@ class CAE(BaseCNN):
         return saliency_map
 
     def _create_layers(
-        self, layer_configs: list[dict[str, str | int | list[int]]],  
+        self,
+        layer_configs: list[dict[str, str | int | list[int]]],
     ) -> list[nn.Module]:
         layers = []
         for config in layer_configs:

@@ -80,7 +80,7 @@ class PNGLoader(Dataset):
         test_split: float = 0.2,
         batch_size: int = 10,
         logger: Optional[ExperimentLogger] = None,
-        augmentations: Optional[list[str]] = None,
+        augmentations: Optional[dict[str, Any]] = None,
         indices_file: Optional[str] = None,
         random_seed: int = 42,
     ):
@@ -250,7 +250,7 @@ class PNGLoader(Dataset):
         self.groups = list(groups.values())
 
     def _get_augmentations(
-        self, augmentations: Optional[list[str]]
+        self, augmentations: Optional[dict[str, Any]]
     ) -> Optional[dict[str, Augmentation]]:
         if not augmentations:
             return None

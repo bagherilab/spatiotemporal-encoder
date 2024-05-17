@@ -105,8 +105,6 @@ class Runner:
             "_best_model", self.models[best_model], self.dataset, self.losses[best_model]
         )
 
-        
-
     def _train_model(self, model_name: str, model: CAE) -> None:
         """Trains a model on the dataset"""
         train_loader = self.dataset.get_train_dataloader()
