@@ -39,10 +39,22 @@ architecture:
     - type: ReLU
     - type: Linear
       in_features: 64
+      out_features: 32
+    - type: BatchNorm1d
+      num_features: 32
+    - type: ReLU
+    - type: Linear
+      in_features: 32
       out_features: 2
   decoder_image:
     - type: Linear
       in_features: 2
+      out_features: 32
+    - type: BatchNorm1d
+      num_features: 32
+    - type: ReLU
+    - type: Linear
+      in_features: 32
       out_features: 64
     - type: BatchNorm1d
       num_features: 64
@@ -85,6 +97,12 @@ architecture:
   decoder_timepoint:
     - type: Linear
       in_features: 2
+      out_features: 32
+    - type: BatchNorm1d
+      num_features: 32
+    - type: ReLU
+    - type: Linear
+      in_features: 32
       out_features: 64
     - type: BatchNorm1d
       num_features: 64
@@ -104,5 +122,3 @@ architecture:
     - type: Linear
       in_features: 64
       out_features: 15
-      
-      

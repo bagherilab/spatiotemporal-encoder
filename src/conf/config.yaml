@@ -5,7 +5,9 @@ data:
 models:
   # - architecture: 2c_3l
   #   params: grid_loss
-  - architecture: 2c_3l_large
+  # - architecture: 2c_3l_large
+  #   params: grid_loss
+  - architecture: 2c_3l_8d
     params: grid_loss
 general_configs:
   batch_size: 32
