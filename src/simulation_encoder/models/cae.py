@@ -182,7 +182,7 @@ class CAE(BaseCNN):
                 }
                 combined_loss, combined_loss_weighted = self._calc_combined_loss(batch_loss)
 
-                combined_loss_weighted.backward() # type: ignore
+                combined_loss_weighted.backward()  # type: ignore
                 optimizer_combined.step()
 
                 for key in batch_loss:
@@ -245,7 +245,7 @@ class CAE(BaseCNN):
         loss_image = image_criteria(pred_image, x)
         loss_image.backward()
 
-        saliency_map, _ = torch.max(x.grad.data.abs(), dim=1) # type: ignore
+        saliency_map, _ = torch.max(x.grad.data.abs(), dim=1)  # type: ignore
         return saliency_map
 
     def _create_layers(
@@ -277,10 +277,10 @@ class CAE(BaseCNN):
         self, losses: dict[str, torch.Tensor]
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Calculates the combined loss from individual losses and weights"""
-        combined_loss= torch.Tensor(sum([losses[key] for key in losses.keys()])).detach()
-        combined_loss_weighted = torch.Tensor(sum(
-            [losses[key] * self.loss_weights[key] for key in losses.keys()]
-        ))
+        combined_loss = torch.Tensor(sum([losses[key] for key in losses.keys()])).detach()
+        combined_loss_weighted = torch.Tensor(
+            sum([losses[key] * self.loss_weights[key] for key in losses.keys()])
+        )
         return combined_loss, combined_loss_weighted
 
     def _get_grad_norm(self, layer: nn.Sequential) -> torch.Tensor:
