@@ -128,9 +128,9 @@ class PNGLoader(Dataset):
         return self[0][0].shape[0]
 
     @property
-    def image_shape(self) -> tuple[int, int]:
+    def image_shape(self) -> tuple[int, ...]:
         """Shape of the images"""
-        return self[0][0].shape[1:]
+        return tuple(self[0][0].shape[1:])
 
     def get_train_dataloader(self) -> DataLoader:
         """Returns training DataLoader"""
@@ -383,9 +383,9 @@ class PNGLoader(Dataset):
         self, batch: list[tuple[torch.Tensor, int]]
     ) -> tuple[torch.Tensor, torch.Tensor]:
         images, labels = zip(*batch)
-        images = torch.stack(images)
-        labels = torch.tensor(labels)
-        return images, labels
+        images_stack = torch.stack(images)
+        labels_tensor = torch.tensor(labels)
+        return images_stack, labels_tensor
 
 
 class LabelLoader:

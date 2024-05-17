@@ -56,7 +56,7 @@ class BaseCNN(ABC, nn.Module):
         pass
 
     @abstractmethod
-    def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, ...]:
         """Performs encoding and decoding."""
         pass
 

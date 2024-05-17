@@ -113,7 +113,7 @@ class CAE(BaseCNN):
 
         return (train_losses, val_losses, grad_norms)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, ...]:
         """Performs encoding and several decoding heads"""
         z = self.encode(x)
         pred_image = self.decode_image(z)
@@ -164,9 +164,9 @@ class CAE(BaseCNN):
         """
         self.train()  # Sets dropout and batch normalization layers to training mode
 
-        optimizer_combined = self.optimizers["combined"]
-        image_criteria = self.criterion["image"]
-        timepoint_criteria = self.criterion["timepoint"]
+        optimizer_combined: torch.optim.Optimizer = self.optimizers["combined"]
+        image_criteria: torch.nn.Module = self.criterion["image"]
+        timepoint_criteria: torch.nn.Module = self.criterion["timepoint"]
 
         avg_loss: dict[str, float] = defaultdict(float)
 
@@ -182,7 +182,7 @@ class CAE(BaseCNN):
                 }
                 combined_loss, combined_loss_weighted = self._calc_combined_loss(batch_loss)
 
-                combined_loss_weighted.backward()
+                combined_loss_weighted.backward() # type: ignore
                 optimizer_combined.step()
 
                 for key in batch_loss:
@@ -245,7 +245,7 @@ class CAE(BaseCNN):
         loss_image = image_criteria(pred_image, x)
         loss_image.backward()
 
-        saliency_map, _ = torch.max(x.grad.data.abs(), dim=1)
+        saliency_map, _ = torch.max(x.grad.data.abs(), dim=1) # type: ignore
         return saliency_map
 
     def _create_layers(
@@ -277,13 +277,13 @@ class CAE(BaseCNN):
         self, losses: dict[str, torch.Tensor]
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Calculates the combined loss from individual losses and weights"""
-        combined_loss = sum(losses.values()).detach()
-        combined_loss_weighted = sum(
+        combined_loss= torch.Tensor(sum([losses[key] for key in losses.keys()])).detach()
+        combined_loss_weighted = torch.Tensor(sum(
             [losses[key] * self.loss_weights[key] for key in losses.keys()]
-        )
+        ))
         return combined_loss, combined_loss_weighted
 
-    def _get_grad_norm(self, layer: nn.Module) -> torch.Tensor:
+    def _get_grad_norm(self, layer: nn.Sequential) -> torch.Tensor:
         """Calculates the gradient norm of a model"""
         try:
             return torch.norm(layer[-1].weight.grad)
