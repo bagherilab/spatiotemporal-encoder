@@ -5,6 +5,8 @@ import os
 import tempfile
 from PIL import Image
 
+import numpy as np
+
 from simulation_encoder.loader import PNGLoader
 
 
@@ -48,8 +50,8 @@ class TestPNGLoader(unittest.TestCase):
         self.assertEqual(actual_shape, expected_shape)
 
     def test_train_test_loaders_have_correct_lengths(self):
-        test_split = 0.5
-        val_split = 0.5
+        test_split = 0.34
+        val_split = 0.34
         dataset = PNGLoader(
             self.temp_dir.name,
             keys=self.keys,
@@ -62,9 +64,9 @@ class TestPNGLoader(unittest.TestCase):
         val_loader = dataset.get_val_dataloader()
         test_loader = dataset.get_test_dataloader()
 
-        expected_train_size = 2
-        expected_val_size = 1
-        expected_test_size = 1
+        expected_val_size = np.floor(len(dataset.groups) * val_split)
+        expected_test_size = np.floor(len(dataset.groups) * test_split)
+        expected_train_size = len(dataset) - expected_val_size - expected_test_size
 
         self.assertEqual(len(train_loader), expected_train_size)
         self.assertEqual(len(val_loader), expected_val_size)
