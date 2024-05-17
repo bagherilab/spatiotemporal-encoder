@@ -29,9 +29,10 @@ class TestRunner(unittest.TestCase):
         model_params = ModelParams(
             name="test_model",
             architecture={
-                'encoder': [{'type': 'Linear', 'in_features': 1, 'out_features': 1}], 
-                'decoder_image': [{'type': 'Linear', 'in_features': 1, 'out_features': 1}], 
-                'decoder_timepoint': [{'type': 'Linear', 'in_features': 1, 'out_features': 1}]},
+                "encoder": [{"type": "Linear", "in_features": 1, "out_features": 1}],
+                "decoder_image": [{"type": "Linear", "in_features": 1, "out_features": 1}],
+                "decoder_timepoint": [{"type": "Linear", "in_features": 1, "out_features": 1}],
+            },
             num_epochs=1,
             params={},
         )

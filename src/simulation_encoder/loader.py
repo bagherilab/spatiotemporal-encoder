@@ -136,21 +136,30 @@ class PNGLoader(Dataset):
         """Returns training DataLoader"""
         train_dataset = Subset(self, self._train_indices)
         return DataLoader(
-            train_dataset, batch_size=self.batch_size, shuffle=True, collate_fn=self._collate_fn
+            train_dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            collate_fn=self._collate_fn,
         )
 
     def get_val_dataloader(self) -> DataLoader:
         """Returnsvalidation DataLoader"""
         val_dataset = Subset(self, self._val_indices)
         return DataLoader(
-            val_dataset, batch_size=self.batch_size, shuffle=False, collate_fn=self._collate_fn
+            val_dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
+            collate_fn=self._collate_fn,
         )
 
     def get_test_dataloader(self) -> DataLoader:
         """Returns test DataLoader"""
         test_dataset = Subset(self, self._test_indices)
         return DataLoader(
-            test_dataset, batch_size=self.batch_size, shuffle=False, collate_fn=self._collate_fn
+            test_dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
+            collate_fn=self._collate_fn,
         )
 
     def get_cv_splits(self, k_folds: int) -> list[tuple[DataLoader, DataLoader]]:

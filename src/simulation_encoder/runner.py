@@ -102,7 +102,10 @@ class Runner:
 
         best_model = min(self.losses, key=lambda x: self.losses[x].combined_loss_val)
         self.writer.write_results(
-            "_best_model", self.models[best_model], self.dataset, self.losses[best_model]
+            "_best_model",
+            self.models[best_model],
+            self.dataset,
+            self.losses[best_model],
         )
 
     def _train_model(self, model_name: str, model: CAE) -> None:

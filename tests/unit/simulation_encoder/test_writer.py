@@ -24,7 +24,7 @@ class TestWriter(unittest.TestCase):
         self.mock_runner.logger = mock_logger
 
         self.mock_runner.writer = Writer(uuid="1234")
-        
+
     @patch("builtins.open")
     @patch("json.dump")
     def test_save_results_formats_correctly(self, mock_dump, mock_open):
@@ -71,7 +71,10 @@ class TestWriter(unittest.TestCase):
         test_keys = ["test_key"]
         test_augmentations = ["rotate_180", "rotate_90"]
         self.mock_runner.writer.write_results(
-            model_name="test_model", model=self.mock_runner.models, dataset=self.mock_runner.dataset, losses=self.mock_runner.losses
+            model_name="test_model",
+            model=self.mock_runner.models,
+            dataset=self.mock_runner.dataset,
+            losses=self.mock_runner.losses,
         )
         actual_call_args = mock_dump.call_args[0][0]
         print(actual_call_args)
