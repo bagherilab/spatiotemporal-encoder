@@ -25,14 +25,16 @@ class ExperimentLogger:
 
     def __init__(
         self,
+        uuid: str = "none",
         log_dir: str = "logs/",
         format_str: str = "%(asctime)s:%(name)s:%(message)s",
         level: int = logging.INFO,
-        uuid: str = "none",
+        verbose: bool = False,
     ):
         self.uuid = uuid
         self.log_path = os.path.join(log_dir, f"{self.uuid}.log")
         self.logger = logging.getLogger(str(self.uuid))
+        self.verbose = verbose
         self._create_log_file()
         self._set_up_logger(format_str, level)
 
@@ -59,6 +61,8 @@ class ExperimentLogger:
 
         """
         self.logger.info(msg)
+        if self.verbose:
+            print(msg)
 
     def warning(self, msg: str) -> None:
         """
@@ -71,3 +75,5 @@ class ExperimentLogger:
 
         """
         self.logger.warning(msg)
+        if self.verbose:
+            print(msg)

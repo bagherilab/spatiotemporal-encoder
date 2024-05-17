@@ -1,11 +1,26 @@
-data_dir: data/ARCADE
+experiment_name: vascular_function_aug
+data:
+  image_dir: data/ARCADE/vascular_function/images
+  label_dir: data/ARCADE/vascular_function/labels
 models:
-  - 2d
-  - 10d
-model_configs:
-  num_epochs: 1
-  batch_size: 16
+  - architecture: 2c_3l
+    params: grid_loss
+general_configs:
+  batch_size: 32
+  val_split: 0.3
   test_split: 0.2
-  load_prev_model: false
-  prev_model_path: ""
   verbose: true
+augmentations:
+  # rotate:
+  #   degree: 180
+keys:
+  - CH_Lav
+  - CH_Lava
+  - CH_Lvav
+  - CH_Sav
+  - CH_Savav
+  - C_Lav
+  - C_Lava
+  - C_Lvav
+  - C_Sav
+  - C_Savav
