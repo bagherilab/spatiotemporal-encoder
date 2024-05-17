@@ -49,20 +49,25 @@ class TestPNGLoader(unittest.TestCase):
 
     def test_train_test_loaders_have_correct_lengths(self):
         test_split = 0.5
+        val_split = 0.5
         dataset = PNGLoader(
             self.temp_dir.name,
             keys=self.keys,
             test_split=test_split,
+            val_split=val_split,
             batch_size=1,
             random_seed=123,
         )
         train_loader = dataset.get_train_dataloader()
+        val_loader = dataset.get_val_dataloader()
         test_loader = dataset.get_test_dataloader()
 
+        expected_train_size = 2
+        expected_val_size = 1
         expected_test_size = 1
-        expected_train_size = 3
 
         self.assertEqual(len(train_loader), expected_train_size)
+        self.assertEqual(len(val_loader), expected_val_size)
         self.assertEqual(len(test_loader), expected_test_size)
 
     def test_train_test_split_gives_disjoint_sets(self):
