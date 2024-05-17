@@ -64,9 +64,10 @@ class TestPNGLoader(unittest.TestCase):
         val_loader = dataset.get_val_dataloader()
         test_loader = dataset.get_test_dataloader()
 
-        expected_val_size = np.floor(len(dataset.groups) * val_split)
-        expected_test_size = np.floor(len(dataset.groups) * test_split)
-        expected_train_size = len(dataset) - expected_val_size - expected_test_size
+        print(len(dataset.groups))
+        expected_val_size = int(np.floor(len(dataset.groups) * val_split))
+        expected_test_size = int(np.floor(len(dataset.groups) * test_split))
+        expected_train_size = len(dataset.groups) - expected_val_size - expected_test_size
 
         self.assertEqual(len(train_loader), expected_train_size)
         self.assertEqual(len(val_loader), expected_val_size)
