@@ -43,6 +43,7 @@ class CAE(BaseCNN):
         self.num_epochs = num_epochs
         self.params = params
         self.logger = logger
+        self.latent_dim = params.get("latent_dim", 32)
         self.loss_weights = {
             "image": params.get("image_loss_weight", 1.0),
             "timepoint": params.get("timepoint_loss_weight", 1.0),
@@ -247,7 +248,7 @@ class CAE(BaseCNN):
         return saliency_map
 
     def _create_layers(
-        self, layer_configs: list[dict[str, str | int | list[int]]]
+        self, layer_configs: list[dict[str, str | int | list[int]]],  
     ) -> list[nn.Module]:
         layers = []
         for config in layer_configs:
@@ -255,7 +256,11 @@ class CAE(BaseCNN):
             layer_class = getattr(nn, layer_type, None)  # type: ignore
             if layer_class is None:
                 raise ValueError(f"Layer type {layer_type} not recognized")
-
+            if layer_type == "Linear":
+                if config.get("out_features") == "latent_dim":
+                    config["out_features"] = self.latent_dim
+                if config.get("in_features") == "latent_dim":
+                    config["in_features"] = self.latent_dim
             if layer_type == "Unflatten":
                 shape = config.get("shape")
                 layer = layer_class(1, tuple(shape))  # type: ignore

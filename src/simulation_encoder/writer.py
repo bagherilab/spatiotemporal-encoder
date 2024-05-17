@@ -2,7 +2,7 @@ import os
 import json
 
 from simulation_encoder.loader import PNGLoader
-from simulation_encoder.models.cnn import CAE
+from simulation_encoder.models.cae import CAE
 from simulation_encoder.dataclass.loss_data import LossData
 
 

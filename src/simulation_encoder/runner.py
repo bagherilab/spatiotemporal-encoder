@@ -6,7 +6,7 @@ import torch
 from simulation_encoder.loader import PNGLoader
 from simulation_encoder.logger import ExperimentLogger
 from simulation_encoder.writer import Writer
-from simulation_encoder.models.cnn import CAE
+from simulation_encoder.models.cae import CAE
 from simulation_encoder.dataclass.param_sets import DatasetParams, ModelParams
 from simulation_encoder.dataclass.loss_data import LossData
 from simulation_encoder.plotter import line_plot, loss_plot
@@ -104,6 +104,8 @@ class Runner:
         self.writer.write_results(
             "_best_model", self.models[best_model], self.dataset, self.losses[best_model]
         )
+
+        
 
     def _train_model(self, model_name: str, model: CAE) -> None:
         """Trains a model on the dataset"""

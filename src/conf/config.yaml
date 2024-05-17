@@ -3,11 +3,7 @@ data:
   image_dir: data/ARCADE/vascular_function/images
   label_dir: data/ARCADE/vascular_function/labels
 models:
-  # - architecture: 2c_3l
-  #   params: grid_loss
-  # - architecture: 2c_3l_large
-  #   params: grid_loss
-  - architecture: 2c_3l_8d
+  - architecture: 2c_3l
     params: grid_loss
 general_configs:
   batch_size: 32
@@ -15,8 +11,8 @@ general_configs:
   test_split: 0.2
   verbose: true
 augmentations:
-  rotate:
-    degree: 180
+  # rotate:
+  #   degree: 180
 keys:
   - CH_Lav
   - CH_Lava
