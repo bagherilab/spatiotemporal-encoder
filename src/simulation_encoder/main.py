@@ -46,8 +46,9 @@ def create_dataset_params(main_config: dict[str, Any]) -> DatasetParams:
         batch_size=main_config["general_configs"]["batch_size"],
         val_split=main_config["general_configs"]["val_split"],
         test_split=main_config["general_configs"]["test_split"],
-        augmentations=main_config["augmentations"],
         keys=main_config["keys"],
+        labels=main_config["targets"],
+        augmentations=main_config["augmentations"],
     )
     return dataset_params
 

@@ -24,3 +24,7 @@ keys:
   - C_Lvav
   - C_Sav
   - C_Savav
+targets:
+  - activity
+  - growth
+  - symmetry

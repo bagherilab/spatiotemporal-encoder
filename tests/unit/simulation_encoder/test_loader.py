@@ -27,6 +27,7 @@ class TestPNGLoader(unittest.TestCase):
             "C_typeA_1_1_graph.png",
         ]
         self.keys = ["CH_typeA", "CH_typeAB", "C_typeA"]
+        self.labels = ["test_label"]
         for filename in self.image_files:
             Image.new = MagicMock(return_value=Image.new("L", (10, 10)))
             Image.new("L", (10, 10)).save(os.path.join(self.temp_dir.name, filename))

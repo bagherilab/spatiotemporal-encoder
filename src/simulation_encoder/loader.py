@@ -75,6 +75,7 @@ class PNGLoader(Dataset):
         self,
         image_dir: str,
         keys: list[str],
+        labels: list[str] = [],
         label_dir: Optional[str] = None,
         val_split: float = 0.2,
         test_split: float = 0.2,
@@ -86,6 +87,7 @@ class PNGLoader(Dataset):
     ):
         self.image_dir = image_dir
         self.keys = keys
+        self.labels = labels
         self.val_split = val_split
         self.test_split = test_split
         self.batch_size = batch_size
@@ -95,8 +97,6 @@ class PNGLoader(Dataset):
 
         self.label_loader = LabelLoader(label_dir) if label_dir else None
         self.augmentations: dict[str, Augmentation] = self._get_augmentations(augmentations) or {}
-
-        self.metrics = ["activity", "growth", "symmetry"]
 
         self._get_image_groups()
         self._split_data()
@@ -132,76 +132,50 @@ class PNGLoader(Dataset):
         """Shape of the images"""
         return tuple(self[0][0].shape[1:])
 
-    def get_train_dataloader(self) -> DataLoader:
-        """Returns training DataLoader"""
-        train_dataset = Subset(self, self._train_indices)
+    def get_dataloader(self, dataset_type: str) -> DataLoader:
+        """Returns DataLoader for the specified dataset type (train, val, test)"""
+        indices_attr = f"_{dataset_type}_indices"
+        if not hasattr(self, indices_attr):
+            raise ValueError(f"Invalid dataset type: {dataset_type}")
+        indices = getattr(self, indices_attr)
+        dataset = Subset(self, indices)
         return DataLoader(
-            train_dataset,
+            dataset,
             batch_size=self.batch_size,
-            shuffle=True,
+            shuffle=(dataset_type == "train"),  # Shuffle only for training data
             collate_fn=self._collate_fn,
         )
 
-    def get_val_dataloader(self) -> DataLoader:
-        """Returnsvalidation DataLoader"""
-        val_dataset = Subset(self, self._val_indices)
-        return DataLoader(
-            val_dataset,
-            batch_size=self.batch_size,
-            shuffle=False,
-            collate_fn=self._collate_fn,
-        )
+    def get_labels(self, label: str, dataset_type: str) -> torch.Tensor:
+        """Returns labels for the specified dataset type (train, val, test)"""
+        indices_attr = f"_{dataset_type}_indices"
+        if not hasattr(self, indices_attr):
+            raise ValueError(f"Invalid dataset type: {dataset_type}")
+        indices = getattr(self, indices_attr)
+        try:
+            labels = [self.get_label(idx, label) for idx in indices]
+            return torch.tensor(labels, dtype=torch.float32, requires_grad=False)
+        except ValueError:
+            raise ValueError(f"Invalid target name: {label}")
 
-    def get_test_dataloader(self) -> DataLoader:
-        """Returns test DataLoader"""
-        test_dataset = Subset(self, self._test_indices)
-        return DataLoader(
-            test_dataset,
-            batch_size=self.batch_size,
-            shuffle=False,
-            collate_fn=self._collate_fn,
-        )
-
-    def get_cv_splits(self, k_folds: int) -> list[tuple[DataLoader, DataLoader]]:
-        """Returns list of k-folds of training and validation DataLoader"""
-        indices = self._train_indices + self._val_indices
-        np.random.seed(self.random_seed)
-        np.random.shuffle(indices)
-        fold_size = len(indices) // k_folds
-        folds = []
-        for i in range(k_folds):
-            val_indices = indices[i * fold_size : (i + 1) * fold_size]
-            train_indices = [idx for idx in indices if idx not in val_indices]
-            train_dataset = Subset(self, train_indices)
-            val_dataset = Subset(self, val_indices)
-            folds.append(
-                (
-                    DataLoader(
-                        train_dataset,
-                        batch_size=self.batch_size,
-                        shuffle=True,
-                        collate_fn=self._collate_fn,
-                    ),
-                    DataLoader(
-                        val_dataset,
-                        batch_size=self.batch_size,
-                        shuffle=False,
-                        collate_fn=self._collate_fn,
-                    ),
-                )
-            )
-
-        return folds
+    def get_seed_keys(self, dataset_type: str) -> torch.Tensor:
+        """Returns seed keys for the specified dataset type (train, val, test)"""
+        indices_attr = f"_{dataset_type}_indices"
+        if not hasattr(self, indices_attr):
+            raise ValueError(f"Invalid dataset type: {dataset_type}")
+        indices = getattr(self, indices_attr)
+        seed_keys = [self.get_seed_key(idx) for idx in indices]
+        return torch.tensor(seed_keys, dtype=torch.float32, requires_grad=False)
 
     def get_timepoint(self, idx: int) -> int:
         """Returns the timepoint of the group at index `idx`"""
         return int(self.groups[idx]["timepoint"])
 
-    def get_metric(self, idx: int, label_name: str) -> float:
-        """Returns metric the group at index `idx`"""
-        if label_name in self.metrics:
-            metric = self.groups[idx]["metrics"][label_name]
-            return 0.0 if metric == "nan" else metric
+    def get_label(self, idx: int, label_name: str) -> float:
+        """Returns labels the group at index `idx`"""
+        if label_name in self.labels:
+            label = self.groups[idx]["labels"][label_name]
+            return 0.0 if label == "nan" else label
 
         raise ValueError(f"Invalid label name: {label_name}")
 
@@ -222,7 +196,7 @@ class PNGLoader(Dataset):
                 "timepoint": "",
                 "seed_key": "",
                 "augmentation": "original",
-                "metrics": defaultdict(float),
+                "labels": defaultdict(float),
             }
         )
 
@@ -237,14 +211,14 @@ class PNGLoader(Dataset):
             groups[group_key][image_type] = os.path.join(self.image_dir, file_name)
             groups[group_key]["seed_key"] = f"{context}_{vasc_type}_{seed}"
 
-            for metric in self.metrics:
-                if metric in groups[group_key]["metrics"] or not self.label_loader:
+            for label in self.labels:
+                if label in groups[group_key]["labels"] or not self.label_loader:
                     continue
                 key = f"{context}_{vasc_type}"
-                metric_upper = metric.upper()
+                label_upper = label.upper()
                 timepoint_float = float(timepoint_short)
-                groups[group_key]["metrics"][metric] = self.label_loader.get_metrics(
-                    metric_upper, key, timepoint_float, seed
+                groups[group_key]["labels"][label] = self.label_loader.get_labels(
+                    label_upper, key, timepoint_float, seed
                 )
 
         if self.logger:
@@ -390,7 +364,7 @@ class PNGLoader(Dataset):
 
 class LabelLoader:
     """
-    Loads metrics (activity, growth, and symmetry) to match with corresponding images.
+    Loads labels (activity, growth, and symmetry) to match with corresponding images.
 
     Parameters
     ----------
@@ -402,8 +376,8 @@ class LabelLoader:
     def __init__(self, label_dir: str):
         self.label_dir = label_dir
 
-    def get_metrics(self, metric: str, key: str, time: float, seed: int) -> float:
-        file = f"{self.label_dir}/VASCULAR_FUNCTION_{key}.SEEDS.{metric}.json"
+    def get_labels(self, label: str, key: str, time: float, seed: int) -> float:
+        file = f"{self.label_dir}/VASCULAR_FUNCTION_{key}.SEEDS.{label}.json"
 
         with open(file, "r", encoding="utf-8") as f:
             vals = json.load(f)

@@ -1,7 +1,8 @@
 import uuid
-from typing import Any
+from copy import deepcopy
 
 import torch
+import pandas as pd
 
 from simulation_encoder.loader import PNGLoader
 from simulation_encoder.logger import ExperimentLogger
@@ -74,11 +75,12 @@ class Runner:
         """
         model_num = 0
         for model_param_set in model_param_sets:
-            model = CAE(**model_param_set.__dict__.copy(), logger=self.logger)
-            model_id = f"{model_param_set.name}_{model_num}"
+            model = CAE(**deepcopy(model_param_set.__dict__), logger=self.logger)
+            latent_dim = model_param_set.params["latent_dim"]
+            model_id = f"{model_param_set.name}_{latent_dim}d_{model_num}"
             while model_id in self.models:
                 model_num += 1
-                model_id = f"{model_param_set.name}_{model_num}"
+                model_id = f"{model_param_set.name}_{latent_dim}d_{model_num}"
             self.models[model_id] = model
             self.losses[model_id] = LossData()
 
@@ -95,23 +97,20 @@ class Runner:
 
         for model_id, model in self.models.items():
             self.logger.log(f"------------------- {model_id} -------------------")
-            self._train_model(model_id, model)
+            # self._train_model(model_id, model)
             # self._eval_model(model_id, model)
-            self._save_model(model_id, model)
-            self.writer.write_results(model_id, model, self.dataset, self.losses[model_id])
+            # self._save_model(model_id, model)
+            # self.writer.write_results(model_id, model, self.dataset, self.losses[model_id])
 
         best_model = min(self.losses, key=lambda x: self.losses[x].combined_loss_val)
-        self.writer.write_results(
-            "_best_model",
-            self.models[best_model],
-            self.dataset,
-            self.losses[best_model],
-        )
+
+        encoded_train, encoded_val, encoded_test = self._encode_dataset(self.models[best_model])
+        print(encoded_train)
 
     def _train_model(self, model_name: str, model: CAE) -> None:
         """Trains a model on the dataset"""
-        train_loader = self.dataset.get_train_dataloader()
-        val_loader = self.dataset.get_val_dataloader()
+        train_loader = self.dataset.get_dataloader(dataset_type="train")
+        val_loader = self.dataset.get_dataloader(dataset_type="val")
         losses, val_losses, grad_norms = model.fit(
             train_loader,
             val_loader=val_loader,
@@ -125,10 +124,34 @@ class Runner:
 
     def _eval_model(self, model_name: str, model: CAE) -> None:
         """Evaluates all models currently in runner"""
-        test_loader = self.dataset.get_test_dataloader()
+        test_loader = self.dataset.get_dataloader(dataset_type="test")
         test_loss = model.eval_one_epoch(test_loader)
         self.losses[model_name].add_test_loss(test_loss)
         self.logger.log(f"Test loss: {self.losses[model_name].combined_loss_test}")
+
+    def _encode_dataset(self, model: CAE) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+        """Encodes the dataset using the model. Final dataframe includes labels and seed keys"""
+        encoded_train = model.encode_loader(self.dataset.get_dataloader(dataset_type="train"))
+        encoded_val = model.encode_loader(self.dataset.get_dataloader(dataset_type="val"))
+        encoded_test = model.encode_loader(self.dataset.get_dataloader(dataset_type="test"))
+
+        num_dims = model.latent_dim
+        column_names = [f"dim_{i}" for i in range(num_dims)]
+
+        encoded_train = pd.DataFrame(encoded_train, columns=column_names)
+        encoded_val = pd.DataFrame(encoded_val, columns=column_names)
+        encoded_test = pd.DataFrame(encoded_test, columns=column_names)
+
+        for label in self.dataset.labels:
+            encoded_train[label] = self.dataset.get_labels(label=label, dataset_type="train")
+            encoded_val[label] = self.dataset.get_labels(label=label, dataset_type="val")
+            encoded_test[label] = self.dataset.get_labels(label=label, dataset_type="test")
+
+        encoded_train["seed_key"] = self.dataset.get_seed_keys(dataset_type="train")
+        encoded_val["seed_key"] = self.dataset.get_seed_keys(dataset_type="val")
+        encoded_test["seed_key"] = self.dataset.get_seed_keys(dataset_type="test")
+
+        return encoded_train, encoded_val, encoded_test
 
     def _save_model(self, model_name: str, model: CAE) -> None:
         """Saves trained model parameters"""
