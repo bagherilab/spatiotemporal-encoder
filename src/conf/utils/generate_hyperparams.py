@@ -3,9 +3,6 @@ from typing import Any
 
 import numpy as np
 
-PARAM_RESOLUTION = 5
-
-
 def generate_hyperparameters(
     continuous_params: dict[str, Any], discrete_params: dict[str, Any]
 ) -> list[dict[str, Any]]:
@@ -32,15 +29,16 @@ def get_continuous_values(continuous_params: dict[str, Any]) -> dict[str, list[f
     continuous_values = {}
     if continuous_params:
         for param, param_info in continuous_params.items():
+            num_samples = param_info["num_samples"]
             if param_info["search"] == "linear":
                 values = np.linspace(
-                    param_info["range"][0], param_info["range"][1], PARAM_RESOLUTION
+                    param_info["range"][0], param_info["range"][1], num_samples
                 ).tolist()
             elif param_info["search"] == "log":
                 values = np.logspace(
                     np.log10(param_info["range"][0]),
                     np.log10(param_info["range"][1]),
-                    PARAM_RESOLUTION,
+                    num_samples,
                 ).tolist()
             continuous_values[param] = values
     return continuous_values

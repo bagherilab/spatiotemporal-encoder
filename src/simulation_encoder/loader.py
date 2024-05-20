@@ -4,6 +4,7 @@ from typing import Optional, Callable, Any
 from collections import defaultdict
 
 import numpy as np
+import pandas as pd
 from PIL import Image
 
 import torch
@@ -154,18 +155,27 @@ class PNGLoader(Dataset):
         indices = getattr(self, indices_attr)
         try:
             labels = [self.get_label(idx, label) for idx in indices]
-            return torch.tensor(labels, dtype=torch.float32, requires_grad=False)
+            return torch.tensor(labels, requires_grad=False)
         except ValueError:
             raise ValueError(f"Invalid target name: {label}")
 
-    def get_seed_keys(self, dataset_type: str) -> torch.Tensor:
+    def get_timepoints(self, dataset_type: str) -> torch.Tensor:
+        """Returns timepoints for the specified dataset type (train, val, test)"""
+        indices_attr = f"_{dataset_type}_indices"
+        if not hasattr(self, indices_attr):
+            raise ValueError(f"Invalid dataset type: {dataset_type}")
+        indices = getattr(self, indices_attr)
+        timepoints = [self.get_timepoint(idx) for idx in indices]
+        return torch.tensor(timepoints, requires_grad=False)
+    
+    def get_seed_keys(self, dataset_type: str) -> list[str]:
         """Returns seed keys for the specified dataset type (train, val, test)"""
         indices_attr = f"_{dataset_type}_indices"
         if not hasattr(self, indices_attr):
             raise ValueError(f"Invalid dataset type: {dataset_type}")
         indices = getattr(self, indices_attr)
         seed_keys = [self.get_seed_key(idx) for idx in indices]
-        return torch.tensor(seed_keys, dtype=torch.float32, requires_grad=False)
+        return seed_keys
 
     def get_timepoint(self, idx: int) -> int:
         """Returns the timepoint of the group at index `idx`"""
@@ -386,3 +396,68 @@ class LabelLoader:
                 return val["_"][seed]
 
         return float("nan")
+
+
+class CSVLoader(Dataset):
+    """
+    Loader class for loading labeled data from a CSV file.
+
+    Parameters
+    ----------
+    exp_id : str
+        Experiment ID.
+    labels : list[str]
+        List of target labels.
+    """
+
+    def __init__(self, exp_id: str, labels: list[str]) -> None:
+        self.exp_id = exp_id
+        self.data_path = f"results/{exp_id}/encoded_data"
+        self.labels = labels
+        self._load_data()
+
+    def __len__(self) -> int:
+        return len(self._X_train) + len(self._X_val) + len(self._X_test)
+    
+    def __getitem__(self, idx):
+        raise NotImplementedError("This method is not implemented yet. Use get_dataloader instead.")
+    
+    def get_data(self, dataset_type: str, feature_timepoint: int = None, response_timepoint: int = None,) -> tuple[pd.DataFrame, pd.DataFrame]:
+        if dataset_type == "train":
+            X, y =  self._X_train, self._y_train
+        elif dataset_type == "val":
+            X, y =  self._X_val, self._y_val
+        elif dataset_type == "test":
+            X, y = self._X_test, self._y_test
+        else :
+            raise ValueError(f"Invalid dataset type: {dataset_type}")
+
+        if feature_timepoint:
+            X = X[X['timepoint'] == feature_timepoint]
+
+        if response_timepoint:
+            y = y[y['timepoint'] == response_timepoint]
+
+        # Align based on seed_key
+        if feature_timepoint is not None or response_timepoint is not None:
+            common_seed_keys = set(X['seed_key']).intersection(y['seed_key'])
+            X = X[X['seed_key'].isin(common_seed_keys)]
+            y = y[y['seed_key'].isin(common_seed_keys)]
+
+            # Sort by seed_key to ensure alignment
+            X = X.sort_values('seed_key').reset_index(drop=True)
+            y = y.sort_values('seed_key').reset_index(drop=True)
+
+        return X.drop(['timepoint', 'seed_key'], axis=1), y.drop(['timepoint', 'seed_key'], axis=1)
+
+    def _load_data(self) -> None:
+        self._X_train, self._y_train = self._load_csv('train')
+        self._X_val, self._y_val = self._load_csv('val')
+        self._X_test, self._y_test = self._load_csv('test')
+
+    def _load_csv(self, dataset_type:str) -> tuple[pd.DataFrame, pd.DataFrame]:
+        file_path = os.path.join(self.data_path, f"{dataset_type}.csv")
+        data = pd.read_csv(file_path)
+        self.feature_cols = [col for col in data.columns if col.startswith('dim_')] 
+        X, y = data.loc[:, self.feature_cols + ['timepoint', 'seed_key']], data.loc[:, self.labels + ['timepoint', 'seed_key']]
+        return X, y

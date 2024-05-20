@@ -97,15 +97,15 @@ class Runner:
 
         for model_id, model in self.models.items():
             self.logger.log(f"------------------- {model_id} -------------------")
-            # self._train_model(model_id, model)
+            self._train_model(model_id, model)
             # self._eval_model(model_id, model)
-            # self._save_model(model_id, model)
-            # self.writer.write_results(model_id, model, self.dataset, self.losses[model_id])
+            self._save_model(model_id, model)
+            self.writer.write_results(model_id, model, self.dataset, self.losses[model_id])
 
         best_model = min(self.losses, key=lambda x: self.losses[x].combined_loss_val)
 
-        encoded_train, encoded_val, encoded_test = self._encode_dataset(self.models[best_model])
-        print(encoded_train)
+        encoded_dataset = self._encode_dataset(self.models[best_model])
+        self.writer.write_encoded_data(best_model, encoded_dataset)
 
     def _train_model(self, model_name: str, model: CAE) -> None:
         """Trains a model on the dataset"""
@@ -129,7 +129,7 @@ class Runner:
         self.losses[model_name].add_test_loss(test_loss)
         self.logger.log(f"Test loss: {self.losses[model_name].combined_loss_test}")
 
-    def _encode_dataset(self, model: CAE) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    def _encode_dataset(self, model: CAE) -> dict[str, pd.DataFrame]:
         """Encodes the dataset using the model. Final dataframe includes labels and seed keys"""
         encoded_train = model.encode_loader(self.dataset.get_dataloader(dataset_type="train"))
         encoded_val = model.encode_loader(self.dataset.get_dataloader(dataset_type="val"))
@@ -147,11 +147,15 @@ class Runner:
             encoded_val[label] = self.dataset.get_labels(label=label, dataset_type="val")
             encoded_test[label] = self.dataset.get_labels(label=label, dataset_type="test")
 
+        encoded_train["timepoint"] = self.dataset.get_timepoints(dataset_type="train")
+        encoded_val["timepoint"] = self.dataset.get_timepoints(dataset_type="val")
+        encoded_test["timepoint"] = self.dataset.get_timepoints(dataset_type="test")
+
         encoded_train["seed_key"] = self.dataset.get_seed_keys(dataset_type="train")
         encoded_val["seed_key"] = self.dataset.get_seed_keys(dataset_type="val")
         encoded_test["seed_key"] = self.dataset.get_seed_keys(dataset_type="test")
 
-        return encoded_train, encoded_val, encoded_test
+        return {"train": encoded_train, "val": encoded_val, "test": encoded_test}
 
     def _save_model(self, model_name: str, model: CAE) -> None:
         """Saves trained model parameters"""
