@@ -103,6 +103,12 @@ class Runner:
             self.writer.write_results(model_id, model, self.dataset, self.losses[model_id])
 
         best_model = min(self.losses, key=lambda x: self.losses[x].combined_loss_val)
+        self.writer.write_results(
+            "_best_model",
+            self.models[best_model],
+            self.dataset,
+            self.losses[best_model],
+        )
 
         encoded_dataset = self._encode_dataset(self.models[best_model])
         self.writer.write_encoded_data(best_model, encoded_dataset)
