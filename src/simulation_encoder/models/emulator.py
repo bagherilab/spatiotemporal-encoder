@@ -11,7 +11,6 @@ class Emulator:
             self.model = LinearRegression()
             self.param_grid = {
                 'fit_intercept': [True, False],
-                'normalize': [True, False]
             }
         elif model_type == 'random_forest':
             self.model = RandomForestRegressor()
@@ -37,14 +36,9 @@ class Emulator:
     def predict(self, X) -> np.ndarray:
         return self.model.predict(X)
 
-    def grid_search(self, X_train, y_train, X_val, y_val) -> dict:
+    def grid_search(self, X, y) -> dict:
         """Perform a grid search to find the best hyperparameters."""
-        test_fold = [-1] * len(X_train) + [0] * len(X_val)
-        ps = PredefinedSplit(test_fold=test_fold)
-
-        X = np.concatenate((X_train, X_val))
-        y = np.concatenate((y_train, y_val))
-        grid_search = GridSearchCV(estimator=self.model, param_grid=self.param_grid, cv=ps, scoring='r2')
+        grid_search = GridSearchCV(estimator=self.model, param_grid=self.param_grid, cv=5, scoring='r2')
         grid_search.fit(X, y)
         self.model = grid_search.best_estimator_
         return grid_search.best_params_

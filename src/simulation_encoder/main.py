@@ -29,14 +29,16 @@ def main() -> None:
     verbose = main_config["general_configs"]["verbose"]
 
     runner = Runner(verbose)
-    dataset_params = create_dataset_params(main_config)
-    runner.add_dataset(dataset_params)
+    # dataset_params = create_dataset_params(main_config)
+    # runner.add_dataset(dataset_params)
 
-    for model in main_config["models"]:
-        model_param_sets = create_model_param_sets(model)
-        runner.add_models(model_param_sets)
+    # for model in main_config["models"]:
+    #     model_param_sets = create_model_param_sets(model)
+    #     runner.add_models(model_param_sets)
 
-    runner.run()
+    # runner.run_encoder()
+
+    runner.run_emulator()
 
 
 def create_dataset_params(main_config: dict[str, Any]) -> DatasetParams:

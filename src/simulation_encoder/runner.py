@@ -4,10 +4,11 @@ from copy import deepcopy
 import torch
 import pandas as pd
 
-from simulation_encoder.loader import PNGLoader
+from simulation_encoder.loader import PNGLoader, CSVLoader
 from simulation_encoder.logger import ExperimentLogger
 from simulation_encoder.writer import Writer
 from simulation_encoder.models.cae import CAE
+from simulation_encoder.models.emulator import Emulator
 from simulation_encoder.dataclass.param_sets import DatasetParams, ModelParams
 from simulation_encoder.dataclass.loss_data import LossData
 from simulation_encoder.plotter import line_plot, loss_plot
@@ -84,7 +85,7 @@ class Runner:
             self.models[model_id] = model
             self.losses[model_id] = LossData()
 
-    def run(self) -> None:
+    def run_encoder(self) -> None:
         """Runs the training and evaluation of models"""
         if not self.dataset:
             raise ValueError("No dataset has been added to runner.")
@@ -113,6 +114,33 @@ class Runner:
         encoded_dataset = self._encode_dataset(self.models[best_model])
         self.writer.write_encoded_data(best_model, encoded_dataset)
 
+    def run_emulator(self) -> None:
+        # labels = self.dataset.labels
+        labels = ["activity", "growth", "symmetry"]
+        encoded_dataset = CSVLoader(exp_id="b5c5086b-1cd5-49f0-9ba4-b4da18536bbf", labels=labels)
+
+        model_types = ["linear_regression", "random_forest", "svm"]
+        models = {model_type: None for model_type in model_types}
+        for model_type in model_types:
+            models[model_type] = Emulator(model_type=model_type)
+
+        X_train, y_train = encoded_dataset.get_data("train")
+        X_val, y_val = encoded_dataset.get_data("val")
+        
+        for label in labels:
+            for model_type, model in models.items():
+                best_model = model.grid_search(X_train, y_train[label])
+
+            
+            best_model.fit(X_train, y_train[label])
+            train_score = best_model.evaluate(X_train, y_train[label])
+            val_score = best_model.evaluate(X_val, y_val[label])
+            print(f"Model: {model_type}, Label: {label}")
+            print(f"Train score: {train_score}")
+            print(f"Val score: {val_score}")
+
+            
+    
     def _train_model(self, model_name: str, model: CAE) -> None:
         """Trains a model on the dataset"""
         train_loader = self.dataset.get_dataloader(dataset_type="train")
