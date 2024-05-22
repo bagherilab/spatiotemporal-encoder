@@ -202,7 +202,7 @@ class CAE(BaseCNN):
                 encoded.append(self.encode(inputs))
 
         return torch.cat(encoded, dim=0)
-
+#go thru the training data one time (jacob calls this 5x)
     def train_one_epoch(
         self,
         train_loader: DataLoader,
@@ -230,21 +230,21 @@ class CAE(BaseCNN):
         timepoint_criteria = self.criterion["timepoint"]
 
         avg_loss: dict[str, float] = defaultdict(float)
-
+#"where the magic happens"
         with tqdm(train_loader, unit=" batch", ncols=100, desc=f"Epoch {epoch + 1}") as tepoch:
             for inputs, labels in tepoch:
-                optimizer_combined.zero_grad()
+                optimizer_combined.zero_grad() #start the training loop, similar to pyTorch docs
 
-                pred_image, pred_timepoint = self(inputs)
+                pred_image, pred_timepoint = self(inputs) #pass the inputs thru the foward function/train on inputs
 
                 batch_loss = {
-                    "image": image_criteria(pred_image, inputs),
-                    "timepoint": timepoint_criteria(pred_timepoint, labels),
-                }
-                combined_loss = self._calc_combined_loss(batch_loss)
+                    "image": image_criteria(pred_image, inputs), #predicts loss on image
+                    "timepoint": timepoint_criteria(pred_timepoint, labels), #predicts loss on time
+                } 
+                combined_loss = self._calc_combined_loss(batch_loss) #add the 2 loss functions tgt
 
-                combined_loss.backward()
-                optimizer_combined.step()
+                combined_loss.backward() #calculates gradient of loss function
+                optimizer_combined.step() #updating the weights w the gradient
 
                 for key in batch_loss:
                     avg_loss[key] += batch_loss[key].item()
@@ -253,7 +253,7 @@ class CAE(BaseCNN):
                 tepoch.set_postfix(
                     image_loss=round(batch_loss["image"].item(), 3),
                     timepoint_loss=round(batch_loss["timepoint"].item(), 3),
-                )
+                ) #progress bar B)
 
         avg_loss = {key: value / len(train_loader) for key, value in avg_loss.items()}
         return avg_loss

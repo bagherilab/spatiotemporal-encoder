@@ -12,7 +12,7 @@ from torchvision import transforms
 
 from simulation_encoder.logger import ExperimentLogger
 from simulation_encoder.writer import Writer
-
+#importing libraies and modules used for ML and image processing and data analysis
 
 class Augmentation:
     """
@@ -25,12 +25,12 @@ class Augmentation:
     name : str
         Name of the augmentation technique.
     """
-
+#to do things to images, we need to store the operations that we perform on them (eg rotate 180 degrees)
     def __init__(self, transform: Callable[[torch.Tensor], torch.Tensor], name: str):
-        self.transform = transform
-        self.name = name
+        self.transform = transform #type of transform
+        self.name = name #name of operation
 
-    def __call__(self, tensor: torch.Tensor) -> torch.Tensor:
+    def __call__(self, tensor: torch.Tensor) -> torch.Tensor: #__dunder methods --> take sin a tensor and returns the transform image
         if tensor.ndim == 3:  # Single image tensor
             return self.transform(tensor)
 
@@ -42,7 +42,8 @@ class Augmentation:
 
         raise ValueError(f"Unsupported tensor shape: {tensor.shape}")
 
-
+# defiens the augmentation class used to make images interpertable?
+#takes in a transform and a name then calls 
 class PNGLoader(Dataset):
     """
     Loader class for loading unlabeled images from a directory.
@@ -109,6 +110,9 @@ class PNGLoader(Dataset):
 
     def __len__(self) -> int:
         return len(self.groups)
+        #This method returns the total number of groups in the dataset.
+
+
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, int]:
         group = self.groups[idx]
@@ -116,6 +120,9 @@ class PNGLoader(Dataset):
         image_tensor = self._get_image_tensors(group)
 
         return image_tensor, timepoint
+        #This method returns a tuple containing the image tensor and the corresponding timepoint for a given index idx.
+
+
 
     @property
     def n_train(self) -> int:
@@ -136,6 +143,9 @@ class PNGLoader(Dataset):
     def image_shape(self) -> tuple[int, int]:
         """Shape of the images"""
         return self[0][0].shape[1:]
+        #These are properties that provide information about the dataset such as the number of training and test points, the number of channels in the images, and the shape of the images.
+
+
 
     def get_train_dataloader(self) -> DataLoader:
         """Returns training DataLoader"""
@@ -157,7 +167,10 @@ class PNGLoader(Dataset):
         return DataLoader(
             test_dataset, batch_size=self.batch_size, shuffle=False, collate_fn=self._collate_fn
         )
+#These methods return DataLoaders for the training, validation, and test sets respectively.
 
+#jacob deleted this, k-fold does the n-fold cross validation
+#drawback is that it's really slow
     def get_cv_splits(self, k_folds: int) -> list[tuple[DataLoader, DataLoader]]:
         """Returns list of k-folds of training and validation DataLoader"""
         indices = self._train_indices + self._val_indices
@@ -188,11 +201,14 @@ class PNGLoader(Dataset):
             )
 
         return folds
+#This method returns a list of k-folds of training and validation DataLoaders for cross-validation.
+
 
     def get_timepoint(self, idx: int) -> int:
         """Returns the timepoint of the group at index `idx`"""
         return int(self.groups[idx]["timepoint"])
     
+
     def get_metric(self, idx: int, label_name: str) -> int:
         """Returns metric the group at index `idx`"""
         if label_name in self.metrics:
@@ -204,6 +220,8 @@ class PNGLoader(Dataset):
     def get_seed_key(self, idx: int) -> str:
         """Returns the seed and key of the group at index `idx`"""
         return self.groups[idx]["seed_key"]
+#These methods provide information about the timepoint, metric, and seed key of a group at a given index.
+
 
     def _get_image_groups(self) -> None:
         """Returns groups of images based on the filename format."""
@@ -215,7 +233,9 @@ class PNGLoader(Dataset):
                 "augmentation": "original",
                 "metrics": defaultdict(float),
             }
-        )
+        ) #data structure that stores everything together so that we can access it (stores in GROUPS)
+#This method parses the image filenames to group them based on their attributes such as context, vascular type, seed, timepoint, etc.
+
 
         for file_name in os.listdir(self.image_dir):
             if not file_name.endswith(".png") or not self._in_keys(file_name):
@@ -250,7 +270,7 @@ class PNGLoader(Dataset):
         
         self.groups = list(groups.values())
 
-    def _get_augmentations(
+    def _get_augmentations( #loads in data gumentations that we want
         self, augmentations: Optional[list[str]]
     ) -> Optional[dict[str, Augmentation]]:
         if not augmentations:
@@ -338,6 +358,7 @@ class PNGLoader(Dataset):
 
         if self.writer:
             self.writer.write_indices(self._train_indices, self._val_indices, self._test_indices)
+            #This method splits the data into training, validation, and test sets either randomly or based on pre-defined indices.
 
     def _parse_ARCADE_filename(self, filename: str) -> tuple[str, str, int, int, str]:
         parts = filename.split("_")

@@ -1,6 +1,9 @@
-data_dir: data/ARCADE
-label_dir: data/labels
-models:
+#any important variable that appears somewhere else in the code will go in the config file
+#keeps things cleaner and allows other people to change things within this project
+data_dir: data/ARCADE #doesnt change because thats where we get the dataset from, dont want to hardcode this bc if we do want to change it its a pain
+label_dir: data/labels #images and labels are in 2 diff places
+models: #different nn artiectures
+#2c, 3l means 2 convolutional layers (good for images/2D data) and 3 layers
   # - 1c_3l
   - 2c_3l
   # - 2c_3l_1s
@@ -8,14 +11,14 @@ models:
   # - 2c_3l_large
   # - 2c_3l_2d
   # - 3c_3l
-model_configs:
-  num_epochs: 3
-  batch_size: 32
-  val_split: 0.3
-  test_split: 0.2
-  augmentations:
+model_configs: #how we train the nn
+  num_epochs: 3 #run thru the whole training set 3x during the training process, if u do this too much then u can overfit the data
+  batch_size: 32 #show the data to the nn in batches,nnot all at once. after we show it 32, it calculates the loss and then updates the weights
+  val_split: 0.3 #validation data
+  test_split: 0.2 #test data
+  augmentations: #not that many images --> by tilting the image 80 deg, the nn can learn 'more' from one image
     # - rotate_180
-  verbose: true
+  verbose: true #this config file replaces global variables, when verbose is true it prints messages to the terminal to see the code run
 keys:
   - CH_Lav
   - CH_Lava
@@ -27,3 +30,9 @@ keys:
   - C_Lvav
   - C_Sav
   - C_Savav
+  #c --> simulations run with just cancer cells (colony simulations)
+  #ch --> simulations run starting with completely healthy cell envir then cancerous cells introduced
+  #lav/lvav/sav/savav --> different ways to generate blood vessels
+  #a (# arteries) v (# of veins)
+  #l = line
+  #s = single point

@@ -39,9 +39,11 @@ class Runner:
     losses : dict[str, LossData]
         Dictionary of model names and their corresponding loss data
     """
-
+#when you create runner, you need to call functions add_model and add_dataset to build up the complexity of the function
+#by using these functions seperatly, it is easy to initalize a runner and increase complexity
+#Defines the Runner class responsible for managing model training and saving.
     def __init__(self, augmentations: Optional[list[str]] = None, verbose: bool = False) -> None:
-        self._UUID = uuid.uuid4()
+        self._UUID = uuid.uuid4() #uuid --> every time we run code, nn output results. id saves the results in a new place and allows the results to be identifiable (random code of letters numbers)
         self.augmentations = augmentations or []
         self.models: dict[str, CAE] = {}
         self.dataset: PNGLoader = None
@@ -49,20 +51,21 @@ class Runner:
         self.logger = ExperimentLogger(uuid=self._UUID, verbose=verbose)
         self.losses: dict[str, LossData] = {}
         self.verbose = verbose
-
+# Initializes the Runner class with optional augmentations, verbosity setting, a unique identifier, and other attributes like models, dataset, writer, logger, and losses.
     def add_models(self, model_files: list[str]) -> None:
         """Add models to be trained by the runner"""
         for model_yaml in model_files:
             self.add_model(model_yaml)
-
+#all models added to yaml files are added to runner
     def add_model(self, model_yaml: str) -> None:
         """Add model to be trained by the runner"""
         with open(model_yaml, "r", encoding="utf-8") as file:
             params = yaml.safe_load(file)
         model_name = os.path.splitext(os.path.basename(model_yaml))[0]
-        model = CAE(params=params, logger=self.logger)
+        model = CAE(params=params, logger=self.logger) #convolutional auto encoder (CAE) gets passed in as parameters/params
         self.models[model_name] = model
         self.losses[model_name] = LossData()
+        #These methods allow adding models to the runner. The add_model method reads the model parameters from a YAML file, instantiates a CAE (Convolutional Autoencoder) model, and stores it in the models dictionary.
 
     def add_dataset(
         self,
@@ -73,6 +76,8 @@ class Runner:
         test_split: float,
         batch_size: int,
     ) -> None:
+    #Adding Dataset: This method allows adding a dataset to the runner. It initializes a PNGLoader object with specified parameters and assigns it to the dataset attribute.
+
         """
         Add dataset on which models should be trained
 
@@ -127,15 +132,15 @@ class Runner:
 
     def _train_model(self, model_name: str, model: CAE, num_epochs: int) -> None:
         """Trains a model on the dataset"""
-        train_loader = self.dataset.get_train_dataloader()
-        val_loader = self.dataset.get_val_dataloader()
+        train_loader = self.dataset.get_train_dataloader() #training data (not in matrix (instead in loader) because it has nice features)
+        val_loader = self.dataset.get_val_dataloader() #valid data
         losses, val_losses, grad_norms = model.fit(
             train_loader,
             epochs=num_epochs,
             val_loader=val_loader,
-        )
+        ) #calling the loss function
 
-        self.losses[model_name].add_train_loss(losses)
+        self.losses[model_name].add_train_loss(losses) #
         self.losses[model_name].add_val_loss(val_losses)
 
         line_plot(grad_norms, "grad_norms", self._UUID, model_name, "Epoch", "Gradient Norm")
