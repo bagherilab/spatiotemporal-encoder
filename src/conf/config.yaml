@@ -3,9 +3,11 @@ data:
   image_dir: data/ARCADE/vascular_function/images
   label_dir: data/ARCADE/vascular_function/labels
 models:
-  - architecture: 2c_3l
-    params: grid_loss
+  # - architecture: 2c_3l
+  #   params: grid_loss
   - architecture: 2c_3l_large
+    params: grid_loss
+  - architecture: 2c_3l_dropout
     params: grid_loss
 general_configs:
   batch_size: 32
@@ -26,7 +28,7 @@ keys:
   - C_Lvav
   - C_Sav
   - C_Savav
-targets:
+emulator_targets:
   - activity
   - growth
   - symmetry

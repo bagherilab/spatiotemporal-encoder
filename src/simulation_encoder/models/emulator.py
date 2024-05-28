@@ -1,33 +1,51 @@
+from typing import Any, Optional
+
 import numpy as np
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.svm import SVR
-from sklearn.model_selection import GridSearchCV, PredefinedSplit
+from sklearn.model_selection import GridSearchCV
 
 class Emulator:
-    def __init__(self, model_type='linear_regression'):
+    def __init__(self, model_type: str='linear_regression', params: Optional[dict[str, Any]]=None):
         self.model_type = model_type
-        if model_type == 'linear_regression':
-            self.model = LinearRegression()
-            self.param_grid = {
-                'fit_intercept': [True, False],
+
+        # Define default parameter grids
+        default_param_grids = {
+            'linear_regression': {
+                'model': LinearRegression,
+                'param_grid': {
+                    'fit_intercept': [True, False],
+                }
+            },
+            'random_forest': {
+                'model': RandomForestRegressor,
+                'param_grid': {
+                    'n_estimators': [10, 50, 100],
+                    'max_depth': [10, 20, 30],  
+                    'min_samples_split': [2, 5, 10],
+                    'bootstrap': [True, False]
+                }
+            },
+            'svm': {
+                'model': SVR,
+                'param_grid': {
+                    'C': [0.1, 1, 10],
+                    'kernel': ['rbf', 'poly'],
+                    'degree': [2, 3, 5]
+                }
             }
-        elif model_type == 'random_forest':
-            self.model = RandomForestRegressor()
-            self.param_grid = {
-                'n_estimators': [10, 50, 100],
-                'max_depth': [None, 10, 20, 30]
-            }
-        elif model_type == 'svm':
-            self.model = SVR()
-            self.param_grid = {
-                'C': [0.1, 1, 10],
-                'kernel': ['linear', 'rbf']
-            }
-        else:
+        }
+
+        if model_type not in default_param_grids:
             raise ValueError(f"Invalid model type: {model_type}")
 
-    def train(self, X, y) -> None:
+        model_class = default_param_grids[model_type]['model']
+        self.model = model_class(**params) if params else model_class()
+
+        self.param_grid = default_param_grids[model_type]['param_grid']
+
+    def fit(self, X, y) -> None:
         self.model.fit(X, y)
 
     def evaluate(self, X, y) -> float:

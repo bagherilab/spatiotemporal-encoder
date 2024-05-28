@@ -127,20 +127,29 @@ class Runner:
         X_train, y_train = encoded_dataset.get_data("train")
         X_val, y_val = encoded_dataset.get_data("val")
         
+
         for label in labels:
+            print(f"Label: {label}")
+            best_model_type = None
+            best_model_params = None
+            best_model = None
+            best_r2 = float("-inf")
             for model_type, model in models.items():
-                best_model = model.grid_search(X_train, y_train[label])
+                print(f"Model: {model_type}")
+                model_params = model.grid_search(X_train, y_train[label])
+                model = Emulator(model_type=model_type, params=model_params)
+                model.fit(X_train, y_train[label])
+                r2 = model.evaluate(X_val, y_val[label])
+                if r2 > best_r2:
+                    best_r2 = r2
+                    best_model_type = model_type
+                    best_model_params = model_params
+                    best_model = model
 
-            
-            best_model.fit(X_train, y_train[label])
-            train_score = best_model.evaluate(X_train, y_train[label])
-            val_score = best_model.evaluate(X_val, y_val[label])
-            print(f"Model: {model_type}, Label: {label}")
-            print(f"Train score: {train_score}")
-            print(f"Val score: {val_score}")
+            print(f"Best model: {best_model_type}, Label: {label}, Params: {best_model_params}, R2: {best_r2}")
+            print(y_val[label])
+            print(best_model.predict(X_val))
 
-            
-    
     def _train_model(self, model_name: str, model: CAE) -> None:
         """Trains a model on the dataset"""
         train_loader = self.dataset.get_dataloader(dataset_type="train")

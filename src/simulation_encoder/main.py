@@ -29,16 +29,16 @@ def main() -> None:
     verbose = main_config["general_configs"]["verbose"]
 
     runner = Runner(verbose)
-    # dataset_params = create_dataset_params(main_config)
-    # runner.add_dataset(dataset_params)
+    dataset_params = create_dataset_params(main_config)
+    runner.add_dataset(dataset_params)
 
-    # for model in main_config["models"]:
-    #     model_param_sets = create_model_param_sets(model)
-    #     runner.add_models(model_param_sets)
+    for model in main_config["models"]:
+        model_param_sets = create_model_param_sets(model)
+        runner.add_models(model_param_sets)
 
-    # runner.run_encoder()
+    runner.run_encoder()
 
-    runner.run_emulator()
+    # runner.run_emulator()
 
 
 def create_dataset_params(main_config: dict[str, Any]) -> DatasetParams:
@@ -49,7 +49,7 @@ def create_dataset_params(main_config: dict[str, Any]) -> DatasetParams:
         val_split=main_config["general_configs"]["val_split"],
         test_split=main_config["general_configs"]["test_split"],
         keys=main_config["keys"],
-        labels=main_config["targets"],
+        labels=main_config["emulator_targets"],
         augmentations=main_config["augmentations"],
     )
     return dataset_params
