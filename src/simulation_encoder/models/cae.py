@@ -39,6 +39,8 @@ class CAE(BaseCNN):
     ):
         super().__init__()
 
+        self.device = self._get_device()
+
         self.name = name
         self.architecture = architecture
         self.num_epochs = num_epochs
@@ -85,6 +87,8 @@ class CAE(BaseCNN):
         dict[str, list[float]], dict[str, list[float]], dict[str, list[float]]
             Dicts of training loss, validation loss, and gradient norms
         """
+        self.to(self.device)
+
         train_losses: dict[str, list[float]] = defaultdict(list)
         val_losses: dict[str, list[float]] = defaultdict(list)
         grad_norms: dict[str, list[float]] = defaultdict(list)
@@ -138,6 +142,7 @@ class CAE(BaseCNN):
         encoded = []
         with torch.no_grad():
             for inputs, _ in dataloader:
+                inputs = inputs.to(self.device)
                 encoded.append(self.encode(inputs))
 
         return torch.cat(encoded, dim=0)
@@ -172,6 +177,7 @@ class CAE(BaseCNN):
 
         with tqdm(train_loader, unit=" batch", ncols=100, desc=f"Epoch {epoch + 1}") as tepoch:
             for inputs, labels in tepoch:
+                inputs, labels = inputs.to(self.device), labels.to(self.device)
                 optimizer_combined.zero_grad()
 
                 pred_image, pred_timepoint = self(inputs)
@@ -219,6 +225,7 @@ class CAE(BaseCNN):
         avg_loss: dict[str, float] = defaultdict(float)
         with torch.no_grad():
             for inputs, labels in val_loader:
+                inputs, labels = inputs.to(self.device), labels.to(self.device)
                 pred_image, pred_timepoint = self(inputs)
 
                 batch_loss = {
@@ -240,6 +247,7 @@ class CAE(BaseCNN):
 
         image_criteria = self.criterion["image"]
         x.requires_grad = True
+        x = x.to(self.device)
         pred_image, _ = self(x)
 
         loss_image = image_criteria(pred_image, x)
@@ -289,3 +297,11 @@ class CAE(BaseCNN):
             return torch.norm(layer[-1].weight.grad)
         except AttributeError:
             raise AttributeError(f"{layer} does not have a gradient attribute")
+
+    def _get_device(self) -> str:
+        device = (
+            "cuda"
+            if torch.cuda.is_available()
+            else "mps" if torch.backends.mps.is_available() else "cpu"
+        )
+        return device

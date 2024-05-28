@@ -32,6 +32,7 @@ class ExperimentLogger:
         verbose: bool = False,
     ):
         self.uuid = uuid
+        self.log_dir = log_dir
         self.log_path = os.path.join(log_dir, f"{self.uuid}.log")
         self.logger = logging.getLogger(str(self.uuid))
         self.verbose = verbose
@@ -46,6 +47,9 @@ class ExperimentLogger:
         self.logger.addHandler(file_handler)
 
     def _create_log_file(self) -> None:
+        if not os.path.exists(self.log_dir):
+            os.makedirs(self.log_dir)
+
         if not os.path.exists(self.log_path):
             with open(self.log_path, "w", encoding="utf-8") as f:
                 f.write("")
@@ -58,7 +62,6 @@ class ExperimentLogger:
         ----------
         msg : str
             Message to log.
-
         """
         self.logger.info(msg)
         if self.verbose:
@@ -72,7 +75,6 @@ class ExperimentLogger:
         ----------
         msg : str
             Warning message to log.
-
         """
         self.logger.warning(msg)
         if self.verbose:

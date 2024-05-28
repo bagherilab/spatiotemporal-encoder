@@ -75,12 +75,16 @@ class Runner:
         model_num = 0
         for model_param_set in model_param_sets:
             model = CAE(**model_param_set.__dict__.copy(), logger=self.logger)
+
             model_id = f"{model_param_set.name}_{model_num}"
             while model_id in self.models:
                 model_num += 1
                 model_id = f"{model_param_set.name}_{model_num}"
             self.models[model_id] = model
             self.losses[model_id] = LossData()
+
+        device = model.device
+        self.logger.log(f"Models added to runner. Device: {device}")
 
     def run(self) -> None:
         """Runs the training and evaluation of models"""
