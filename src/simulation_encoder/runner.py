@@ -1,12 +1,14 @@
 import uuid
-from typing import Any
+from copy import deepcopy
 
 import torch
+import pandas as pd
 
-from simulation_encoder.loader import PNGLoader
+from simulation_encoder.loader import PNGLoader, CSVLoader
 from simulation_encoder.logger import ExperimentLogger
 from simulation_encoder.writer import Writer
 from simulation_encoder.models.cae import CAE
+from simulation_encoder.models.emulator import Emulator
 from simulation_encoder.dataclass.param_sets import DatasetParams, ModelParams
 from simulation_encoder.dataclass.loss_data import LossData
 from simulation_encoder.plotter import line_plot, loss_plot
@@ -74,19 +76,21 @@ class Runner:
         """
         model_num = 0
         for model_param_set in model_param_sets:
-            model = CAE(**model_param_set.__dict__.copy(), logger=self.logger)
 
-            model_id = f"{model_param_set.name}_{model_num}"
+            model = CAE(**deepcopy(model_param_set.__dict__), logger=self.logger)
+            latent_dim = model_param_set.params["latent_dim"]
+            model_id = f"{model_param_set.name}_{latent_dim}d_{model_num}"
             while model_id in self.models:
                 model_num += 1
-                model_id = f"{model_param_set.name}_{model_num}"
+                model_id = f"{model_param_set.name}_{latent_dim}d_{model_num}"
             self.models[model_id] = model
             self.losses[model_id] = LossData()
+
 
         device = model.device
         self.logger.log(f"Models added to runner. Device: {device}")
 
-    def run(self) -> None:
+    def run_encoder(self) -> None:
         """Runs the training and evaluation of models"""
         if not self.dataset:
             raise ValueError("No dataset has been added to runner.")
@@ -112,10 +116,49 @@ class Runner:
             self.losses[best_model],
         )
 
+        encoded_dataset = self._encode_dataset(self.models[best_model])
+        self.writer.write_encoded_data(best_model, encoded_dataset)
+
+    def run_emulator(self) -> None:
+        # labels = self.dataset.labels
+        labels = ["activity", "growth", "symmetry"]
+        encoded_dataset = CSVLoader(exp_id="b5c5086b-1cd5-49f0-9ba4-b4da18536bbf", labels=labels)
+
+        model_types = ["linear_regression", "random_forest", "svm"]
+        models = {model_type: None for model_type in model_types}
+        for model_type in model_types:
+            models[model_type] = Emulator(model_type=model_type)
+
+        X_train, y_train = encoded_dataset.get_data("train")
+        X_val, y_val = encoded_dataset.get_data("val")
+        
+
+        for label in labels:
+            print(f"Label: {label}")
+            best_model_type = None
+            best_model_params = None
+            best_model = None
+            best_r2 = float("-inf")
+            for model_type, model in models.items():
+                print(f"Model: {model_type}")
+                model_params = model.grid_search(X_train, y_train[label])
+                model = Emulator(model_type=model_type, params=model_params)
+                model.fit(X_train, y_train[label])
+                r2 = model.evaluate(X_val, y_val[label])
+                if r2 > best_r2:
+                    best_r2 = r2
+                    best_model_type = model_type
+                    best_model_params = model_params
+                    best_model = model
+
+            print(f"Best model: {best_model_type}, Label: {label}, Params: {best_model_params}, R2: {best_r2}")
+            print(y_val[label])
+            print(best_model.predict(X_val))
+
     def _train_model(self, model_name: str, model: CAE) -> None:
         """Trains a model on the dataset"""
-        train_loader = self.dataset.get_train_dataloader()
-        val_loader = self.dataset.get_val_dataloader()
+        train_loader = self.dataset.get_dataloader(dataset_type="train")
+        val_loader = self.dataset.get_dataloader(dataset_type="val")
         losses, val_losses, grad_norms = model.fit(
             train_loader,
             val_loader=val_loader,
@@ -129,10 +172,38 @@ class Runner:
 
     def _eval_model(self, model_name: str, model: CAE) -> None:
         """Evaluates all models currently in runner"""
-        test_loader = self.dataset.get_test_dataloader()
+        test_loader = self.dataset.get_dataloader(dataset_type="test")
         test_loss = model.eval_one_epoch(test_loader)
         self.losses[model_name].add_test_loss(test_loss)
         self.logger.log(f"Test loss: {self.losses[model_name].combined_loss_test}")
+
+    def _encode_dataset(self, model: CAE) -> dict[str, pd.DataFrame]:
+        """Encodes the dataset using the model. Final dataframe includes labels and seed keys"""
+        encoded_train = model.encode_loader(self.dataset.get_dataloader(dataset_type="train"))
+        encoded_val = model.encode_loader(self.dataset.get_dataloader(dataset_type="val"))
+        encoded_test = model.encode_loader(self.dataset.get_dataloader(dataset_type="test"))
+
+        num_dims = model.latent_dim
+        column_names = [f"dim_{i}" for i in range(num_dims)]
+
+        encoded_train = pd.DataFrame(encoded_train, columns=column_names)
+        encoded_val = pd.DataFrame(encoded_val, columns=column_names)
+        encoded_test = pd.DataFrame(encoded_test, columns=column_names)
+
+        for label in self.dataset.labels:
+            encoded_train[label] = self.dataset.get_labels(label=label, dataset_type="train")
+            encoded_val[label] = self.dataset.get_labels(label=label, dataset_type="val")
+            encoded_test[label] = self.dataset.get_labels(label=label, dataset_type="test")
+
+        encoded_train["timepoint"] = self.dataset.get_timepoints(dataset_type="train")
+        encoded_val["timepoint"] = self.dataset.get_timepoints(dataset_type="val")
+        encoded_test["timepoint"] = self.dataset.get_timepoints(dataset_type="test")
+
+        encoded_train["seed_key"] = self.dataset.get_seed_keys(dataset_type="train")
+        encoded_val["seed_key"] = self.dataset.get_seed_keys(dataset_type="val")
+        encoded_test["seed_key"] = self.dataset.get_seed_keys(dataset_type="test")
+
+        return {"train": encoded_train, "val": encoded_val, "test": encoded_test}
 
     def _save_model(self, model_name: str, model: CAE) -> None:
         """Saves trained model parameters"""

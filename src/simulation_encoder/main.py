@@ -36,7 +36,9 @@ def main() -> None:
         model_param_sets = create_model_param_sets(model)
         runner.add_models(model_param_sets)
 
-    runner.run()
+    runner.run_encoder()
+
+    # runner.run_emulator()
 
 
 def create_dataset_params(main_config: dict[str, Any]) -> DatasetParams:
@@ -46,8 +48,9 @@ def create_dataset_params(main_config: dict[str, Any]) -> DatasetParams:
         batch_size=main_config["general_configs"]["batch_size"],
         val_split=main_config["general_configs"]["val_split"],
         test_split=main_config["general_configs"]["test_split"],
-        augmentations=main_config["augmentations"],
         keys=main_config["keys"],
+        labels=main_config["emulator_targets"],
+        augmentations=main_config["augmentations"],
     )
     return dataset_params
 

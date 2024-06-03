@@ -1,6 +1,8 @@
 import os
 import json
 
+import pandas as pd
+
 from simulation_encoder.loader import PNGLoader
 from simulation_encoder.models.cae import CAE
 from simulation_encoder.dataclass.loss_data import LossData
@@ -56,6 +58,15 @@ class Writer:
         with open(indices_path, "w", encoding="utf-8") as i_file:
             json.dump(indices_dict, i_file, indent=4)
 
+    def write_encoded_data(self, model_name: str, encoded_data: dict[str, pd.DataFrame]) -> None:
+        """Saves encoded dataset and labels for downstream tasks"""
+        self._setup()
+        encoded_data_path = os.path.join(self.results_path, "encoded_data")
+        self._create_dir(encoded_data_path)
+        
+        for key, data in encoded_data.items():
+            data.to_csv(os.path.join(encoded_data_path, f"{key}.csv"), index=False)
+    
     def _setup(self) -> None:
         self._create_dir(self.results_dir)
         self._create_dir(self.results_path)

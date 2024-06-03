@@ -34,12 +34,12 @@ class TestRunner(unittest.TestCase):
                 "decoder_timepoint": [{"type": "Linear", "in_features": 1, "out_features": 1}],
             },
             num_epochs=1,
-            params={},
+            params={"latent_dim": 2},
         )
 
         self.runner.add_models([model_params])
         model_id = self.runner.models.keys()
-        self.assertIn("test_model_0", model_id)
+        self.assertIn("test_model_2d_0", model_id)
 
 
 if __name__ == "__main__":
