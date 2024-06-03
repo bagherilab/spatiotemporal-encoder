@@ -289,8 +289,9 @@ class PNGLoader(Dataset):
         )
 
         cancer_tensor = transformation(Image.open(group["cancer"]))
-        graph_tensor = transformation(Image.open(group["graph"]))
-        full_tensor = torch.stack((cancer_tensor, graph_tensor), dim=0)
+        # graph_tensor = transformation(Image.open(group["graph"]))
+        # full_tensor = torch.stack((cancer_tensor, graph_tensor), dim=0)
+        full_tensor = torch.stack((cancer_tensor,), dim=0)
 
         augmentation_name = group["augmentation"]
         if augmentation_name == "original":

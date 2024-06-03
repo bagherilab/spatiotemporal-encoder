@@ -142,7 +142,6 @@ class CAE(BaseCNN):
         encoded = []
         with torch.no_grad():
             for inputs, _ in dataloader:
-                inputs = inputs.to(self.device)
                 encoded.append(self.encode(inputs))
 
         return torch.cat(encoded, dim=0)
@@ -247,7 +246,6 @@ class CAE(BaseCNN):
 
         image_criteria = self.criterion["image"]
         x.requires_grad = True
-        x = x.to(self.device)
         pred_image, _ = self(x)
 
         loss_image = image_criteria(pred_image, x)
@@ -300,8 +298,8 @@ class CAE(BaseCNN):
 
     def _get_device(self) -> str:
         device = (
-            "cuda"
-            if torch.cuda.is_available()
-            else "mps" if torch.backends.mps.is_available() else "cpu"
+            "cuda" if torch.cuda.is_available()
+            else "mps" if torch.backends.mps.is_available() 
+            else "cpu"
         )
         return device
