@@ -63,10 +63,10 @@ class Writer:
         self._setup()
         encoded_data_path = os.path.join(self.results_path, "encoded_data")
         self._create_dir(encoded_data_path)
-        
+
         for key, data in encoded_data.items():
             data.to_csv(os.path.join(encoded_data_path, f"{key}.csv"), index=False)
-    
+
     def _setup(self) -> None:
         self._create_dir(self.results_dir)
         self._create_dir(self.results_path)

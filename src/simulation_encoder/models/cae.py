@@ -139,11 +139,14 @@ class CAE(BaseCNN):
     def encode_loader(self, dataloader: DataLoader) -> torch.Tensor:
         """Encodes a loader of data"""
         self.eval()
+        self.to(self.device)
+
         encoded = []
         with torch.no_grad():
             for inputs, _ in dataloader:
-                encoded.append(self.encode(inputs))
-
+                inputs = inputs.to(self.device)
+                z = self.encode(inputs)
+                encoded.append(z)
         return torch.cat(encoded, dim=0)
 
     def train_one_epoch(
@@ -298,8 +301,8 @@ class CAE(BaseCNN):
 
     def _get_device(self) -> str:
         device = (
-            "cuda" if torch.cuda.is_available()
-            else "mps" if torch.backends.mps.is_available() 
-            else "cpu"
+            "cuda"
+            if torch.cuda.is_available()
+            else "mps" if torch.backends.mps.is_available() else "cpu"
         )
         return device

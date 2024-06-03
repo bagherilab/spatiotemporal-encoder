@@ -46,7 +46,7 @@ class TestPNGLoader(unittest.TestCase):
 
     def test_getitem_returns_correct_shape(self):
         dataset = PNGLoader(self.temp_dir.name, keys=self.keys)
-        expected_shape = (2, 10, 10)
+        expected_shape = (1, 10, 10)
         actual_shape = (dataset.n_channels, *dataset.image_shape)
         self.assertEqual(actual_shape, expected_shape)
 

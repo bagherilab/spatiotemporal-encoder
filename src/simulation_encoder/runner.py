@@ -86,7 +86,6 @@ class Runner:
             self.models[model_id] = model
             self.losses[model_id] = LossData()
 
-
         device = model.device
         self.logger.log(f"{model_param_set.name} models added to runner. Device: {device}")
 
@@ -125,13 +124,12 @@ class Runner:
         encoded_dataset = CSVLoader(exp_id="b5c5086b-1cd5-49f0-9ba4-b4da18536bbf", labels=labels)
 
         model_types = ["linear_regression", "random_forest", "svm"]
-        models = {model_type: None for model_type in model_types}
+        models = {}
         for model_type in model_types:
             models[model_type] = Emulator(model_type=model_type)
 
         X_train, y_train = encoded_dataset.get_data("train")
         X_val, y_val = encoded_dataset.get_data("val")
-        
 
         for label in labels:
             print(f"Label: {label}")
@@ -151,9 +149,12 @@ class Runner:
                     best_model_params = model_params
                     best_model = model
 
-            print(f"Best model: {best_model_type}, Label: {label}, Params: {best_model_params}, R2: {best_r2}")
+            print(
+                f"Best model: {best_model_type}, Label: {label}, Params: {best_model_params}, R2: {best_r2}"
+            )
             print(y_val[label])
-            print(best_model.predict(X_val))
+            if best_model:
+                print(best_model.predict(X_val))
 
     def _train_model(self, model_name: str, model: CAE) -> None:
         """Trains a model on the dataset"""
@@ -179,9 +180,9 @@ class Runner:
 
     def _encode_dataset(self, model: CAE) -> dict[str, pd.DataFrame]:
         """Encodes the dataset using the model. Final dataframe includes labels and seed keys"""
-        encoded_train = model.encode_loader(self.dataset.get_dataloader(dataset_type="train"))
-        encoded_val = model.encode_loader(self.dataset.get_dataloader(dataset_type="val"))
-        encoded_test = model.encode_loader(self.dataset.get_dataloader(dataset_type="test"))
+        encoded_train = model.encode_loader(self.dataset.get_dataloader(dataset_type="train")).cpu()
+        encoded_val = model.encode_loader(self.dataset.get_dataloader(dataset_type="val")).cpu()
+        encoded_test = model.encode_loader(self.dataset.get_dataloader(dataset_type="test")).cpu()
 
         num_dims = model.latent_dim
         column_names = [f"dim_{i}" for i in range(num_dims)]

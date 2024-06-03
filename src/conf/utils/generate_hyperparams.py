@@ -3,6 +3,7 @@ from typing import Any
 
 import numpy as np
 
+
 def generate_hyperparameters(
     continuous_params: dict[str, Any], discrete_params: dict[str, Any]
 ) -> list[dict[str, Any]]:
