@@ -88,7 +88,7 @@ class Runner:
 
 
         device = model.device
-        self.logger.log(f"Models added to runner. Device: {device}")
+        self.logger.log(f"{model_param_set.name} models added to runner. Device: {device}")
 
     def run_encoder(self) -> None:
         """Runs the training and evaluation of models"""

@@ -5,11 +5,13 @@ data:
 models:
   # - architecture: 2c_3l
   #   params: grid_loss
-  - architecture: 2c_3l_large
-    params: grid_loss
-  - architecture: 2c_3l_dropout
-    params: grid_loss
-  - architecture: 1c_3l
+  # - architecture: 2c_3l_large
+  #   params: grid_loss
+  # - architecture: 2c_3l_dropout
+  #   params: grid_loss
+  # - architecture: 1c_3l
+  #   params: grid_loss
+  - architecture: 1c_3l_flat_decoder
     params: grid_loss
 general_configs:
   batch_size: 32
