@@ -119,9 +119,11 @@ class Runner:
         self.writer.write_encoded_data(best_model, encoded_dataset)
 
     def run_emulator(self) -> None:
-        # labels = self.dataset.labels
-        labels = ["activity", "growth", "symmetry"]
-        encoded_dataset = CSVLoader(exp_id="b5c5086b-1cd5-49f0-9ba4-b4da18536bbf", labels=labels)
+        labels = self.dataset.labels
+        exp_id = self.dataset.exp_id
+        # labels = ["activity", "growth", "symmetry"]
+        # exp_id = ""
+        encoded_dataset = CSVLoader(exp_id=exp_id, labels=labels)
 
         model_types = ["linear_regression", "random_forest", "svm"]
         models = {}
