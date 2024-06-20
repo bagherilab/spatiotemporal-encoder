@@ -1,7 +1,9 @@
-experiment_name: vascular_function
+experiment_name: ARCADE
 data:
   image_dir: data/ARCADE/vascular_function/images
   label_dir: data/ARCADE/vascular_function/labels
+  # image_dir: data/alphanumeric/images
+  # label_dir: data/alphanumeric/labels
 models:
   # - architecture: 2c_3l
   #   params: grid_loss
@@ -9,13 +11,15 @@ models:
   #   params: grid_loss
   # - architecture: 2c_3l_dropout
   #   params: grid_loss
-  - architecture: 1c_3l_flat_decoder
-    params: grid_loss
   - architecture: 1c_3l
     params: grid_loss
+  # - architecture: 1c_3l_flat_decoder
+  #   params: grid_loss
+  # - architecture: 1c_3l_dropout
+  #   params: grid_loss
 general_configs:
   batch_size: 32
-  val_split: 0.3
+  val_split: 0.2
   test_split: 0.2
   verbose: true
 augmentations:
@@ -32,6 +36,18 @@ keys:
   - C_Lvav
   - C_Sav
   - C_Savav
+  # - "2"
+  # - a
+  # - b
+  # - d
+  # - e
+  # - i
+  # - j
+  # - k
+  # - p
+  # - u
+  # - x
+  # - z
 emulator_targets:
   - activity
   - growth

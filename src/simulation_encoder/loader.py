@@ -2,6 +2,7 @@ import os
 import json
 from typing import Optional, Callable, Any
 from collections import defaultdict
+from abc import ABC, abstractmethod
 
 import numpy as np
 import pandas as pd
@@ -43,7 +44,179 @@ class Augmentation:
         raise ValueError(f"Unsupported tensor shape: {tensor.shape}")
 
 
-class PNGLoader(Dataset):
+class Loader(ABC, Dataset):
+    """
+    Abstract class for data loaders.
+    """    
+    def __init__(
+        self,
+        val_split: float = 0.2,
+        test_split: float = 0.2,
+        batch_size: int = 10,
+        indices_file: Optional[str] = None,
+        random_seed: int = 42,
+    ):
+        self.val_split = val_split
+        self.test_split = test_split
+        self.batch_size = batch_size
+        self.indices_file = indices_file
+        self.random_seed = random_seed
+
+        self._train_indices = []
+        self._val_indices = []
+        self._test_indices = []
+
+        self.groups = []
+        self.augmentations = {}
+
+    def __len__(self) -> int:
+        return len(self.groups)
+
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, int]:
+        group = self.groups[idx]
+        timepoint = int(group["timepoint"])
+        image_tensor = self._get_image_tensors(group, self.images)
+
+        return image_tensor, timepoint
+
+    @property
+    def n_train(self) -> int:
+        """Number of training points"""
+        return len(self._train_indices) + len(self._val_indices)
+
+    @property
+    def n_test(self) -> int:
+        """Number of test points"""
+        return len(self._test_indices)
+
+    @property
+    def n_channels(self) -> int:
+        """Number of channels in the images"""
+        return self[0][0].shape[0]
+
+    @property
+    def image_shape(self) -> tuple[int, ...]:
+        """Shape of the images"""
+        return tuple(self[0][0].shape[1:])
+    
+    def get_dataloader(self, dataset_type: str) -> DataLoader:
+        """Returns DataLoader for the specified dataset type (train, val, test)"""
+        indices_attr = f"_{dataset_type}_indices"
+        if not hasattr(self, indices_attr):
+            raise ValueError(f"Invalid dataset type: {dataset_type}")
+        
+        indices = getattr(self, indices_attr)
+        dataset = Subset(self, indices)
+        return DataLoader(
+            dataset,
+            batch_size=self.batch_size,
+            shuffle=(dataset_type == "train"),  # Shuffle only for training data
+            collate_fn=self._collate_fn,
+        )
+    
+    def get_indices(self) -> tuple[list[int], list[int], list[int]]:
+        """Returns the train, validation, and test indices"""
+        return self._train_indices, self._val_indices, self._test_indices
+
+    def get_group_feature(self, idx: int, feature: str) -> str:
+        """Returns a given feature of the group at index `idx`"""
+        return self.groups[idx][feature]
+    
+    def get_timepoints(self, dataset_type: str) -> torch.Tensor:
+        """Returns timepoints for the specified dataset type (train, val, test)"""
+        indices_attr = f"_{dataset_type}_indices"
+        if not hasattr(self, indices_attr):
+            raise ValueError(f"Invalid dataset type: {dataset_type}")
+        indices = getattr(self, indices_attr)
+        timepoints = [int(self.get_group_feature(idx, "timepoint")) for idx in indices]
+        return torch.tensor(timepoints, requires_grad=False)
+    
+    def get_seed_keys(self, dataset_type: str) -> list[str]:
+        """Returns seed keys for the specified dataset type (train, val, test)"""
+        indices_attr = f"_{dataset_type}_indices"
+        if not hasattr(self, indices_attr):
+            raise ValueError(f"Invalid dataset type: {dataset_type}")
+        indices = getattr(self, indices_attr)
+        seed_keys = [self.get_group_feature(idx, "seed_key") for idx in indices]
+        return seed_keys
+    
+    
+    def _get_image_tensors(self, group: dict, images: list) -> torch.Tensor:
+        transformation = transforms.Compose(
+            [
+                transforms.ToTensor(),
+                transforms.Lambda(lambda x: x[:3]),
+                transforms.Grayscale(num_output_channels=1),
+                transforms.Lambda(lambda x: x.squeeze()),
+            ]
+        )
+
+        tensors = []
+        for image in images:
+            tensors.append(transformation(Image.open(group[image])))
+
+
+        full_tensor = torch.stack(tensors, dim=0    )
+
+        augmentation_name = group["augmentation"]
+        if augmentation_name == "original":
+            return full_tensor
+
+        augmentation = self.augmentations[augmentation_name]
+        return augmentation(full_tensor)
+    
+    def _split_data(self, shuffle: bool = True) -> None:
+        if self.indices_file:
+            self._load_from_indices(self.indices_file)
+            return
+
+        all_indices = list(range(len(self)))
+        groups = self._get_indices_of_groups(all_indices)
+
+        group_keys = list(groups.keys())
+        if shuffle:
+            np.random.seed(self.random_seed)
+            np.random.shuffle(group_keys)
+
+        test_groups_count = int(np.floor(len(group_keys) * self.test_split))
+        val_groups_count = int(np.floor(len(group_keys) * self.val_split))
+
+        test_group_keys = group_keys[:test_groups_count]
+        val_group_keys = group_keys[test_groups_count : test_groups_count + val_groups_count]
+        train_group_keys = group_keys[test_groups_count + val_groups_count :]
+
+        self._train_indices = [index for key in train_group_keys for index in groups[key]]
+        self._val_indices = [index for key in val_group_keys for index in groups[key]]
+        self._test_indices = [index for key in test_group_keys for index in groups[key]]
+    
+    def _load_from_indices(self, indices_file: str) -> None:
+        if not os.path.exists(indices_file):
+            raise FileNotFoundError(f"Indices file not found: {indices_file}")
+
+        with open(indices_file, "r", encoding="utf-8") as i_file:
+            indices = json.load(i_file)
+        self._train_indices = indices["train"]
+        self._val_indices = indices["val"]
+        self._test_indices = indices["test"]
+    
+    def _get_indices_of_groups(self, indices: list[int]) -> dict[str, list[int]]:
+        groups = defaultdict(list)
+        for idx in indices:
+            group = self.groups[idx]
+            key = group["seed_key"]
+            groups[key].append(idx)
+        return groups
+    
+    def _collate_fn(
+        self, batch: list[tuple[torch.Tensor, int]]
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        images, labels = zip(*batch)
+        images_stack = torch.stack(images)
+        labels_tensor = torch.tensor(labels)
+        return images_stack, labels_tensor
+
+
+class ARCADELoader(Loader):
     """
     Loader class for loading unlabeled images from a directory.
 
@@ -86,15 +259,20 @@ class PNGLoader(Dataset):
         indices_file: Optional[str] = None,
         random_seed: int = 42,
     ):
+        
+        super().__init__(
+            val_split=val_split,
+            test_split=test_split,
+            batch_size=batch_size,
+            indices_file=indices_file,
+            random_seed=random_seed,
+        )
+
         self.image_dir = image_dir
         self.keys = keys
         self.labels = labels
-        self.val_split = val_split
-        self.test_split = test_split
-        self.batch_size = batch_size
         self.logger = logger
-        self.indices_file = indices_file
-        self.random_seed = random_seed
+        self.images = ["graph"]
 
         self.label_loader = LabelLoader(label_dir) if label_dir else None
         self.augmentations: dict[str, Augmentation] = self._get_augmentations(augmentations) or {}
@@ -103,49 +281,6 @@ class PNGLoader(Dataset):
         self._split_data()
         self._augment_training_data()
 
-    def __len__(self) -> int:
-        return len(self.groups)
-
-    def __getitem__(self, idx: int) -> tuple[torch.Tensor, int]:
-        group = self.groups[idx]
-        timepoint = int(group["timepoint"])
-        image_tensor = self._get_image_tensors(group)
-
-        return image_tensor, timepoint
-
-    @property
-    def n_train(self) -> int:
-        """Number of training points"""
-        return len(self._train_indices) + len(self._val_indices)
-
-    @property
-    def n_test(self) -> int:
-        """Number of test points"""
-        return len(self._test_indices)
-
-    @property
-    def n_channels(self) -> int:
-        """Number of channels in the images"""
-        return self[0][0].shape[0]
-
-    @property
-    def image_shape(self) -> tuple[int, ...]:
-        """Shape of the images"""
-        return tuple(self[0][0].shape[1:])
-
-    def get_dataloader(self, dataset_type: str) -> DataLoader:
-        """Returns DataLoader for the specified dataset type (train, val, test)"""
-        indices_attr = f"_{dataset_type}_indices"
-        if not hasattr(self, indices_attr):
-            raise ValueError(f"Invalid dataset type: {dataset_type}")
-        indices = getattr(self, indices_attr)
-        dataset = Subset(self, indices)
-        return DataLoader(
-            dataset,
-            batch_size=self.batch_size,
-            shuffle=(dataset_type == "train"),  # Shuffle only for training data
-            collate_fn=self._collate_fn,
-        )
 
     def get_labels(self, label: str, dataset_type: str) -> torch.Tensor:
         """Returns labels for the specified dataset type (train, val, test)"""
@@ -159,28 +294,6 @@ class PNGLoader(Dataset):
         except ValueError:
             raise ValueError(f"Invalid target name: {label}")
 
-    def get_timepoints(self, dataset_type: str) -> torch.Tensor:
-        """Returns timepoints for the specified dataset type (train, val, test)"""
-        indices_attr = f"_{dataset_type}_indices"
-        if not hasattr(self, indices_attr):
-            raise ValueError(f"Invalid dataset type: {dataset_type}")
-        indices = getattr(self, indices_attr)
-        timepoints = [self.get_timepoint(idx) for idx in indices]
-        return torch.tensor(timepoints, requires_grad=False)
-
-    def get_seed_keys(self, dataset_type: str) -> list[str]:
-        """Returns seed keys for the specified dataset type (train, val, test)"""
-        indices_attr = f"_{dataset_type}_indices"
-        if not hasattr(self, indices_attr):
-            raise ValueError(f"Invalid dataset type: {dataset_type}")
-        indices = getattr(self, indices_attr)
-        seed_keys = [self.get_seed_key(idx) for idx in indices]
-        return seed_keys
-
-    def get_timepoint(self, idx: int) -> int:
-        """Returns the timepoint of the group at index `idx`"""
-        return int(self.groups[idx]["timepoint"])
-
     def get_label(self, idx: int, label_name: str) -> float:
         """Returns labels the group at index `idx`"""
         if label_name in self.labels:
@@ -189,20 +302,13 @@ class PNGLoader(Dataset):
 
         raise ValueError(f"Invalid label name: {label_name}")
 
-    def get_seed_key(self, idx: int) -> str:
-        """Returns the seed and key of the group at index `idx`"""
-        return self.groups[idx]["seed_key"]
-
-    def get_indices(self) -> tuple[list[int], list[int], list[int]]:
-        """Returns the train, validation, and test indices"""
-        return self._train_indices, self._val_indices, self._test_indices
-
     def _get_image_groups(self) -> None:
         """Returns groups of images based on the filename format."""
         groups: dict[str, Any] = defaultdict(
             lambda: {
                 "cancer": "",
                 "graph": "",
+                "healthy": "",
                 "timepoint": "",
                 "seed_key": "",
                 "augmentation": "original",
@@ -233,7 +339,7 @@ class PNGLoader(Dataset):
 
         if self.logger:
             missing_images = {
-                group_key: [key for key, value in group.items() if value == ""]
+                group_key: [key for key, value in group.items() if value == "" and key in self.images]
                 for group_key, group in groups.items()
                 if "" in group.values()
             }
@@ -278,52 +384,6 @@ class PNGLoader(Dataset):
             range(len(self.groups) - len(augmented_groups), len(self.groups))
         )
 
-    def _get_image_tensors(self, group: dict) -> torch.Tensor:
-        transformation = transforms.Compose(
-            [
-                transforms.ToTensor(),
-                transforms.Lambda(lambda x: x[:3]),  # Remove the alpha channel
-                transforms.Grayscale(num_output_channels=1),
-                transforms.Lambda(lambda x: x.squeeze()),
-            ]
-        )
-
-        cancer_tensor = transformation(Image.open(group["cancer"]))
-        # graph_tensor = transformation(Image.open(group["graph"]))
-        # full_tensor = torch.stack((cancer_tensor, graph_tensor), dim=0)
-        full_tensor = torch.stack((cancer_tensor,), dim=0)
-
-        augmentation_name = group["augmentation"]
-        if augmentation_name == "original":
-            return full_tensor
-
-        augmentation = self.augmentations[augmentation_name]
-        return augmentation(full_tensor)
-
-    def _split_data(self, shuffle: bool = True) -> None:
-        if self.indices_file:
-            self._load_from_indices(self.indices_file)
-            return
-
-        all_indices = list(range(len(self)))
-        groups = self._get_indices_of_groups(all_indices)
-
-        group_keys = list(groups.keys())
-        if shuffle:
-            np.random.seed(self.random_seed)
-            np.random.shuffle(group_keys)
-
-        test_groups_count = int(np.floor(len(group_keys) * self.test_split))
-        val_groups_count = int(np.floor(len(group_keys) * self.val_split))
-
-        test_group_keys = group_keys[:test_groups_count]
-        val_group_keys = group_keys[test_groups_count : test_groups_count + val_groups_count]
-        train_group_keys = group_keys[test_groups_count + val_groups_count :]
-
-        self._train_indices = [index for key in train_group_keys for index in groups[key]]
-        self._val_indices = [index for key in val_group_keys for index in groups[key]]
-        self._test_indices = [index for key in test_group_keys for index in groups[key]]
-
     def _parse_ARCADE_filename(self, filename: str) -> tuple[str, str, int, int, str]:
         parts = filename.split("_")
         context = parts[0]  # 'CH' for healthy tissue or 'C' colony
@@ -341,62 +401,85 @@ class PNGLoader(Dataset):
             )
         return context, vasc_type, seed, timepoint, image_type
 
-    def _get_indices_of_groups(self, indices: list[int]) -> dict[str, list[int]]:
-        groups = defaultdict(list)
-        for idx in indices:
-            group = self.groups[idx]
-            key = group["seed_key"]
-            groups[key].append(idx)
-        return groups
-
-    def _load_from_indices(self, indices_file: str) -> None:
-        if not os.path.exists(indices_file):
-            raise FileNotFoundError(f"Indices file not found: {indices_file}")
-
-        with open(indices_file, "r", encoding="utf-8") as i_file:
-            indices = json.load(i_file)
-        self._train_indices = indices["train"]
-        self._val_indices = indices["val"]
-        self._test_indices = indices["test"]
-
     def _in_keys(self, file_name: str) -> bool:
         file_chunks = file_name.split("_")[0:2]
         prefix = "_".join(file_chunks)
         return prefix in self.keys
 
-    def _collate_fn(
-        self, batch: list[tuple[torch.Tensor, int]]
-    ) -> tuple[torch.Tensor, torch.Tensor]:
-        images, labels = zip(*batch)
-        images_stack = torch.stack(images)
-        labels_tensor = torch.tensor(labels)
-        return images_stack, labels_tensor
 
-
-class LabelLoader:
+class AlphaNumericLoader(Loader):
     """
-    Loads labels (activity, growth, and symmetry) to match with corresponding images.
-
-    Parameters
-    ----------
-    label_dir : str
-        Path to the directory containing the labels.
-
+    Loader class for loading
+    labeled images from a directory.
     """
+    def __init__(
+        self,
+        image_dir: str,
+        keys: list[str],
+        val_split: float = 0.2,
+        test_split: float = 0.2,
+        batch_size: int = 10,
+        logger: Optional[ExperimentLogger] = None,
+        indices_file: Optional[str] = None,
+        augmentations: Optional[dict[str, Any]] = None,
+        random_seed: int = 42,
+    ):
+        super().__init__(
+            val_split=val_split,
+            test_split=test_split,
+            batch_size=batch_size,
+            indices_file=indices_file,
+            random_seed=random_seed,
+        )
+        self.image_dir = image_dir
+        self.keys = keys
+        self.logger = logger
+        self.images = ["image"]
 
-    def __init__(self, label_dir: str):
-        self.label_dir = label_dir
+        self._get_image_groups()
+        self._split_data()
 
-    def get_labels(self, label: str, key: str, time: float, seed: int) -> float:
-        file = f"{self.label_dir}/VASCULAR_FUNCTION_{key}.SEEDS.{label}.json"
 
-        with open(file, "r", encoding="utf-8") as f:
-            vals = json.load(f)
-        for val in vals:
-            if val["time"] == time:
-                return val["_"][seed]
+    def _get_image_groups(self) -> None:
+        """Returns groups of images based on the filename format."""
+        groups: dict[str, Any] = defaultdict(
+            lambda: {
+                "image": "",
+                "character": "",
+                "angle": "",
+                "timepoint": "",
+                "seed_key": "",
+                "augmentation": "original",
+            }
+        )
 
-        return float("nan")
+        for file_name in os.listdir(self.image_dir):
+            if not file_name.endswith(".png") or not self._in_keys(file_name):
+                continue
+
+            character, seed, angle, timepoint = self._parse_alphanumeric_filename(file_name)
+            group_key = f"{character}_{seed}_{angle}_{timepoint}"
+            groups[group_key]["image"] = os.path.join(self.image_dir, file_name)
+            groups[group_key]["character"] = character
+            groups[group_key]["angle"] = angle
+            groups[group_key]["timepoint"] = timepoint
+            groups[group_key]["seed_key"] = f"{character}_{seed}_{angle}"
+
+        self.groups = list(groups.values())
+
+    def _parse_alphanumeric_filename(self, filename: str) -> tuple[str, int, int]:
+        parts = filename.split("_")
+        character = parts[0]
+        seed = int(parts[1])
+        angle = int(parts[3])
+        timepoint = int(parts[5].split(".")[0])
+
+        return character, seed, angle, timepoint
+
+    def _in_keys(self, file_name: str) -> bool:
+        file_chunks = file_name.split("_")[0:3]
+        prefix = file_chunks[0]
+        return prefix in self.keys
 
 
 class CSVLoader(Dataset):
@@ -411,9 +494,9 @@ class CSVLoader(Dataset):
         List of target labels.
     """
 
-    def __init__(self, exp_id: str, labels: list[str]) -> None:
+    def __init__(self, exp_id: str, model: str, labels: list[str]) -> None:
         self.exp_id = exp_id
-        self.data_path = f"results/{exp_id}/encoded_data"
+        self.data_path = f"results/{exp_id}/{model}/"
         self.labels = labels
         self._load_data()
 
@@ -470,3 +553,29 @@ class CSVLoader(Dataset):
             data.loc[:, self.labels + ["timepoint", "seed_key"]],
         )
         return X, y
+
+
+class LabelLoader:
+    """
+    Loads labels (activity, growth, and symmetry) to match with corresponding images.
+
+    Parameters
+    ----------
+    label_dir : str
+        Path to the directory containing the labels.
+
+    """
+
+    def __init__(self, label_dir: str):
+        self.label_dir = label_dir
+
+    def get_labels(self, label: str, key: str, time: float, seed: int) -> float:
+        file = f"{self.label_dir}/VASCULAR_FUNCTION_{key}.SEEDS.{label}.json"
+
+        with open(file, "r", encoding="utf-8") as f:
+            vals = json.load(f)
+        for val in vals:
+            if val["time"] == time:
+                return val["_"][seed]
+
+        return float("nan")
