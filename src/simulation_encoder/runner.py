@@ -15,7 +15,6 @@ from simulation_encoder.dataclass.loss_data import LossData
 from simulation_encoder.plotter import line_plot, loss_plot
 
 
-
 class Runner:
     """
     Class for managing the training and saving of models
@@ -172,8 +171,10 @@ class Runner:
                         best_r2 = r2
                         best_model_type = model_type
                         best_model_params = model_params
-                        
-                self.writer.write_emulation_results(best_model_type, label, best_model_params, best_r2)
+
+                self.writer.write_emulation_results(
+                    best_model_type, label, best_model_params, best_r2
+                )
 
     def _train_model(self, model_name: str, model: CAE) -> None:
         """Trains a model on the dataset"""

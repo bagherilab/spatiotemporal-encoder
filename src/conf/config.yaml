@@ -23,8 +23,8 @@ general_configs:
   test_split: 0.2
   verbose: true
 augmentations:
-  rotate:
-    degree: 180
+  # rotate:
+  #   degree: 180
 keys:
   - CH_Lav
   - CH_Lava

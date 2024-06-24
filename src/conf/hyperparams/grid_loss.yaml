@@ -1,9 +1,9 @@
 num_epochs: 10
 continuous:
   image_loss_weight:
-    range: [0.5, 0.5]
+    range: [0.0, 1.0]
     search: linear
-    num_samples: 1
+    num_samples: 5
 discrete:
   latent_dim:
-    values: [32]
+    values: [2, 4, 8, 16, 32]

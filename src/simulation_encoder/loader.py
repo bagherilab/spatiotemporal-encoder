@@ -47,7 +47,8 @@ class Augmentation:
 class Loader(ABC, Dataset):
     """
     Abstract class for data loaders.
-    """    
+    """
+
     def __init__(
         self,
         val_split: float = 0.2,
@@ -98,13 +99,13 @@ class Loader(ABC, Dataset):
     def image_shape(self) -> tuple[int, ...]:
         """Shape of the images"""
         return tuple(self[0][0].shape[1:])
-    
+
     def get_dataloader(self, dataset_type: str) -> DataLoader:
         """Returns DataLoader for the specified dataset type (train, val, test)"""
         indices_attr = f"_{dataset_type}_indices"
         if not hasattr(self, indices_attr):
             raise ValueError(f"Invalid dataset type: {dataset_type}")
-        
+
         indices = getattr(self, indices_attr)
         dataset = Subset(self, indices)
         return DataLoader(
@@ -113,7 +114,7 @@ class Loader(ABC, Dataset):
             shuffle=(dataset_type == "train"),  # Shuffle only for training data
             collate_fn=self._collate_fn,
         )
-    
+
     def get_indices(self) -> tuple[list[int], list[int], list[int]]:
         """Returns the train, validation, and test indices"""
         return self._train_indices, self._val_indices, self._test_indices
@@ -121,7 +122,7 @@ class Loader(ABC, Dataset):
     def get_group_feature(self, idx: int, feature: str) -> str:
         """Returns a given feature of the group at index `idx`"""
         return self.groups[idx][feature]
-    
+
     def get_timepoints(self, dataset_type: str) -> torch.Tensor:
         """Returns timepoints for the specified dataset type (train, val, test)"""
         indices_attr = f"_{dataset_type}_indices"
@@ -130,7 +131,7 @@ class Loader(ABC, Dataset):
         indices = getattr(self, indices_attr)
         timepoints = [int(self.get_group_feature(idx, "timepoint")) for idx in indices]
         return torch.tensor(timepoints, requires_grad=False)
-    
+
     def get_seed_keys(self, dataset_type: str) -> list[str]:
         """Returns seed keys for the specified dataset type (train, val, test)"""
         indices_attr = f"_{dataset_type}_indices"
@@ -139,8 +140,7 @@ class Loader(ABC, Dataset):
         indices = getattr(self, indices_attr)
         seed_keys = [self.get_group_feature(idx, "seed_key") for idx in indices]
         return seed_keys
-    
-    
+
     def _get_image_tensors(self, group: dict, images: list) -> torch.Tensor:
         transformation = transforms.Compose(
             [
@@ -155,8 +155,7 @@ class Loader(ABC, Dataset):
         for image in images:
             tensors.append(transformation(Image.open(group[image])))
 
-
-        full_tensor = torch.stack(tensors, dim=0    )
+        full_tensor = torch.stack(tensors, dim=0)
 
         augmentation_name = group["augmentation"]
         if augmentation_name == "original":
@@ -164,7 +163,7 @@ class Loader(ABC, Dataset):
 
         augmentation = self.augmentations[augmentation_name]
         return augmentation(full_tensor)
-    
+
     def _split_data(self, shuffle: bool = True) -> None:
         if self.indices_file:
             self._load_from_indices(self.indices_file)
@@ -188,7 +187,7 @@ class Loader(ABC, Dataset):
         self._train_indices = [index for key in train_group_keys for index in groups[key]]
         self._val_indices = [index for key in val_group_keys for index in groups[key]]
         self._test_indices = [index for key in test_group_keys for index in groups[key]]
-    
+
     def _load_from_indices(self, indices_file: str) -> None:
         if not os.path.exists(indices_file):
             raise FileNotFoundError(f"Indices file not found: {indices_file}")
@@ -198,7 +197,7 @@ class Loader(ABC, Dataset):
         self._train_indices = indices["train"]
         self._val_indices = indices["val"]
         self._test_indices = indices["test"]
-    
+
     def _get_indices_of_groups(self, indices: list[int]) -> dict[str, list[int]]:
         groups = defaultdict(list)
         for idx in indices:
@@ -206,7 +205,7 @@ class Loader(ABC, Dataset):
             key = group["seed_key"]
             groups[key].append(idx)
         return groups
-    
+
     def _collate_fn(
         self, batch: list[tuple[torch.Tensor, int]]
     ) -> tuple[torch.Tensor, torch.Tensor]:
@@ -259,7 +258,7 @@ class ARCADELoader(Loader):
         indices_file: Optional[str] = None,
         random_seed: int = 42,
     ):
-        
+
         super().__init__(
             val_split=val_split,
             test_split=test_split,
@@ -280,7 +279,6 @@ class ARCADELoader(Loader):
         self._get_image_groups()
         self._split_data()
         self._augment_training_data()
-
 
     def get_labels(self, label: str, dataset_type: str) -> torch.Tensor:
         """Returns labels for the specified dataset type (train, val, test)"""
@@ -341,7 +339,7 @@ class ARCADELoader(Loader):
             missing_images = {
                 group_key: [key for key, value in group.items() if value == "" and key in self.images]
                 for group_key, group in groups.items()
-                if "" in group.values()
+                if any(value == "" and key in self.images for key, value in group.items())
             }
             for group_key, missing_list in missing_images.items():
                 self.logger.warning(f"Missing images from {group_key}: {missing_list}")
@@ -412,6 +410,7 @@ class AlphaNumericLoader(Loader):
     Loader class for loading
     labeled images from a directory.
     """
+
     def __init__(
         self,
         image_dir: str,
@@ -438,7 +437,6 @@ class AlphaNumericLoader(Loader):
 
         self._get_image_groups()
         self._split_data()
-
 
     def _get_image_groups(self) -> None:
         """Returns groups of images based on the filename format."""
@@ -467,7 +465,7 @@ class AlphaNumericLoader(Loader):
 
         self.groups = list(groups.values())
 
-    def _parse_alphanumeric_filename(self, filename: str) -> tuple[str, int, int]:
+    def _parse_alphanumeric_filename(self, filename: str) -> tuple[str, int, int, int]:
         parts = filename.split("_")
         character = parts[0]
         seed = int(parts[1])
