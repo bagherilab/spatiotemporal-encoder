@@ -257,31 +257,6 @@ class CAE(BaseCNN):
         saliency_map, _ = torch.max(x.grad.data.abs(), dim=1)  # type: ignore
         return saliency_map
 
-    def _create_layers(
-        self,
-        layer_configs: list[dict[str, str | int | list[int]]],
-    ) -> list[nn.Module]:
-        layers = []
-        for config in layer_configs:
-            layer_type = config.get("type")
-            layer_class = getattr(nn, layer_type, None)  # type: ignore
-            if layer_class is None:
-                raise ValueError(f"Layer type {layer_type} not recognized")
-            if layer_type == "Linear":
-                if config.get("out_features") == "latent_dim":
-                    config["out_features"] = self.latent_dim
-                if config.get("in_features") == "latent_dim":
-                    config["in_features"] = self.latent_dim
-            if layer_type == "Unflatten":
-                shape = config.get("shape")
-                layer = layer_class(1, tuple(shape))  # type: ignore
-            else:
-                layer = layer_class(**{k: v for k, v in config.items() if k != "type"})
-
-            layers.append(layer)
-
-        return layers
-
     def _calc_combined_loss(
         self, losses: dict[str, torch.Tensor]
     ) -> tuple[torch.Tensor, torch.Tensor]:
@@ -298,11 +273,3 @@ class CAE(BaseCNN):
             return torch.norm(layer[-1].weight.grad)
         except AttributeError:
             raise AttributeError(f"{layer} does not have a gradient attribute")
-
-    def _get_device(self) -> str:
-        device = (
-            "cuda"
-            if torch.cuda.is_available()
-            else "mps" if torch.backends.mps.is_available() else "cpu"
-        )
-        return device

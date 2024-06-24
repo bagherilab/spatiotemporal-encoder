@@ -123,15 +123,15 @@ class VAE(BaseCNN):
         """Performs encoding and several decoding heads"""
         mu, logvar = self.encode(x)
         z = self.reparameterize(mu, logvar)
-        pred_image = self.decode_image(z)
-        pred_timepoint = self.decode_timepoint(z)
-        return pred_image, pred_timepoint, mu, logvar
+        sample_image = self.decode_image(z)
+        sample_timepoint = self.decode_timepoint(z)
+        return sample_image, sample_timepoint
 
     def encode(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """Encodes input tensor to mean and log variance"""
-        h = self.encoder(x)
-        mu = self.fc_mu(h)
-        logvar = self.fc_logvar(h)
+        hidden = self.encoder(x)
+        mu = self.fc_mu(hidden)
+        logvar = self.fc_logvar(hidden)
         return mu, logvar
 
     def reparameterize(self, mu: torch.Tensor, logvar: torch.Tensor) -> torch.Tensor:
@@ -250,4 +250,46 @@ class VAE(BaseCNN):
                     "timepoint": timepoint_criteria(pred_timepoint, labels),
                     "kl": self.kl_divergence(mu, logvar)
                 }
-                combined_loss
+                combined_loss, _ = self._calc_combined_loss(batch_loss)
+
+                for key in batch_loss:
+                    avg_loss[key] += batch_loss[key].item()
+                avg_loss["combined"] += combined_loss.item()
+
+        avg_loss = {key: value / len(val_loader) for key, value in avg_loss.items()}
+        return avg_loss
+    
+    def kl_divergence(self, mu: torch.Tensor, logvar: torch.Tensor) -> torch.Tensor:
+        """
+        Computes the Kullback-Leibler divergence for VAE.
+
+        Parameters
+        ----------
+        mu : torch.Tensor
+            Mean of the latent Gaussian
+        logvar : torch.Tensor
+            Log variance of the latent Gaussian
+
+        Returns
+        -------
+        torch.Tensor
+            KL divergence loss
+        """
+        return -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+    
+    def _calc_combined_loss(
+        self, losses: dict[str, torch.Tensor]
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Calculates the combined loss from individual losses and weights"""
+        combined_loss = torch.Tensor(sum([losses[key] for key in losses.keys()])).detach()
+        combined_loss_weighted = torch.Tensor(
+            sum([losses[key] * self.loss_weights[key] for key in losses.keys()])
+        )
+        return combined_loss, combined_loss_weighted
+    
+    def _get_grad_norm(self, layer: nn.Sequential) -> torch.Tensor:
+        """Calculates the gradient norm of a model"""
+        try:
+            return torch.norm(layer[-1].weight.grad)
+        except AttributeError:
+            raise AttributeError(f"{layer} does not have a gradient attribute")
