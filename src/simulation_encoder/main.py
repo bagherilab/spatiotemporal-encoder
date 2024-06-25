@@ -42,16 +42,29 @@ def main() -> None:
 
 
 def create_dataset_params(main_config: dict[str, Any]) -> DatasetParams:
-    dataset_params = DatasetParams(
-        image_dir=main_config["data"]["image_dir"],
-        label_dir=main_config["data"]["label_dir"],
-        batch_size=main_config["general_configs"]["batch_size"],
-        val_split=main_config["general_configs"]["val_split"],
-        test_split=main_config["general_configs"]["test_split"],
-        keys=main_config["keys"],
-        labels=main_config["emulator_targets"],
-        augmentations=main_config["augmentations"],
-    )
+    if "alphanumeric" in main_config["experiment_name"]:
+        dataset_params = DatasetParams(
+            loader="alphanumeric",
+            image_dir=main_config["data"]["image_dir"],
+            batch_size=main_config["general_configs"]["batch_size"],
+            val_split=main_config["general_configs"]["val_split"],
+            test_split=main_config["general_configs"]["test_split"],
+            keys=main_config["keys"],
+            augmentations=main_config["augmentations"],
+        )
+    elif "ARCADE" in main_config["experiment_name"]:
+        dataset_params = DatasetParams(
+            loader="ARCADE",
+            image_dir=main_config["data"]["image_dir"],
+            label_dir=main_config["data"]["label_dir"],
+            batch_size=main_config["general_configs"]["batch_size"],
+            val_split=main_config["general_configs"]["val_split"],
+            test_split=main_config["general_configs"]["test_split"],
+            keys=main_config["keys"],
+            labels=main_config["emulator_targets"],
+            augmentations=main_config["augmentations"],
+        )
+
     return dataset_params
 
 

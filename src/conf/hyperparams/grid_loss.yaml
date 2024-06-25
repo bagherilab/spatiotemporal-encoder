@@ -7,3 +7,4 @@ continuous:
 discrete:
   latent_dim:
     values: [16]
+

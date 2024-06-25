@@ -1,10 +1,11 @@
+import os
 import uuid
 from copy import deepcopy
 
 import torch
 import pandas as pd
 
-from simulation_encoder.loader import PNGLoader, CSVLoader
+from simulation_encoder.loader import ARCADELoader, CSVLoader, AlphaNumericLoader, Loader
 from simulation_encoder.logger import ExperimentLogger
 from simulation_encoder.writer import Writer
 from simulation_encoder.models.cae import CAE
@@ -30,7 +31,7 @@ class Runner:
         Unique identifier for the run
     models : dict[str, CAE]
         Dictionary of model names and their corresponding CAE models
-    dataset : PNGLoader
+    dataset : Loader
         Dataset to be used for training and evaluation
     writer : Writer
         Writer object for saving things to disk
@@ -45,7 +46,8 @@ class Runner:
 
         self._UUID = uuid.uuid4()
         self.models: dict[str, CAE|VAE] = {}
-        self.dataset: PNGLoader = None
+        self.dataset: Loader = None
+
         self.writer = Writer(uuid=self._UUID)
         self.logger = ExperimentLogger(uuid=self._UUID, verbose=verbose)
         self.losses: dict[str, LossData] = {}
@@ -59,11 +61,21 @@ class Runner:
         dataset_params : DatasetParams
             Object containing dataset parameters
         """
-        self.dataset = PNGLoader(
-            **dataset_params.__dict__,
-            logger=self.logger,
-        )
 
+        params_dict = dataset_params.__dict__
+        loader = params_dict.pop("loader")
+        if loader == "ARCADE":
+            self.dataset = ARCADELoader(
+                **params_dict,
+                logger=self.logger,
+            )
+        elif loader == "alphanumeric":
+            del params_dict["label_dir"]
+            del params_dict["labels"]
+            self.dataset = AlphaNumericLoader(
+                **params_dict,
+                logger=self.logger,
+            )
         self.writer.write_indices(self.dataset.get_indices())
 
     def add_models(self, model_param_sets: list[ModelParams]) -> None:
@@ -115,6 +127,8 @@ class Runner:
             # self._eval_model(model_id, model)
             self._save_model(model_id, model)
             self.writer.write_results(model_id, model, self.dataset, self.losses[model_id])
+            encoded_dataset = self._encode_dataset(model)
+            self.writer.write_encoded_data(model_id, encoded_dataset)
 
         best_model = min(self.losses, key=lambda x: self.losses[x].combined_loss_val)
 
@@ -125,48 +139,53 @@ class Runner:
             self.losses[best_model],
         )
 
-        encoded_dataset = self._encode_dataset(self.models[best_model])
-        self.writer.write_encoded_data(best_model, encoded_dataset)
-
     def run_emulator(self) -> None:
-        labels = self.dataset.labels
-        exp_id = self.dataset.exp_id
-        # labels = ["activity", "growth", "symmetry"]
-        # exp_id = ""
-        encoded_dataset = CSVLoader(exp_id=exp_id, labels=labels)
+        # labels = self.dataset.labels
+        # exp_id = self.dataset.exp_id
+        labels = ["activity", "growth", "symmetry"]
+        exp_id = "092a30b5-db7a-4a13-b22d-5fe174d790ce"
 
-        model_types = ["linear_regression", "random_forest", "svm"]
-        models = {}
-        for model_type in model_types:
-            models[model_type] = Emulator(model_type=model_type)
+        encoder_models = []
+        for folder_name in os.listdir(f"results/{exp_id}"):
+            if folder_name.startswith("1c_"):
+                encoder_models.append(folder_name)
+        encoder_models.sort()
 
-        X_train, y_train = encoded_dataset.get_data("train")
-        X_val, y_val = encoded_dataset.get_data("val")
+        emulator_models = ["linear_regression", "random_forest", "svm"]
 
-        for label in labels:
-            print(f"Label: {label}")
-            best_model_type = None
-            best_model_params = None
-            best_model = None
-            best_r2 = float("-inf")
-            for model_type, model in models.items():
-                print(f"Model: {model_type}")
-                model_params = model.grid_search(X_train, y_train[label])
-                model = Emulator(model_type=model_type, params=model_params)
-                model.fit(X_train, y_train[label])
-                r2 = model.evaluate(X_val, y_val[label])
-                if r2 > best_r2:
-                    best_r2 = r2
-                    best_model_type = model_type
-                    best_model_params = model_params
-                    best_model = model
+        for encoder_model in encoder_models:
+            print(encoder_model)
+            encoded_dataset = CSVLoader(exp_id=exp_id, model=encoder_model, labels=labels)
+            models = {}
+            for model_type in emulator_models:
+                models[model_type] = Emulator(model_type=model_type)
 
-            print(
-                f"Best model: {best_model_type}, Label: {label}, Params: {best_model_params}, R2: {best_r2}"
-            )
-            print(y_val[label])
-            if best_model:
-                print(best_model.predict(X_val))
+            X_train, y_train = encoded_dataset.get_data("train")
+            X_val, y_val = encoded_dataset.get_data("val")
+
+            for label in labels:
+                best_model_type = None
+                best_model_params = None
+                best_r2 = float("-inf")
+                for model_type, model in models.items():
+                    model_params = model.grid_search(X_train, y_train[label])
+                    model = Emulator(model_type=model_type, params=model_params)
+
+                    X_train = (X_train - X_train.mean()) / X_train.std()
+                    y_train[label] = (y_train[label] - y_train[label].mean()) / y_train[label].std()
+                    X_val = (X_val - X_train.mean()) / X_train.std()
+                    y_val[label] = (y_val[label] - y_train[label].mean()) / y_train[label].std()
+
+                    model.fit(X_train, y_train[label])
+                    r2 = model.evaluate(X_val, y_val[label])
+                    if r2 > best_r2:
+                        best_r2 = r2
+                        best_model_type = model_type
+                        best_model_params = model_params
+
+                self.writer.write_emulation_results(
+                    best_model_type, label, best_model_params, best_r2
+                )
 
     def _train_model(self, model_name: str, model: CAE) -> None:
         """Trains a model on the dataset"""
@@ -203,10 +222,13 @@ class Runner:
         encoded_val = pd.DataFrame(encoded_val, columns=column_names)
         encoded_test = pd.DataFrame(encoded_test, columns=column_names)
 
-        for label in self.dataset.labels:
-            encoded_train[label] = self.dataset.get_labels(label=label, dataset_type="train")
-            encoded_val[label] = self.dataset.get_labels(label=label, dataset_type="val")
-            encoded_test[label] = self.dataset.get_labels(label=label, dataset_type="test")
+        try:
+            for label in self.dataset.labels:
+                encoded_train[label] = self.dataset.get_labels(label=label, dataset_type="train")
+                encoded_val[label] = self.dataset.get_labels(label=label, dataset_type="val")
+                encoded_test[label] = self.dataset.get_labels(label=label, dataset_type="test")
+        except AttributeError:
+            pass
 
         encoded_train["timepoint"] = self.dataset.get_timepoints(dataset_type="train")
         encoded_val["timepoint"] = self.dataset.get_timepoints(dataset_type="val")

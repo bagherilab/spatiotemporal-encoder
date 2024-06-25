@@ -27,9 +27,9 @@ class Emulator:
             "random_forest": {
                 "model": RandomForestRegressor,
                 "param_grid": {
-                    "n_estimators": [10, 50, 100],
-                    "max_depth": [10, 20, 30],
-                    "min_samples_split": [2, 5, 10],
+                    "n_estimators": [10, 25, 50],
+                    "max_depth": [10, 20],
+                    "min_samples_split": [2, 5],
                     "bootstrap": [True, False],
                 },
             },
