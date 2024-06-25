@@ -177,6 +177,10 @@ class CAE(BaseCNN):
 
         avg_loss: dict[str, float] = defaultdict(float)
 
+        # Chosen rather arbitrarily
+        # Factor to balance image and timepoint loss
+        image_loss_factor = 1000
+
         with tqdm(train_loader, unit=" batch", ncols=100, desc=f"Epoch {epoch + 1}") as tepoch:
             for inputs, labels in tepoch:
                 inputs, labels = inputs.to(self.device), labels.to(self.device)
@@ -185,17 +189,18 @@ class CAE(BaseCNN):
                 pred_image, pred_timepoint = self(inputs)
 
                 batch_loss = {
-                    "image": image_criteria(pred_image, inputs),
+                    "image": image_criteria(pred_image, inputs) * image_loss_factor,
                     "timepoint": timepoint_criteria(pred_timepoint, labels),
                 }
-                combined_loss, combined_loss_weighted = self._calc_combined_loss(batch_loss)
+                reconstruction_loss, reconstruction_loss_weighted = self._calc_reconstruction_loss(batch_loss)
 
-                combined_loss_weighted.backward()  # type: ignore
+                reconstruction_loss_weighted.backward()  # type: ignore
                 optimizer_combined.step()
 
                 for key in batch_loss:
                     avg_loss[key] += batch_loss[key].item()
-                avg_loss["combined"] += combined_loss.item()
+                avg_loss["reconstruction"] += reconstruction_loss.item()
+                avg_loss["combined"] += reconstruction_loss_weighted.item()
 
                 tepoch.set_postfix(
                     image_loss=round(batch_loss["image"].item(), 3),
@@ -234,11 +239,12 @@ class CAE(BaseCNN):
                     "image": image_criteria(pred_image, inputs),
                     "timepoint": timepoint_criteria(pred_timepoint, labels),
                 }
-                combined_loss, _ = self._calc_combined_loss(batch_loss)
+                reconstruciton_loss, _ = self._calc_reconstruction_loss(batch_loss)
 
                 for key in batch_loss:
                     avg_loss[key] += batch_loss[key].item()
-                avg_loss["combined"] += combined_loss.item()
+                avg_loss["reconstruction"] += reconstruciton_loss.item()
+                avg_loss["combined"] += reconstruciton_loss.item()
 
         avg_loss = {key: value / len(val_loader) for key, value in avg_loss.items()}
         return avg_loss
@@ -257,7 +263,7 @@ class CAE(BaseCNN):
         saliency_map, _ = torch.max(x.grad.data.abs(), dim=1)  # type: ignore
         return saliency_map
 
-    def _calc_combined_loss(
+    def _calc_reconstruction_loss(
         self, losses: dict[str, torch.Tensor]
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Calculates the combined loss from individual losses and weights"""

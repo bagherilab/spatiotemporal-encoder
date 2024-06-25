@@ -1,3 +1,4 @@
+type: VAE
 architecture:
   encoder:
     - type: Conv2d

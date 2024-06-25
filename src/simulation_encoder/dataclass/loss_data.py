@@ -9,6 +9,9 @@ class LossData:
     timepoint_loss_train: list[float] = field(default_factory=list)
     timepoint_loss_val: list[float] = field(default_factory=list)
     timepoint_loss_test: float = 0.0
+    kld_loss_train: list[float] = field(default_factory=list)
+    kld_loss_val: list[float] = field(default_factory=list)
+    kld_loss_test: float = 0.0
     combined_loss_train: list[float] = field(default_factory=list)
     combined_loss_val: list[float] = field(default_factory=list)
     combined_loss_test: float = 0.0

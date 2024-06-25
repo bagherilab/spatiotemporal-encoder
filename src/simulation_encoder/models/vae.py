@@ -114,7 +114,12 @@ class VAE(BaseCNN):
             grad_norms["decoder_timepoint"].append(decoder_timepoint_grad_norm.item())
 
             if self.logger:
-                msg = f"Epoch {e+1}/{self.num_epochs}- Train loss: {train_loss['combined']} Val loss: {val_loss['combined']}"
+                if self.num_epochs > 10:
+                    if (e + 1) % 10 == 0:
+                        msg = f"Epoch {e+1}/{self.num_epochs}- Train loss: {train_loss['combined']} Val loss: {val_loss['combined']}"
+                        self.logger.log(msg)
+                else:
+                    msg = f"Epoch {e+1}/{self.num_epochs}- Train loss: {train_loss['combined']} Val loss: {val_loss['combined']}"
                 self.logger.log(msg)
 
         return (train_losses, val_losses, grad_norms)
@@ -125,7 +130,7 @@ class VAE(BaseCNN):
         z = self.reparameterize(mu, logvar)
         sample_image = self.decode_image(z)
         sample_timepoint = self.decode_timepoint(z)
-        return sample_image, sample_timepoint
+        return sample_image, sample_timepoint, mu, logvar
 
     def encode(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """Encodes input tensor to mean and log variance"""
@@ -136,6 +141,7 @@ class VAE(BaseCNN):
 
     def reparameterize(self, mu: torch.Tensor, logvar: torch.Tensor) -> torch.Tensor:
         """Reparameterizes to sample z"""
+        
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
         return mu + eps * std
@@ -190,6 +196,13 @@ class VAE(BaseCNN):
 
         avg_loss: dict[str, float] = defaultdict(float)
 
+        # Chosen rather arbitrarily
+        # Factor to balance image and timepoint loss
+        image_loss_factor = 1000
+        # Factor to balance reconstruction and KL loss
+        reconstruction_loss_factor = 500
+        
+
         with tqdm(train_loader, unit=" batch", ncols=100, desc=f"Epoch {epoch + 1}") as tepoch:
             for inputs, labels in tepoch:
                 inputs, labels = inputs.to(self.device), labels.to(self.device)
@@ -198,23 +211,29 @@ class VAE(BaseCNN):
                 pred_image, pred_timepoint, mu, logvar = self(inputs)
 
                 batch_loss = {
-                    "image": image_criteria(pred_image, inputs),
+                    "image": image_criteria(pred_image, inputs) * image_loss_factor,
                     "timepoint": timepoint_criteria(pred_timepoint, labels),
-                    "kl": self.kl_divergence(mu, logvar)
                 }
-                combined_loss, combined_loss_weighted = self._calc_combined_loss(batch_loss)
+                
+                reconstruction_loss, reconstruction_loss_weighted = self._calc_reconstruction_loss(batch_loss)
+                kld_loss = self._calc_kld_loss(mu, logvar)
 
-                combined_loss_weighted.backward()  # type: ignore
+                
+
+                vae_loss = reconstruction_loss_factor * reconstruction_loss_weighted + kld_loss
+
+                vae_loss.backward()  # type: ignore
                 optimizer_combined.step()
 
                 for key in batch_loss:
                     avg_loss[key] += batch_loss[key].item()
-                avg_loss["combined"] += combined_loss.item()
+                avg_loss["reconstruction"] += reconstruction_loss.item()
+                avg_loss["kld"] += kld_loss.item()
+                avg_loss["combined"] += vae_loss.item()
 
                 tepoch.set_postfix(
                     image_loss=round(batch_loss["image"].item(), 3),
                     timepoint_loss=round(batch_loss["timepoint"].item(), 3),
-                    kl_loss=round(batch_loss["kl"].item(), 3)
                 )
 
         avg_loss = {key: value / len(train_loader) for key, value in avg_loss.items()}
@@ -246,20 +265,37 @@ class VAE(BaseCNN):
                 pred_image, pred_timepoint, mu, logvar = self(inputs)
 
                 batch_loss = {
-                    "image": image_criteria(pred_image, inputs),
+                    "image": image_criteria(pred_image, inputs) * 1000,
                     "timepoint": timepoint_criteria(pred_timepoint, labels),
-                    "kl": self.kl_divergence(mu, logvar)
                 }
-                combined_loss, _ = self._calc_combined_loss(batch_loss)
+                reconstruction_loss, _ = self._calc_reconstruction_loss(batch_loss)
+                kld_loss = self._calc_kld_loss(mu, logvar)
+                vae_loss = reconstruction_loss + kld_loss
 
                 for key in batch_loss:
                     avg_loss[key] += batch_loss[key].item()
-                avg_loss["combined"] += combined_loss.item()
+                avg_loss["reconstruction"] += reconstruction_loss.item()
+                avg_loss["kld"] += kld_loss.item()
+                avg_loss["combined"] += vae_loss.item()
 
         avg_loss = {key: value / len(val_loader) for key, value in avg_loss.items()}
         return avg_loss
     
-    def kl_divergence(self, mu: torch.Tensor, logvar: torch.Tensor) -> torch.Tensor:
+    def get_saliency_map(self, x: torch.Tensor) -> torch.Tensor:
+        """Calculates the saliency map of the input tensor"""
+        self.eval()
+
+        image_criteria = self.criterion["image"]
+        x.requires_grad = True
+        pred_image, _, _, _ = self(x)
+
+        loss_image = image_criteria(pred_image, x)
+        loss_image.backward()
+
+        saliency_map, _ = torch.max(x.grad.data.abs(), dim=1)  # type: ignore
+        return saliency_map
+    
+    def _calc_kld_loss(self, mu: torch.Tensor, logvar: torch.Tensor) -> torch.Tensor:
         """
         Computes the Kullback-Leibler divergence for VAE.
 
@@ -277,7 +313,7 @@ class VAE(BaseCNN):
         """
         return -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
     
-    def _calc_combined_loss(
+    def _calc_reconstruction_loss(
         self, losses: dict[str, torch.Tensor]
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Calculates the combined loss from individual losses and weights"""

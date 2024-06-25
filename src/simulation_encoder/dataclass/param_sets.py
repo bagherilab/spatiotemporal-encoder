@@ -17,6 +17,7 @@ class DatasetParams:
 @dataclass
 class ModelParams:
     name: str
+    model_type: str
     architecture: dict[str, Any]
     num_epochs: int
     params: dict[str, Any] = field(default_factory=lambda: {"latent_dim": 2})

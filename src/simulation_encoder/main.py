@@ -57,7 +57,7 @@ def create_dataset_params(main_config: dict[str, Any]) -> DatasetParams:
 
 def create_model_param_sets(model: dict[str, Any]) -> list[ModelParams]:
     model_name = model["architecture"]
-    architecture = load_model_architecture(model_name)
+    model_yaml = load_model_yaml(model_name)
 
     model_params = load_hyperparams(model["params"])
     num_epochs = model_params["num_epochs"]
@@ -70,7 +70,8 @@ def create_model_param_sets(model: dict[str, Any]) -> list[ModelParams]:
     for param_set in param_sets:
         model_params = ModelParams(
             name=model_name,
-            architecture=architecture["architecture"],
+            model_type=model_yaml["type"],
+            architecture=model_yaml["architecture"],
             num_epochs=num_epochs,
             params=param_set,
         )
@@ -94,7 +95,7 @@ def load_hyperparams(yaml_name: str) -> dict[str, Any]:
     return load_yaml(yaml_path)
 
 
-def load_model_architecture(
+def load_model_yaml(
     architecture_name: str, yaml_path: str = f"src/conf/models"
 ) -> dict[str, Any]:
     yaml_file = (
