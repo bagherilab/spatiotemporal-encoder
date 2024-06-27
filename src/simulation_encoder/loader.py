@@ -100,7 +100,7 @@ class Loader(ABC, Dataset):
     @property
     def image_shape(self) -> tuple[int, ...]:
         """Shape of the images"""
-        return tuple(self[0][0].shape[1:])
+        return Image.open(self.groups[0][self.channels[0]]).size
 
     def get_dataloader(self, dataset_type: str) -> DataLoader:
         """Returns DataLoader for the specified dataset type (train, val, test)"""
@@ -143,7 +143,7 @@ class Loader(ABC, Dataset):
         seed_keys = [self.get_group_feature(idx, "seed_key") for idx in indices]
         return seed_keys
 
-    def _get_image_tensors(self, group: dict, images: list) -> torch.Tensor:
+    def _get_image_tensors(self, group: dict, channels: list) -> torch.Tensor:
         transformation = transforms.Compose(
             [
                 transforms.ToTensor(),
@@ -154,8 +154,8 @@ class Loader(ABC, Dataset):
         )
 
         tensors = []
-        for image in images:
-            tensors.append(transformation(Image.open(group[image])))
+        for channel in channels:
+            tensors.append(transformation(Image.open(group[channel])))
 
         full_tensor = torch.stack(tensors, dim=0)
 
