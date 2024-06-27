@@ -145,9 +145,9 @@ class VAE(BaseCNN):
 
         # Chosen rather arbitrarily
         # Factor to balance image and timepoint loss
-        image_loss_factor = 1000
+        image_loss_factor = 10
         # Factor to balance reconstruction and KL loss
-        reconstruction_loss_factor = 500
+        reconstruction_loss_factor = 10
 
         with tqdm(train_loader, unit=" batch", ncols=100, desc=f"Epoch {epoch + 1}") as tepoch:
             for inputs, labels in tepoch:
@@ -181,6 +181,12 @@ class VAE(BaseCNN):
                     image_loss=round(batch_loss["image"].item(), 3),
                     timepoint_loss=round(batch_loss["timepoint"].item(), 3),
                 )
+
+            print("image", image_criteria(pred_image, inputs))
+            print("timepoint", timepoint_criteria(pred_timepoint, labels))
+            print("reconstruction", reconstruction_loss)
+            print("kld", kld_loss)
+            print("combined", vae_loss)
 
         avg_loss = {key: value / len(train_loader) for key, value in avg_loss.items()}
         return avg_loss

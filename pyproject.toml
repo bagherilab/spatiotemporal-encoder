@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "simulation-encoder"
+version = "0.1.0"
+description = "Autoencoder system for sequential image data"
+authors = ["Jacob Evarts <jevarts@uw.edu>"]
+readme = "README.md"
+packages = [{include = "src/simulation_encoder"}]
+
+[tool.poetry.dependencies]
+python = ">=3.11"
+torch = "^2.3.0"
+pandas = "^2.2.2"
+pillow = "^10.3.0"
+scipy = "^1.14.0"
+matplotlib = "^3.9.0"
+pyyaml = "^6.0.1"
+tqdm = "^4.66.4"
+scikit-learn = "^1.5.0"
+torchvision = "^0.18.1"
+
+[tool.poetry.group.test.dependencies]
+pytest = "^8.2.2"
+black = "^24.4.2"
+mypy = "^1.10.1"
+pylint = "^3.2.4"
+pytest-cov = "^5.0.0"
+tox = "^4.15.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
