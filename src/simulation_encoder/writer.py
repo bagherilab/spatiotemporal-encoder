@@ -21,8 +21,13 @@ class Writer:
         self._setup()
 
         model_path = os.path.join(self.results_path, model_name)
-        loader = "ARCADE" if isinstance(dataset, ARCADELoader) else "alphanumeric"
+        loader = (
+            "ARCADE"
+            if isinstance(dataset, ARCADELoader)
+            else "AlphaNumeric" if isinstance(dataset, AlphaNumericLoader) else ""
+        )
         self._create_dir(model_path)
+
         results = {
             "model": model_name,
             "loader": loader,
@@ -30,22 +35,13 @@ class Writer:
             "params": model.params,
             "data_augmentations": [aug for aug in dataset.augmentations],
             "keys": dataset.keys,
-            "combined_loss": {
-                "train": losses.combined_loss_train,
-                "val": losses.combined_loss_val,
-                "test": losses.combined_loss_test,
-            },
-            "reconstruction_loss": {
-                "train": losses.reconstruction_loss_train,
-                "val": losses.reconstruction_loss_val,
-                "test": losses.reconstruction_loss_test,
-            },
-            "timepoint_loss": {
-                "train": losses.timepoint_loss_train,
-                "val": losses.timepoint_loss_val,
-                "test": losses.timepoint_loss_test,
+            "losses": {
+                "train": losses.losses_train,
+                "val": losses.losses_val,
+                "test": losses.losses_test,
             },
         }
+
         with open(os.path.join(model_path, "results.json"), "w", encoding="utf-8") as r_file:
             json.dump(results, r_file, indent=4)
 

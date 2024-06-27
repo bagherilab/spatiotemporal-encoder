@@ -33,6 +33,7 @@ class TestRunner(unittest.TestCase):
                 "decoder_image": [{"type": "Linear", "in_features": 1, "out_features": 1}],
                 "decoder_timepoint": [{"type": "Linear", "in_features": 1, "out_features": 1}],
             },
+            model_type="CAE",
             num_epochs=1,
             params={"latent_dim": 2},
         )

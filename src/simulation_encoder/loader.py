@@ -63,12 +63,12 @@ class Loader(ABC, Dataset):
         self.indices_file = indices_file
         self.random_seed = random_seed
 
-        self._train_indices = []
-        self._val_indices = []
-        self._test_indices = []
+        self._train_indices: list[int] = []
+        self._val_indices: list[int] = []
+        self._test_indices: list[int] = []
 
-        self.groups = []
-        self.augmentations = {}
+        self.groups: list[dict[str, Any]] = []
+        self.augmentations: dict[str, Augmentation] = {}
 
     def __len__(self) -> int:
         return len(self.groups)

@@ -7,7 +7,7 @@ from PIL import Image
 
 import numpy as np
 
-from simulation_encoder.loader import ARCADELoader, AlphaNumericLoader
+from simulation_encoder.loader import ARCADELoader
 
 
 class TestARCADELoader(unittest.TestCase):
@@ -36,7 +36,9 @@ class TestARCADELoader(unittest.TestCase):
         self.temp_dir.cleanup()
 
     def test_get_image_groups_creates_groups(self):
-        dataset = ARCADELoader(self.temp_dir.name, keys=self.keys, test_split=0.5)
+        dataset = ARCADELoader(
+            self.temp_dir.name, channels=["cancer"], keys=self.keys, test_split=0.5
+        )
         groups = dataset.groups
         self.assertEqual(len(groups), 4)
 
@@ -45,7 +47,7 @@ class TestARCADELoader(unittest.TestCase):
             self.assertIn("graph", group)
 
     def test_getitem_returns_correct_shape(self):
-        dataset = ARCADELoader(self.temp_dir.name, keys=self.keys)
+        dataset = ARCADELoader(self.temp_dir.name, channels=["cancer"], keys=self.keys)
         expected_shape = (1, 10, 10)
         actual_shape = (dataset.n_channels, *dataset.image_shape)
         self.assertEqual(actual_shape, expected_shape)
@@ -75,7 +77,12 @@ class TestARCADELoader(unittest.TestCase):
 
     def test_train_test_split_gives_disjoint_sets(self):
         dataset = ARCADELoader(
-            self.temp_dir.name, keys=self.keys, test_split=0.2, batch_size=1, random_seed=123
+            self.temp_dir.name,
+            channels=["cancer"],
+            keys=self.keys,
+            test_split=0.2,
+            batch_size=1,
+            random_seed=123,
         )
         train_indices = dataset._train_indices
         val_indices = dataset._val_indices
@@ -86,11 +93,11 @@ class TestARCADELoader(unittest.TestCase):
         self.assertTrue(set(val_indices).isdisjoint(set(test_indices)))
 
     def test_keys_load_correct_data(self):
-        dataset = ARCADELoader(self.temp_dir.name, keys=["CH_typeA"])
+        dataset = ARCADELoader(self.temp_dir.name, channels=["cancer"], keys=["CH_typeA"])
         self.assertEqual(len(dataset), 2)
 
     def test_file_parsing_returns_correct_chunks(self):
-        dataset = ARCADELoader(self.temp_dir.name, keys=self.keys)
+        dataset = ARCADELoader(self.temp_dir.name, channels=["cancer"], keys=self.keys)
 
         expected_keys = [
             ("CH", "typeA", 1, 1, "cancer"),
@@ -115,7 +122,9 @@ class TestARCADELoader(unittest.TestCase):
 
     @patch("simulation_encoder.logger.ExperimentLogger")
     def test_missing_image_logging(self, mock_logger):
-        _ = ARCADELoader(self.temp_dir.name, keys=["CH_typeAB"], logger=mock_logger)
+        _ = ARCADELoader(
+            self.temp_dir.name, channels=["cancer"], keys=["CH_typeAB"], logger=mock_logger
+        )
 
         missing_key = ("CH", "typeAB", 1, 2)
         missing_key = "CH_typeAB_1_2"
