@@ -125,12 +125,19 @@ class BaseCNN(ABC, nn.Module):
             layer_class = getattr(nn, layer_type, None)  # type: ignore
             if layer_class is None:
                 raise ValueError(f"Layer type {layer_type} not recognized")
+            
+            # Dynamically set the number of channels and latent dimension size
             if layer_type == "Conv2d":
-                config["in_channels"] = config.get("in_channels", self.num_channels)
-                config["out_channels"] = config.get("out_channels", self.num_channels)
-            if layer_type == "Linear":
-                config["out_features"] = config.get("out_features", self.latent_dim)
-                config["in_features"] = config.get("in_features", self.latent_dim)
+                if config.get("in_channels") == "num_channels":
+                    config["in_channels"] = self.num_channels
+                if config.get("out_channels") == "num_channels":
+                    config["out_channels"] = self.num_channels
+            elif layer_type == "Linear":
+                if config.get("out_features") == "latent_dim":
+                    config["out_features"] = self.latent_dim
+                if config.get("in_features") == "latent_dim":
+                    config["in_features"] = self.latent_dim
+
             if layer_type == "Unflatten":
                 shape = config.get("shape")
                 layer = layer_class(1, tuple(shape))  # type: ignore

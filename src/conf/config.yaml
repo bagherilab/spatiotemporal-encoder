@@ -1,20 +1,25 @@
 experiment_name: ARCADE
+
 data:
   image_dir: data/ARCADE/vascular_function/images
   label_dir: data/ARCADE/vascular_function/labels
+
 models:
-  - architecture: 1c_3l_vae
-    params: grid_loss
+  - architecture: vae
+    params: grid
+
 general_configs:
-  channels:
-    - cancer
   batch_size: 32
   val_split: 0.2
   test_split: 0.2
   verbose: true
+  channels:
+    - graph
+
 augmentations:
   rotate:
     degree: 180
+
 keys:
   - CH_Lav
   - CH_Lava
@@ -26,18 +31,7 @@ keys:
   - C_Lvav
   - C_Sav
   - C_Savav
-  # - "2"
-  # - a
-  # - b
-  # - d
-  # - e
-  # - i
-  # - j
-  # - k
-  # - p
-  # - u
-  # - x
-  # - z
+
 emulator_targets:
   - activity
   - growth
