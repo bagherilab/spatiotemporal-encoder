@@ -2,33 +2,19 @@ experiment_name: ARCADE
 data:
   image_dir: data/ARCADE/vascular_function/images
   label_dir: data/ARCADE/vascular_function/labels
-  # image_dir: data/alphanumeric/images
-  # label_dir: data/alphanumeric/labels
 models:
-  # - architecture: 2c_3l
-  #   params: grid_loss
-  # - architecture: 2c_3l_large
-  #   params: grid_loss
-  # - architecture: 2c_3l_dropout
-  #   params: grid_loss
-  # - architecture: 1c_3l_flat_decoder
-  #   params: grid_loss
   - architecture: 1c_3l_vae
     params: grid_loss
-  # - architecture: 1c_3l
-  #   params: grid_loss
-  # - architecture: 1c_3l_flat_decoder
-  #   params: grid_loss
-  # - architecture: 1c_3l_dropout
-  #   params: grid_loss
 general_configs:
+  channels:
+    - cancer
   batch_size: 32
   val_split: 0.2
   test_split: 0.2
   verbose: true
 augmentations:
-  # rotate:
-  #   degree: 180
+  rotate:
+    degree: 180
 keys:
   - CH_Lav
   - CH_Lava

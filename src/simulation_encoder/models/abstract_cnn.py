@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Optional, Any
+from collections import defaultdict
 
 import torch
 from torch import nn
@@ -16,6 +17,7 @@ class BaseCNN(ABC, nn.Module):
         self,
         name: str = "",
         architecture: dict[str, list[dict[str, Any]]] = {},
+        num_epochs: int = 10,
         params: dict[str, Any] = {},
         logger: Optional[Any] = None,
     ) -> None:
@@ -31,29 +33,62 @@ class BaseCNN(ABC, nn.Module):
         """
         super().__init__()
 
-    @abstractmethod
     def fit(
         self,
         train_loader: DataLoader,
         val_loader: Optional[DataLoader] = None,
-    ) -> Any:
+    ) -> tuple[dict[str, list[float]], dict[str, list[float]], dict[str, list[float]]]:
         """
         Fits the network over the training data for a number of epochs.
 
         Parameters
         ----------
         train_loader : DataLoader
-            DataLoader containing training data.
+            DataLoader containing training data
         epochs : int
-            Number of epochs to train the network.
+            Number of epochs to train the network
         val_loader: DataLoader, optional
-            DataLoader containing validation data, by default None.
+            DataLoader containing validation data, by default None
 
         Returns
         -------
-            dicts of losses
+        dict[str, list[float]], dict[str, list[float]], dict[str, list[float]]
+            Dicts of training loss, validation loss, and gradient norms
         """
-        pass
+        self.to(self.device)
+
+        train_losses: dict[str, list[float]] = defaultdict(list)
+        val_losses: dict[str, list[float]] = defaultdict(list)
+        grad_norms: dict[str, list[float]] = defaultdict(list)
+
+        for e in range(self.num_epochs):
+            train_loss = self.train_one_epoch(train_loader, e)
+            for loss_type, loss in train_loss.items():
+                train_losses[loss_type].append(loss)
+
+            if val_loader:
+                val_loss = self.eval_one_epoch(val_loader)
+                for loss_type, loss in val_loss.items():
+                    val_losses[loss_type].append(loss)
+
+            encoder_grad_norm = self._get_grad_norm(self.encoder)
+            decoder_image_grad_norm = self._get_grad_norm(self.decoder_image)
+            decoder_timepoint_grad_norm = self._get_grad_norm(self.decoder_timepoint)
+
+            grad_norms["encoder"].append(encoder_grad_norm.item())
+            grad_norms["decoder_image"].append(decoder_image_grad_norm.item())
+            grad_norms["decoder_timepoint"].append(decoder_timepoint_grad_norm.item())
+
+            if self.logger:
+                if self.num_epochs > 10:
+                    if (e + 1) % 10 == 0:
+                        msg = f"Epoch {e+1}/{self.num_epochs}- Train loss: {train_loss['combined']} Val loss: {val_loss['combined']}"
+                        self.logger.log(msg)
+                else:
+                    msg = f"Epoch {e+1}/{self.num_epochs}- Train loss: {train_loss['combined']} Val loss: {val_loss['combined']}"
+                self.logger.log(msg)
+
+        return (train_losses, val_losses, grad_norms)
 
     @abstractmethod
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, ...]:
@@ -103,6 +138,13 @@ class BaseCNN(ABC, nn.Module):
             layers.append(layer)
 
         return layers
+
+    def _get_grad_norm(self, layer: nn.Sequential) -> torch.Tensor:
+        """Calculates the gradient norm of a model"""
+        try:
+            return torch.norm(layer[-1].weight.grad)
+        except AttributeError:
+            raise AttributeError(f"{layer} does not have a gradient attribute")
 
     def _get_device(self) -> str:
         device = (

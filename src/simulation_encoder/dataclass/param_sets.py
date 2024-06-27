@@ -5,6 +5,7 @@ from typing import Any
 @dataclass
 class DatasetParams:
     loader: str
+    images: list[str]
     image_dir: str
     batch_size: int
     val_split: float

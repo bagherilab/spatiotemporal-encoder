@@ -9,7 +9,7 @@ from simulation_encoder.loader import ARCADELoader, CSVLoader, AlphaNumericLoade
 from simulation_encoder.logger import ExperimentLogger
 from simulation_encoder.writer import Writer
 from simulation_encoder.models.cae import CAE
-from simulation_encoder.models.vae import VAE 
+from simulation_encoder.models.vae import VAE
 from simulation_encoder.models.emulator import Emulator
 from simulation_encoder.dataclass.param_sets import DatasetParams, ModelParams
 from simulation_encoder.dataclass.loss_data import LossData
@@ -45,7 +45,7 @@ class Runner:
         self.verbose = verbose
 
         self._UUID = uuid.uuid4()
-        self.models: dict[str, CAE|VAE] = {}
+        self.models: dict[str, CAE | VAE] = {}
         self.dataset: Loader = None
 
         self.writer = Writer(uuid=self._UUID)
@@ -97,7 +97,6 @@ class Runner:
                 model = VAE(**deepcopy(model_param_set.__dict__), logger=self.logger)
             else:
                 raise ValueError(f"Model type {model_type} not recognized")
-            
 
             latent_dim = model_param_set.params["latent_dim"]
             model_id = f"{model_param_set.name}_{latent_dim}d_{model_num}"

@@ -65,58 +65,6 @@ class CAE(BaseCNN):
             "timepoint": nn.CrossEntropyLoss(),
         }
 
-    def fit(
-        self,
-        train_loader: DataLoader,
-        val_loader: Optional[DataLoader] = None,
-    ) -> tuple[dict[str, list[float]], dict[str, list[float]], dict[str, list[float]]]:
-        """
-        Fits the network over the training data for a number of epochs.
-
-        Parameters
-        ----------
-        train_loader : DataLoader
-            DataLoader containing training data
-        epochs : int
-            Number of epochs to train the network
-        val_loader: DataLoader, optional
-            DataLoader containing validation data, by default None
-
-        Returns
-        -------
-        dict[str, list[float]], dict[str, list[float]], dict[str, list[float]]
-            Dicts of training loss, validation loss, and gradient norms
-        """
-        self.to(self.device)
-
-        train_losses: dict[str, list[float]] = defaultdict(list)
-        val_losses: dict[str, list[float]] = defaultdict(list)
-        grad_norms: dict[str, list[float]] = defaultdict(list)
-
-        for e in range(self.num_epochs):
-            train_loss = self.train_one_epoch(train_loader, e)
-            for loss_type, loss in train_loss.items():
-                train_losses[loss_type].append(loss)
-
-            if val_loader:
-                val_loss = self.eval_one_epoch(val_loader)
-                for loss_type, loss in val_loss.items():
-                    val_losses[loss_type].append(loss)
-
-            encoder_grad_norm = self._get_grad_norm(self.encoder)
-            decoder_image_grad_norm = self._get_grad_norm(self.decoder_image)
-            decoder_timepoint_grad_norm = self._get_grad_norm(self.decoder_timepoint)
-
-            grad_norms["encoder"].append(encoder_grad_norm.item())
-            grad_norms["decoder_image"].append(decoder_image_grad_norm.item())
-            grad_norms["decoder_timepoint"].append(decoder_timepoint_grad_norm.item())
-
-            if self.logger:
-                msg = f"Epoch {e+1}/{self.num_epochs}- Train loss: {train_loss['combined']} Val loss: {val_loss['combined']}"
-                self.logger.log(msg)
-
-        return (train_losses, val_losses, grad_norms)
-
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, ...]:
         """Performs encoding and several decoding heads"""
         z = self.encode(x)
@@ -192,7 +140,9 @@ class CAE(BaseCNN):
                     "image": image_criteria(pred_image, inputs) * image_loss_factor,
                     "timepoint": timepoint_criteria(pred_timepoint, labels),
                 }
-                reconstruction_loss, reconstruction_loss_weighted = self._calc_reconstruction_loss(batch_loss)
+                reconstruction_loss, reconstruction_loss_weighted = self._calc_reconstruction_loss(
+                    batch_loss
+                )
 
                 reconstruction_loss_weighted.backward()  # type: ignore
                 optimizer_combined.step()
@@ -272,10 +222,3 @@ class CAE(BaseCNN):
             sum([losses[key] * self.loss_weights[key] for key in losses.keys()])
         )
         return combined_loss, combined_loss_weighted
-
-    def _get_grad_norm(self, layer: nn.Sequential) -> torch.Tensor:
-        """Calculates the gradient norm of a model"""
-        try:
-            return torch.norm(layer[-1].weight.grad)
-        except AttributeError:
-            raise AttributeError(f"{layer} does not have a gradient attribute")

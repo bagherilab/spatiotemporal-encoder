@@ -45,6 +45,7 @@ def create_dataset_params(main_config: dict[str, Any]) -> DatasetParams:
     if "alphanumeric" in main_config["experiment_name"]:
         dataset_params = DatasetParams(
             loader="alphanumeric",
+            channels=main_config["general_configs"]["channels"],
             image_dir=main_config["data"]["image_dir"],
             batch_size=main_config["general_configs"]["batch_size"],
             val_split=main_config["general_configs"]["val_split"],
@@ -55,6 +56,7 @@ def create_dataset_params(main_config: dict[str, Any]) -> DatasetParams:
     elif "ARCADE" in main_config["experiment_name"]:
         dataset_params = DatasetParams(
             loader="ARCADE",
+            channels=main_config["general_configs"]["channels"],
             image_dir=main_config["data"]["image_dir"],
             label_dir=main_config["data"]["label_dir"],
             batch_size=main_config["general_configs"]["batch_size"],
@@ -108,9 +110,7 @@ def load_hyperparams(yaml_name: str) -> dict[str, Any]:
     return load_yaml(yaml_path)
 
 
-def load_model_yaml(
-    architecture_name: str, yaml_path: str = f"src/conf/models"
-) -> dict[str, Any]:
+def load_model_yaml(architecture_name: str, yaml_path: str = f"src/conf/models") -> dict[str, Any]:
     yaml_file = (
         architecture_name if architecture_name.endswith(".yaml") else architecture_name + ".yaml"
     )

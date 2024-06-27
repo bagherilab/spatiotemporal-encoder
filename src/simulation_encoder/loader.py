@@ -76,7 +76,7 @@ class Loader(ABC, Dataset):
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, int]:
         group = self.groups[idx]
         timepoint = int(group["timepoint"])
-        image_tensor = self._get_image_tensors(group, self.images)
+        image_tensor = self._get_image_tensors(group, self.channels)
 
         return image_tensor, timepoint
 
@@ -248,6 +248,7 @@ class ARCADELoader(Loader):
         self,
         image_dir: str,
         keys: list[str],
+        channels: list[str],
         labels: list[str] = [],
         label_dir: Optional[str] = None,
         val_split: float = 0.2,
@@ -267,11 +268,11 @@ class ARCADELoader(Loader):
             random_seed=random_seed,
         )
 
+        self.channels = channels
         self.image_dir = image_dir
         self.keys = keys
         self.labels = labels
         self.logger = logger
-        self.images = ["graph"]
 
         self.label_loader = LabelLoader(label_dir) if label_dir else None
         self.augmentations: dict[str, Augmentation] = self._get_augmentations(augmentations) or {}
@@ -337,9 +338,11 @@ class ARCADELoader(Loader):
 
         if self.logger:
             missing_images = {
-                group_key: [key for key, value in group.items() if value == "" and key in self.images]
+                group_key: [
+                    key for key, value in group.items() if value == "" and key in self.channels
+                ]
                 for group_key, group in groups.items()
-                if any(value == "" and key in self.images for key, value in group.items())
+                if any(value == "" and key in self.channels for key, value in group.items())
             }
             for group_key, missing_list in missing_images.items():
                 self.logger.warning(f"Missing images from {group_key}: {missing_list}")
@@ -433,7 +436,7 @@ class AlphaNumericLoader(Loader):
         self.image_dir = image_dir
         self.keys = keys
         self.logger = logger
-        self.images = ["image"]
+        self.channels = ["image"]
 
         self._get_image_groups()
         self._split_data()

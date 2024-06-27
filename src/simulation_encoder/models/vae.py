@@ -53,8 +53,10 @@ class VAE(BaseCNN):
 
         self.encoder = nn.Sequential(*self._create_layers(self.architecture["encoder"].copy()))
         self.fc_mu = nn.Linear(self.architecture["encoder"][-1]["out_features"], self.latent_dim)
-        self.fc_logvar = nn.Linear(self.architecture["encoder"][-1]["out_features"], self.latent_dim)
-        
+        self.fc_logvar = nn.Linear(
+            self.architecture["encoder"][-1]["out_features"], self.latent_dim
+        )
+
         self.decoder_image = nn.Sequential(*self._create_layers(self.architecture["decoder_image"]))
         self.decoder_timepoint = nn.Sequential(
             *self._create_layers(self.architecture["decoder_timepoint"])
@@ -66,63 +68,6 @@ class VAE(BaseCNN):
             "image": nn.MSELoss(),
             "timepoint": nn.CrossEntropyLoss(),
         }
-
-    def fit(
-        self,
-        train_loader: DataLoader,
-        val_loader: Optional[DataLoader] = None,
-    ) -> tuple[dict[str, list[float]], dict[str, list[float]], dict[str, list[float]]]:
-        """
-        Fits the network over the training data for a number of epochs.
-
-        Parameters
-        ----------
-        train_loader : DataLoader
-            DataLoader containing training data
-        epochs : int
-            Number of epochs to train the network
-        val_loader: DataLoader, optional
-            DataLoader containing validation data, by default None
-
-        Returns
-        -------
-        dict[str, list[float]], dict[str, list[float]], dict[str, list[float]]
-            Dicts of training loss, validation loss, and gradient norms
-        """
-        self.to(self.device)
-
-        train_losses: dict[str, list[float]] = defaultdict(list)
-        val_losses: dict[str, list[float]] = defaultdict(list)
-        grad_norms: dict[str, list[float]] = defaultdict(list)
-
-        for e in range(self.num_epochs):
-            train_loss = self.train_one_epoch(train_loader, e)
-            for loss_type, loss in train_loss.items():
-                train_losses[loss_type].append(loss)
-
-            if val_loader:
-                val_loss = self.eval_one_epoch(val_loader)
-                for loss_type, loss in val_loss.items():
-                    val_losses[loss_type].append(loss)
-
-            encoder_grad_norm = self._get_grad_norm(self.encoder)
-            decoder_image_grad_norm = self._get_grad_norm(self.decoder_image)
-            decoder_timepoint_grad_norm = self._get_grad_norm(self.decoder_timepoint)
-
-            grad_norms["encoder"].append(encoder_grad_norm.item())
-            grad_norms["decoder_image"].append(decoder_image_grad_norm.item())
-            grad_norms["decoder_timepoint"].append(decoder_timepoint_grad_norm.item())
-
-            if self.logger:
-                if self.num_epochs > 10:
-                    if (e + 1) % 10 == 0:
-                        msg = f"Epoch {e+1}/{self.num_epochs}- Train loss: {train_loss['combined']} Val loss: {val_loss['combined']}"
-                        self.logger.log(msg)
-                else:
-                    msg = f"Epoch {e+1}/{self.num_epochs}- Train loss: {train_loss['combined']} Val loss: {val_loss['combined']}"
-                self.logger.log(msg)
-
-        return (train_losses, val_losses, grad_norms)
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, ...]:
         """Performs encoding and several decoding heads"""
@@ -141,7 +86,7 @@ class VAE(BaseCNN):
 
     def reparameterize(self, mu: torch.Tensor, logvar: torch.Tensor) -> torch.Tensor:
         """Reparameterizes to sample z"""
-        
+
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
         return mu + eps * std
@@ -201,7 +146,6 @@ class VAE(BaseCNN):
         image_loss_factor = 1000
         # Factor to balance reconstruction and KL loss
         reconstruction_loss_factor = 500
-        
 
         with tqdm(train_loader, unit=" batch", ncols=100, desc=f"Epoch {epoch + 1}") as tepoch:
             for inputs, labels in tepoch:
@@ -214,11 +158,11 @@ class VAE(BaseCNN):
                     "image": image_criteria(pred_image, inputs) * image_loss_factor,
                     "timepoint": timepoint_criteria(pred_timepoint, labels),
                 }
-                
-                reconstruction_loss, reconstruction_loss_weighted = self._calc_reconstruction_loss(batch_loss)
-                kld_loss = self._calc_kld_loss(mu, logvar)
 
-                
+                reconstruction_loss, reconstruction_loss_weighted = self._calc_reconstruction_loss(
+                    batch_loss
+                )
+                kld_loss = self._calc_kld_loss(mu, logvar)
 
                 vae_loss = reconstruction_loss_factor * reconstruction_loss_weighted + kld_loss
 
@@ -280,7 +224,7 @@ class VAE(BaseCNN):
 
         avg_loss = {key: value / len(val_loader) for key, value in avg_loss.items()}
         return avg_loss
-    
+
     def get_saliency_map(self, x: torch.Tensor) -> torch.Tensor:
         """Calculates the saliency map of the input tensor"""
         self.eval()
@@ -294,7 +238,7 @@ class VAE(BaseCNN):
 
         saliency_map, _ = torch.max(x.grad.data.abs(), dim=1)  # type: ignore
         return saliency_map
-    
+
     def _calc_kld_loss(self, mu: torch.Tensor, logvar: torch.Tensor) -> torch.Tensor:
         """
         Computes the Kullback-Leibler divergence for VAE.
@@ -312,7 +256,7 @@ class VAE(BaseCNN):
             KL divergence loss
         """
         return -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-    
+
     def _calc_reconstruction_loss(
         self, losses: dict[str, torch.Tensor]
     ) -> tuple[torch.Tensor, torch.Tensor]:
@@ -322,10 +266,3 @@ class VAE(BaseCNN):
             sum([losses[key] * self.loss_weights[key] for key in losses.keys()])
         )
         return combined_loss, combined_loss_weighted
-    
-    def _get_grad_norm(self, layer: nn.Sequential) -> torch.Tensor:
-        """Calculates the gradient norm of a model"""
-        try:
-            return torch.norm(layer[-1].weight.grad)
-        except AttributeError:
-            raise AttributeError(f"{layer} does not have a gradient attribute")
