@@ -307,9 +307,7 @@ class ARCADELoader(Loader):
         """Returns groups of images based on the filename format."""
         groups: dict[str, Any] = defaultdict(
             lambda: {
-                "cancer": "",
-                "graph": "",
-                "healthy": "",
+                **{channel: "" for channel in self.channels}, 
                 "timepoint": "",
                 "seed_key": "",
                 "augmentation": "original",
@@ -319,6 +317,9 @@ class ARCADELoader(Loader):
 
         for file_name in os.listdir(self.image_dir):
             if not file_name.endswith(".png") or not self._in_keys(file_name):
+                continue
+            # Skip images that are not in the specified channels
+            if not any(channel in file_name for channel in self.channels):
                 continue
 
             context, vasc_type, seed, timepoint, image_type = self._parse_ARCADE_filename(file_name)
@@ -393,16 +394,16 @@ class ARCADELoader(Loader):
         vasc_type = parts[1]
         seed = int(parts[2])
         timepoint = int(parts[3])
-        if parts[4].split(".")[0] == "graph":
-            image_type = parts[4].split(".")[0]
-        elif parts[4].split(".")[0] == "cells":
-            image_type = parts[5].split(".")[0]
-        else:
-            raise ValueError(
-                f"Invalid name format for image file. Should be \
-            'context_vasc-type_seed_timepoint_image-type.png' Got: {filename}"
-            )
-        return context, vasc_type, seed, timepoint, image_type
+        for part in parts[4:]:
+            for channel in self.channels:
+                if channel in part:
+                    image_type = channel
+                    return context, vasc_type, seed, timepoint, image_type
+    
+        raise ValueError(
+            f"Invalid name format for image file. Should be \
+        'context_vasc-type_seed_timepoint_image-type.png' Got: {filename}"
+        )
 
     def _in_keys(self, file_name: str) -> bool:
         file_chunks = file_name.split("_")[0:2]
