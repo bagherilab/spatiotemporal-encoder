@@ -125,7 +125,7 @@ class BaseCNN(ABC, nn.Module):
             layer_class = getattr(nn, layer_type, None)  # type: ignore
             if layer_class is None:
                 raise ValueError(f"Layer type {layer_type} not recognized")
-            
+
             # Dynamically set the number of channels and latent dimension size
             if layer_type == "Conv2d":
                 if config.get("in_channels") == "num_channels":

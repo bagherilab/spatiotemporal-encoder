@@ -34,7 +34,8 @@ class TestRunner(unittest.TestCase):
                 "decoder_timepoint": [{"type": "Linear", "in_features": 1, "out_features": 1}],
             },
             model_type="CAE",
-            num_epochs=1,
+            num_channels=1,
+            num_epochs=2,
             params={"latent_dim": 2},
         )
 
