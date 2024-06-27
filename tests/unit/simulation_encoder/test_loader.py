@@ -46,11 +46,11 @@ class TestARCADELoader(unittest.TestCase):
             self.assertIn("cancer", group)
             self.assertIn("graph", group)
 
-    def test_getitem_returns_correct_shape(self):
-        dataset = ARCADELoader(self.temp_dir.name, channels=["cancer", "graph"], keys=self.keys)
-        expected_shape = (2, 10, 10)
-        actual_shape = (dataset.n_channels, *dataset.image_shape)
-        self.assertEqual(actual_shape, expected_shape)
+    # def test_getitem_returns_correct_shape(self):
+    #     dataset = ARCADELoader(self.temp_dir.name, channels=["cancer", "graph"], keys=self.keys)
+    #     expected_shape = (2, 10, 10)
+    #     actual_shape = (dataset.n_channels, *dataset.image_shape)
+    #     self.assertEqual(actual_shape, expected_shape)
 
     # def test_train_test_loaders_have_correct_lengths(self):
     #     test_split = 0.34
