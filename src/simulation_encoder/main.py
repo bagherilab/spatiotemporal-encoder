@@ -25,7 +25,7 @@ def main() -> None:
     hyperparameter yaml files. The runner object is created with the dataset and model parameters,
     and the run method is called to start the simulation encoder."""
 
-    main_config = load_yaml(CONFIG_YAML)
+    main_config = _load_yaml(CONFIG_YAML)
     verbose = main_config["general_configs"]["verbose"]
 
     runner = Runner(verbose)
@@ -41,6 +41,8 @@ def main() -> None:
 
 
 def create_dataset_params(main_config: dict[str, Any]) -> DatasetParams:
+    """Create the dataset parameters from the main config file"""
+
     if "alphanumeric" in main_config["experiment_name"]:
         dataset_params = DatasetParams(
             loader="alphanumeric",
@@ -70,10 +72,12 @@ def create_dataset_params(main_config: dict[str, Any]) -> DatasetParams:
 
 
 def create_model_param_sets(model: dict[str, Any], n_channels: int) -> list[ModelParams]:
-    model_name = model["architecture"]
-    model_yaml = load_model_yaml(model_name)
+    """Create the model parameters from model config files and hyperparameter yaml files"""
 
-    model_params = load_hyperparams(model["params"])
+    model_name = model["architecture"]
+    model_yaml = _load_model_yaml(model_name)
+
+    model_params = _load_hyperparams(model["params"])
     num_epochs = model_params["num_epochs"]
 
     continuous_params = model_params["continuous"]
@@ -95,7 +99,7 @@ def create_model_param_sets(model: dict[str, Any], n_channels: int) -> list[Mode
     return model_param_sets
 
 
-def load_yaml(yaml_file: str) -> dict[str, Any]:
+def _load_yaml(yaml_file: str) -> dict[str, Any]:
     try:
         with open(yaml_file, "r") as file:
             config = yaml.safe_load(file)
@@ -104,18 +108,18 @@ def load_yaml(yaml_file: str) -> dict[str, Any]:
         raise FileNotFoundError(f"File {yaml_file} not found") from e
 
 
-def load_hyperparams(yaml_name: str) -> dict[str, Any]:
+def _load_hyperparams(yaml_name: str) -> dict[str, Any]:
     yaml_file = yaml_name if yaml_name.endswith(".yaml") else yaml_name + ".yaml"
     yaml_path = f"src/conf/hyperparams/{yaml_file}"
-    return load_yaml(yaml_path)
+    return _load_yaml(yaml_path)
 
 
-def load_model_yaml(architecture_name: str, yaml_path: str = f"src/conf/models") -> dict[str, Any]:
+def _load_model_yaml(architecture_name: str, yaml_path: str = f"src/conf/models") -> dict[str, Any]:
     yaml_file = (
         architecture_name if architecture_name.endswith(".yaml") else architecture_name + ".yaml"
     )
     yaml_path = os.path.join(yaml_path, yaml_file)
-    return load_yaml(yaml_path)
+    return _load_yaml(yaml_path)
 
 
 if __name__ == "__main__":
