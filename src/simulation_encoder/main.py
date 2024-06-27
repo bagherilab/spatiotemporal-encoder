@@ -32,13 +32,12 @@ def main() -> None:
     dataset_params = create_dataset_params(main_config)
     runner.add_dataset(dataset_params)
 
+    n_channels = len(main_config["general_configs"]["channels"])
     for model in main_config["models"]:
-        model_param_sets = create_model_param_sets(model)
+        model_param_sets = create_model_param_sets(model, n_channels)
         runner.add_models(model_param_sets)
 
     runner.run_encoder()
-
-    # runner.run_emulator()
 
 
 def create_dataset_params(main_config: dict[str, Any]) -> DatasetParams:
@@ -70,7 +69,7 @@ def create_dataset_params(main_config: dict[str, Any]) -> DatasetParams:
     return dataset_params
 
 
-def create_model_param_sets(model: dict[str, Any]) -> list[ModelParams]:
+def create_model_param_sets(model: dict[str, Any], n_channels: int) -> list[ModelParams]:
     model_name = model["architecture"]
     model_yaml = load_model_yaml(model_name)
 

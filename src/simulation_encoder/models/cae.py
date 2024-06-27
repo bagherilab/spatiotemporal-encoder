@@ -33,6 +33,7 @@ class CAE(BaseCNN):
         self,
         name: str,
         architecture: dict[str, list[dict[str, Any]]],
+        num_channels: int = 1,
         num_epochs: int = 5,
         params: dict[str, Any] = {},
         logger: Optional[ExperimentLogger] = None,
@@ -43,6 +44,7 @@ class CAE(BaseCNN):
 
         self.name = name
         self.architecture = architecture
+        self.num_channels = num_channels
         self.num_epochs = num_epochs
         self.params = params
         self.logger = logger

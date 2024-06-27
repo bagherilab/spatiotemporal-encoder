@@ -51,12 +51,14 @@ class Loader(ABC, Dataset):
 
     def __init__(
         self,
+        channels: list[str],
         val_split: float = 0.2,
         test_split: float = 0.2,
         batch_size: int = 10,
         indices_file: Optional[str] = None,
         random_seed: int = 42,
     ):
+        self.channels = channels
         self.val_split = val_split
         self.test_split = test_split
         self.batch_size = batch_size
@@ -93,7 +95,7 @@ class Loader(ABC, Dataset):
     @property
     def n_channels(self) -> int:
         """Number of channels in the images"""
-        return self[0][0].shape[0]
+        return len(self.channels)
 
     @property
     def image_shape(self) -> tuple[int, ...]:
@@ -261,6 +263,7 @@ class ARCADELoader(Loader):
     ):
 
         super().__init__(
+            channels=channels,
             val_split=val_split,
             test_split=test_split,
             batch_size=batch_size,
@@ -268,7 +271,6 @@ class ARCADELoader(Loader):
             random_seed=random_seed,
         )
 
-        self.channels = channels
         self.image_dir = image_dir
         self.keys = keys
         self.labels = labels
@@ -418,6 +420,7 @@ class AlphaNumericLoader(Loader):
         self,
         image_dir: str,
         keys: list[str],
+        channels: list[str],
         val_split: float = 0.2,
         test_split: float = 0.2,
         batch_size: int = 10,
@@ -427,6 +430,7 @@ class AlphaNumericLoader(Loader):
         random_seed: int = 42,
     ):
         super().__init__(
+            channels=channels,
             val_split=val_split,
             test_split=test_split,
             batch_size=batch_size,
@@ -436,7 +440,6 @@ class AlphaNumericLoader(Loader):
         self.image_dir = image_dir
         self.keys = keys
         self.logger = logger
-        self.channels = ["image"]
 
         self._get_image_groups()
         self._split_data()
