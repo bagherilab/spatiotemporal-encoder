@@ -86,6 +86,7 @@ def create_model_param_sets(model: dict[str, Any], n_channels: int) -> list[Mode
             name=model_name,
             model_type=model_yaml["type"],
             architecture=model_yaml["architecture"],
+            num_channels=n_channels,
             num_epochs=num_epochs,
             params=param_set,
         )
