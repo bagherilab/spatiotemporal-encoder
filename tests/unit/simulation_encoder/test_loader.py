@@ -47,6 +47,7 @@ class TestARCADELoader(unittest.TestCase):
             self.assertIn("cancer", group)
             self.assertIn("graph", group)
 
+    # BUGGED ON GITHUB ACTIONS
     # def test_getitem_returns_correct_shape(self):
     #     dataset = ARCADELoader(self.temp_dir.name, channels=["cancer", "graph"], keys=self.keys)
     #     expected_shape = (2, 10, 10)
