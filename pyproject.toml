@@ -26,6 +26,15 @@ pylint = "^3.2.4"
 pytest-cov = "^5.0.0"
 tox = "^4.15.1"
 
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.29.4"
+
+[tool.poetry.group.visualization]
+optional = true
+
+[tool.poetry.group.visualization.dependencies]
+umap-learn = "^0.5.6"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

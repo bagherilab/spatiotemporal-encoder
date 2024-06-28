@@ -307,7 +307,7 @@ class ARCADELoader(Loader):
         """Returns groups of images based on the filename format."""
         groups: dict[str, Any] = defaultdict(
             lambda: {
-                **{channel: "" for channel in self.channels}, 
+                **{channel: "" for channel in self.channels},
                 "timepoint": "",
                 "seed_key": "",
                 "augmentation": "original",
@@ -399,7 +399,7 @@ class ARCADELoader(Loader):
                 if channel in part:
                     image_type = channel
                     return context, vasc_type, seed, timepoint, image_type
-    
+
         raise ValueError(
             f"Invalid name format for image file. Should be \
         'context_vasc-type_seed_timepoint_image-type.png' Got: {filename}"

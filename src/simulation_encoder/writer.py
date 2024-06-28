@@ -32,6 +32,7 @@ class Writer:
             "model": model_name,
             "loader": loader,
             "architecture": model.name,
+            "channels": dataset.channels,
             "params": model.params,
             "data_augmentations": [aug for aug in dataset.augmentations],
             "keys": dataset.keys,

@@ -17,8 +17,8 @@ general_configs:
     - graph
 
 augmentations:
-  rotate:
-    degree: 180
+  # rotate:
+  #   degree: 180
 
 keys:
   - CH_Lav

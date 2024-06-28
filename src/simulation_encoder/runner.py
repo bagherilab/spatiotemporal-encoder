@@ -129,7 +129,7 @@ class Runner:
             encoded_dataset = self._encode_dataset(model)
             self.writer.write_encoded_data(model_id, encoded_dataset)
 
-        best_model = min(self.losses, key=lambda x: self.losses[x].combined_loss_val)
+        best_model = min(self.losses, key=lambda x: min(self.losses[x].losses_val["combined"]))
 
         self.writer.write_results(
             "_best_model",
