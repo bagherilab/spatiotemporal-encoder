@@ -14,10 +14,12 @@ class TestWriter(unittest.TestCase):
         self.mock_runner.models.name = "test_model"
         self.mock_runner.models.params = {"test_key": "test_value"}
         self.mock_runner.models.architecture = {"architecture": "test_model"}
+        self.mock_runner.models.num_channels = 1
 
         self.mock_runner.dataset = MagicMock()
         self.mock_runner.dataset.keys = ["test_key"]
         self.mock_runner.dataset.augmentations = ["rotate_180", "rotate_90"]
+        self.mock_runner.dataset.channels = ["test_image"]
 
         mock_logger.log = MagicMock()
         Writer._create_dir = MagicMock()
@@ -49,6 +51,7 @@ class TestWriter(unittest.TestCase):
             "model": "test_model",
             "loader": "",
             "architecture": "test_model",
+            "channels": ["test_image"],
             "params": {"test_key": "test_value"},
             "data_augmentations": ["rotate_180", "rotate_90"],
             "keys": ["test_key"],
