@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 
 from simulation_encoder.logger import ExperimentLogger
 from simulation_encoder.models.abstract_cnn import BaseCNN
+from simulation_encoder.models.rbm import CRBM, RBM
 
 
 class CAE(BaseCNN):
@@ -98,7 +99,7 @@ class CAE(BaseCNN):
                 z = self.encode(inputs)
                 encoded.append(z)
         return torch.cat(encoded, dim=0)
-
+    
     def train_one_epoch(
         self,
         train_loader: DataLoader,

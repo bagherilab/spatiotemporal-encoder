@@ -1,8 +1,9 @@
 experiment_name: ARCADE
 
 data:
-  image_dir: data/ARCADE/vascular_function/images
-  label_dir: data/ARCADE/vascular_function/labels
+  image_dir: data/ARCADE/vascular_function_128/images
+  label_dir: data/ARCADE/vascular_function_128/labels
+  image_size: 128
 
 models:
   - architecture: vae_flat

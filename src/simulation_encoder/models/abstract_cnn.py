@@ -6,6 +6,9 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
+from simulation_encoder.models.rbm import RBM, CRBM
+from simulation_encoder.loader import Loader
+
 
 class BaseCNN(ABC, nn.Module):
     """
@@ -39,6 +42,7 @@ class BaseCNN(ABC, nn.Module):
         self,
         train_loader: DataLoader,
         val_loader: Optional[DataLoader] = None,
+        pretrain: bool = False,
     ) -> tuple[dict[str, list[float]], dict[str, list[float]], dict[str, list[float]]]:
         """
         Fits the network over the training data for a number of epochs.
@@ -58,6 +62,9 @@ class BaseCNN(ABC, nn.Module):
             Dicts of training loss, validation loss, and gradient norms
         """
         self.to(self.device)
+
+        if pretrain:
+            self.pretrain_encoder_rbm(train_loader)
 
         train_losses: dict[str, list[float]] = defaultdict(list)
         val_losses: dict[str, list[float]] = defaultdict(list)
@@ -91,6 +98,82 @@ class BaseCNN(ABC, nn.Module):
                 self.logger.log(msg)
 
         return (train_losses, val_losses, grad_norms)
+
+    def pretrain_encoder_rbm(
+        self,
+        train_loader: DataLoader,
+        rbm_epochs: int = 10,
+        rbm_lr: float = 0.01,
+        data_fraction: float = 0.2,
+    ) -> None:
+        """
+        Pretrains the encoder using a Restricted Boltzmann Machine.
+
+        Parameters
+        ----------
+        train_loader : DataLoader
+            DataLoader containing training data
+        rbm_epochs : int
+            Number of epochs to train the RBM
+        rbm_lr : float, optional
+            Learning rate for the RBM
+        data_fraction : float, optional
+            Fraction of data to use for training
+        """
+        train_loader = Loader._subsample_loader(train_loader, data_fraction)
+
+        num_layers = len(self.architecture["encoder"])
+        is_flattened = False
+        for i, (layer_params, layer) in enumerate(zip(self.architecture["encoder"], self.encoder)):
+            if layer_params["type"] == "Conv2d":
+                in_channels = layer_params["in_channels"]
+                out_channels = layer_params["out_channels"]
+                kernel_size = layer_params["kernel_size"]
+                stride = layer_params["stride"]
+                padding = layer_params["padding"]
+
+                crbm = CRBM(
+                    in_channels,
+                    out_channels,
+                    kernel_size,
+                    stride,
+                    padding,
+                    gaussian=False,
+                    device=self.device,
+                )
+                crbm.train(train_loader, rbm_epochs, rbm_lr)
+                train_loader = Loader._transform_dataloader(
+                    crbm.sample_h, train_loader, self.device
+                )
+
+                layer.weight.data = crbm.W.data
+                layer.bias.data = crbm.h_bias.data
+
+            elif layer_params["type"] == "MaxPool2d":
+                train_loader = layer(train_loader)
+
+            elif layer_params["type"] == "Linear":
+                in_features = layer_params["in_features"]
+                out_features = layer_params["out_features"]
+
+                if not is_flattened:
+                    train_loader = Loader._flatten_loader(train_loader)
+                    is_flattened = True
+
+                print(f"RBM {in_features} to {out_features}")
+                if i == num_layers - 1:
+                    gaussian = True
+                    rbm = RBM(in_features, out_features, gaussian, self.device)
+                else:
+                    gaussian = False
+                    rbm = RBM(in_features, out_features, gaussian, self.device)
+
+                rbm.train(train_loader, rbm_epochs, rbm_lr)
+
+                train_loader = Loader._transform_dataloader(rbm.sample_hk, train_loader, self.device)
+
+                layer.weight.data = rbm.W.t().data
+                layer.bias.data = rbm.h_bias.data
 
     @abstractmethod
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, ...]:
