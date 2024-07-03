@@ -101,7 +101,9 @@ class TestARCADELoader(unittest.TestCase):
         self.assertEqual(len(dataset), 2)
 
     def test_file_parsing_returns_correct_chunks(self):
-        dataset = ARCADELoader(self.temp_dir.name, channels=["cancer", "healthy", "graph"], keys=self.keys)
+        dataset = ARCADELoader(
+            self.temp_dir.name, channels=["cancer", "healthy", "graph"], keys=self.keys
+        )
 
         expected_keys = [
             ("CH", "typeA", 1, 1, "cancer"),
