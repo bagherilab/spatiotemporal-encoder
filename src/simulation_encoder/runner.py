@@ -41,7 +41,8 @@ class Runner:
         Dictionary of model names and their corresponding loss data
     """
 
-    def __init__(self, verbose: bool = False) -> None:
+    def __init__(self, pretrain: bool = False, verbose: bool = False) -> None:
+        self.pretrain = pretrain
         self.verbose = verbose
 
         self._UUID = uuid.uuid4()
@@ -193,6 +194,7 @@ class Runner:
         losses, val_losses, grad_norms = model.fit(
             train_loader,
             val_loader=val_loader,
+            pretrain=self.pretrain,
         )
 
         self.losses[model_name].add_train_loss(losses)

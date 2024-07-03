@@ -1,13 +1,16 @@
 from typing import Optional, Any
 from collections import defaultdict
 
+import numpy as np
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from simulation_encoder.logger import ExperimentLogger
+from simulation_encoder.models.rbm import RBM, CRBM
 from simulation_encoder.models.abstract_cnn import BaseCNN
+from simulation_encoder.loader import Loader
 
 
 class VAE(BaseCNN):
@@ -25,13 +28,14 @@ class VAE(BaseCNN):
     params : dict[str: Any]
         Dictionary containing model hyperparameters
     logger : Logger, optional
-        Logger object for logging, by default None
+        Logger object for logging
     """
 
     def __init__(
         self,
         name: str,
         architecture: dict[str, list[dict[str, Any]]],
+        image_size: int = 256,
         num_channels: int = 1,
         num_epochs: int = 5,
         params: dict[str, Any] = {},
@@ -48,6 +52,7 @@ class VAE(BaseCNN):
         self.params = params
         self.logger = logger
         self.latent_dim = params.get("latent_dim", 32)
+        self.image_size = image_size
         self.loss_weights = {
             "image": params.get("image_loss_weight", 1.0),
             "timepoint": params.get("timepoint_loss_weight", 1.0),
@@ -71,11 +76,72 @@ class VAE(BaseCNN):
             "timepoint": nn.CrossEntropyLoss(),
         }
 
-        # Chosen rather arbitrarily
+        # Chosen arbitrarily
         # Factor to balance image and timepoint loss
-        self.image_loss_factor = 1
+        self.image_loss_factor = 10
         # Factor to balance reconstruction and KL loss
-        self.reconstruction_loss_factor = 1
+        self.reconstruction_loss_factor = 500
+
+    def fit(
+        self,
+        train_loader: DataLoader,
+        val_loader: Optional[DataLoader] = None,
+        pretrain: bool = False,
+    ) -> tuple[dict[str, list[float]], dict[str, list[float]], dict[str, list[float]]]:
+        """
+        Fits the network over the training data for a number of epochs.
+
+        Parameters
+        ----------
+        train_loader : DataLoader
+            DataLoader containing training data
+        epochs : int
+            Number of epochs to train the network
+        val_loader: DataLoader, optional
+            DataLoader containing validation data
+
+        Returns
+        -------
+        dict[str, list[float]], dict[str, list[float]], dict[str, list[float]]
+            Dicts of training loss, validation loss, and gradient norms
+        """
+        self.to(self.device)
+
+        if pretrain:
+            self.pretrain_encoder_rbm(train_loader)
+
+        train_losses: dict[str, list[float]] = defaultdict(list)
+        val_losses: dict[str, list[float]] = defaultdict(list)
+        grad_norms: dict[str, list[float]] = defaultdict(list)
+
+        for e in range(self.num_epochs):
+            train_loss = self.train_one_epoch(train_loader, e)
+            for loss_type, loss in train_loss.items():
+                train_losses[loss_type].append(loss)
+
+            if val_loader:
+                val_loss = self.eval_one_epoch(val_loader)
+                for loss_type, loss in val_loss.items():
+                    val_losses[loss_type].append(loss)
+
+            encoder_grad_norm = self._get_grad_norm(self.encoder)
+            decoder_image_grad_norm = self._get_grad_norm(self.decoder_image)
+            decoder_timepoint_grad_norm = self._get_grad_norm(self.decoder_timepoint)
+
+            grad_norms["encoder"].append(encoder_grad_norm.item())
+            grad_norms["decoder_image"].append(decoder_image_grad_norm.item())
+            grad_norms["decoder_timepoint"].append(decoder_timepoint_grad_norm.item())
+
+            if self.logger:
+                if self.num_epochs > 10:
+                    if (e + 1) % 10 == 0:
+                        msg = f"Epoch {e+1}/{self.num_epochs}- Train loss: {train_loss['combined']} Val loss: {val_loss['combined']}"
+                        self.logger.log(msg)
+                else:
+                    msg = f"Epoch {e+1}/{self.num_epochs}- Train loss: {train_loss['combined']} Val loss: {val_loss['combined']}"
+                self.logger.log(msg)
+
+        return (train_losses, val_losses, grad_norms)
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, ...]:
         """Performs encoding and several decoding heads"""
@@ -120,6 +186,82 @@ class VAE(BaseCNN):
                 z = self.reparameterize(mu, logvar)
                 encoded.append(z)
         return torch.cat(encoded, dim=0)
+
+    def pretrain_encoder_rbm(
+        self,
+        train_loader: DataLoader,
+        rbm_epochs: int = 5,
+        rbm_lr: float = 0.01,
+        data_fraction: float = 0.2,
+    ) -> None:
+        """
+        Pretrains the encoder using a Restricted Boltzmann Machine.
+
+        Parameters
+        ----------
+        train_loader : DataLoader
+            DataLoader containing training data
+        rbm_epochs : int
+            Number of epochs to train the RBM
+        rbm_lr : float, optional
+            Learning rate for the RBM
+        data_fraction : float, optional
+            Fraction of data to use for training
+        """
+        train_loader = Loader._subsample_loader(train_loader, data_fraction)
+
+        num_layers = len(self.architecture["encoder"])
+        is_flattened = False
+        for i, (layer_params, layer) in enumerate(zip(self.architecture["encoder"], self.encoder)):
+            if layer_params["type"] == "Conv2d":
+                in_channels = layer_params["in_channels"]
+                out_channels = layer_params["out_channels"]
+                kernel_size = layer_params["kernel_size"]
+                stride = layer_params["stride"]
+                padding = layer_params["padding"]
+
+                crbm = CRBM(
+                    in_channels,
+                    out_channels,
+                    kernel_size,
+                    stride,
+                    padding,
+                    gaussian=False,
+                    device=self.device,
+                )
+                crbm.train(train_loader, rbm_epochs, rbm_lr)
+                train_loader = Loader._transform_dataloader(
+                    crbm.sample_h, train_loader, self.device
+                )
+
+                layer.weight.data = crbm.W.data
+                layer.bias.data = crbm.h_bias.data
+
+            elif layer_params["type"] == "MaxPool2d":
+                train_loader = layer(train_loader)
+
+            elif layer_params["type"] == "Linear":
+                in_features = layer_params["in_features"]
+                out_features = layer_params["out_features"]
+
+                if not is_flattened:
+                    train_loader = Loader._flatten_loader(train_loader)
+                    is_flattened = True
+
+                print(f"RBM {in_features} to {out_features}")
+                if i == num_layers - 1:
+                    gaussian = True
+                    rbm = RBM(in_features, out_features, gaussian, self.device)
+                else:
+                    gaussian = False
+                    rbm = RBM(in_features, out_features, gaussian, self.device)
+
+                rbm.train(train_loader, rbm_epochs, rbm_lr)
+
+                train_loader = Loader._transform_dataloader(rbm.sample_hk, train_loader, self.device)
+
+                layer.weight.data = rbm.W.t().data
+                layer.bias.data = rbm.h_bias.data
 
     def train_one_epoch(
         self,

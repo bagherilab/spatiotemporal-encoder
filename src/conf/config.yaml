@@ -5,16 +5,17 @@ data:
   label_dir: data/ARCADE/vascular_function/labels
 
 models:
-  - architecture: vae
+  - architecture: vae_flat
     params: grid
 
 general_configs:
   batch_size: 32
   val_split: 0.2
   test_split: 0.2
-  verbose: true
   channels:
     - graph
+  pretrain: true
+  verbose: true
 
 augmentations:
   # rotate:

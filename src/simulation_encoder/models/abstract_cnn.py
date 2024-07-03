@@ -18,6 +18,7 @@ class BaseCNN(ABC, nn.Module):
         name: str = "",
         architecture: dict[str, list[dict[str, Any]]] = {},
         num_channels: int = 1,
+        image_size: int = 256,
         num_epochs: int = 10,
         params: dict[str, Any] = {},
         logger: Optional[Any] = None,
@@ -138,8 +139,13 @@ class BaseCNN(ABC, nn.Module):
                 if config.get("in_features") == "latent_dim":
                     config["in_features"] = self.latent_dim
 
+                if config.get("in_features") == "num_channels":
+                    config["in_features"] = self.image_size * self.image_size
+                if config.get("out_features") == "num_channels":
+                    config["out_features"] = self.image_size * self.image_size
+
             if layer_type == "Unflatten":
-                shape = config.get("shape")
+                shape = config.get("shape", [self.num_channels, self.image_size, self.image_size])
                 layer = layer_class(1, tuple(shape))  # type: ignore
             else:
                 layer = layer_class(**{k: v for k, v in config.items() if k != "type"})
@@ -150,10 +156,11 @@ class BaseCNN(ABC, nn.Module):
 
     def _get_grad_norm(self, layer: nn.Sequential) -> torch.Tensor:
         """Calculates the gradient norm of a model"""
-        try:
-            return torch.norm(layer[-1].weight.grad)
-        except AttributeError:
-            raise AttributeError(f"{layer} does not have a gradient attribute")
+        for i in range(1, len(layer) - 1):
+            if hasattr(layer[-i], "weight"):
+                return torch.norm(layer[-i].weight.grad)
+
+        raise AttributeError(f"No layers have gradient attribute")
 
     def _get_device(self) -> str:
         device = (

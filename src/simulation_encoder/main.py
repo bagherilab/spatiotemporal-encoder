@@ -26,9 +26,10 @@ def main() -> None:
     and the run method is called to start the simulation encoder."""
 
     main_config = _load_yaml(CONFIG_YAML)
+    pretrain = main_config["general_configs"]["pretrain"]
     verbose = main_config["general_configs"]["verbose"]
 
-    runner = Runner(verbose)
+    runner = Runner(pretrain, verbose)
     dataset_params = create_dataset_params(main_config)
     runner.add_dataset(dataset_params)
 
