@@ -1,16 +1,13 @@
 from typing import Optional, Any
 from collections import defaultdict
 
-import numpy as np
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from simulation_encoder.logger import ExperimentLogger
-from simulation_encoder.models.rbm import RBM, CRBM
 from simulation_encoder.models.abstract_cnn import BaseCNN
-from simulation_encoder.loader import Loader
 
 
 class VAE(BaseCNN):

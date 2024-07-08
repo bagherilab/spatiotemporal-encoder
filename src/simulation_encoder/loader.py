@@ -210,8 +210,12 @@ class Loader(ABC, Dataset):
 
     @staticmethod
     def _subsample_loader(data_loader: DataLoader, frac: float) -> DataLoader:
-        num_samples = int(len(data_loader.dataset) * frac)
-        indices = np.random.choice(len(data_loader.dataset), num_samples, replace=False)
+        if frac >= 1.0:
+            return data_loader
+
+        total_num_samples = len(data_loader.dataset)  # type: ignore
+        num_samples = int(total_num_samples * frac)
+        indices = np.random.choice(total_num_samples, num_samples, replace=False).tolist()
         dataset = Subset(data_loader.dataset, indices)
         return DataLoader(
             dataset, batch_size=data_loader.batch_size, shuffle=True, collate_fn=Loader._collate_fn
@@ -248,7 +252,7 @@ class Loader(ABC, Dataset):
             transformed_features = func(feature)
             transformed_data.append(transformed_features)
             labels.append(label)
-            
+        
         transformed_data = torch.cat(transformed_data, dim=0)
         labels = torch.cat(labels, dim=0)
 

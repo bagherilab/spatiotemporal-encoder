@@ -9,7 +9,6 @@ from torch.utils.data import DataLoader
 
 from simulation_encoder.logger import ExperimentLogger
 from simulation_encoder.models.abstract_cnn import BaseCNN
-from simulation_encoder.models.rbm import CRBM, RBM
 
 
 class CAE(BaseCNN):
@@ -36,6 +35,7 @@ class CAE(BaseCNN):
         architecture: dict[str, list[dict[str, Any]]],
         num_channels: int = 1,
         num_epochs: int = 5,
+        image_size: int = 128,
         params: dict[str, Any] = {},
         logger: Optional[ExperimentLogger] = None,
     ):
@@ -47,6 +47,7 @@ class CAE(BaseCNN):
         self.architecture = architecture
         self.num_channels = num_channels
         self.num_epochs = num_epochs
+        self.image_size = image_size
         self.params = params
         self.logger = logger
         self.latent_dim = params.get("latent_dim", 32)
@@ -67,6 +68,10 @@ class CAE(BaseCNN):
             "image": nn.MSELoss(),
             "timepoint": nn.CrossEntropyLoss(),
         }
+
+        # Chosen arbitrarily
+        # Factor to balance image and timepoint loss
+        self.image_loss_factor = 10
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, ...]:
         """Performs encoding and several decoding heads"""
@@ -99,7 +104,7 @@ class CAE(BaseCNN):
                 z = self.encode(inputs)
                 encoded.append(z)
         return torch.cat(encoded, dim=0)
-    
+
     def train_one_epoch(
         self,
         train_loader: DataLoader,
@@ -128,10 +133,6 @@ class CAE(BaseCNN):
 
         avg_loss: dict[str, float] = defaultdict(float)
 
-        # Chosen rather arbitrarily
-        # Factor to balance image and timepoint loss
-        image_loss_factor = 1000
-
         with tqdm(train_loader, unit=" batch", ncols=100, desc=f"Epoch {epoch + 1}") as tepoch:
             for inputs, labels in tepoch:
                 inputs, labels = inputs.to(self.device), labels.to(self.device)
@@ -140,7 +141,7 @@ class CAE(BaseCNN):
                 pred_image, pred_timepoint = self(inputs)
 
                 batch_loss = {
-                    "image": image_criteria(pred_image, inputs) * image_loss_factor,
+                    "image": image_criteria(pred_image, inputs) * self.image_loss_factor,
                     "timepoint": timepoint_criteria(pred_timepoint, labels),
                 }
                 reconstruction_loss, reconstruction_loss_weighted = self._calc_reconstruction_loss(

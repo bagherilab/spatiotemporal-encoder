@@ -6,6 +6,8 @@ data:
   image_size: 128
 
 models:
+  - architecture: cae_flat
+    params: grid
   - architecture: vae_flat
     params: grid
 
@@ -14,6 +16,7 @@ general_configs:
   val_split: 0.2
   test_split: 0.2
   channels:
+    - cancer
     - graph
   pretrain: true
   verbose: true

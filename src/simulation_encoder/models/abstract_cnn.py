@@ -170,10 +170,18 @@ class BaseCNN(ABC, nn.Module):
 
                 rbm.train(train_loader, rbm_epochs, rbm_lr)
 
-                train_loader = Loader._transform_dataloader(rbm.sample_hk, train_loader, self.device)
+                train_loader = Loader._transform_dataloader(
+                    rbm.sample_hk, train_loader, self.device
+                )
 
+                layer_params = self.architecture["encoder"][i]
+                layer = self.encoder[i]
                 layer.weight.data = rbm.W.t().data
                 layer.bias.data = rbm.h_bias.data
+
+                deoder_layer = self.decoder_image[num_layers - i - 1]
+                deoder_layer.weight.data = rbm.W.data
+                deoder_layer.bias.data = rbm.v_bias.data
 
     @abstractmethod
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, ...]:
@@ -223,9 +231,9 @@ class BaseCNN(ABC, nn.Module):
                     config["in_features"] = self.latent_dim
 
                 if config.get("in_features") == "num_channels":
-                    config["in_features"] = self.image_size * self.image_size
+                    config["in_features"] = self.image_size * self.image_size * self.num_channels
                 if config.get("out_features") == "num_channels":
-                    config["out_features"] = self.image_size * self.image_size
+                    config["out_features"] = self.image_size * self.image_size * self.num_channels
 
             if layer_type == "Unflatten":
                 shape = config.get("shape", [self.num_channels, self.image_size, self.image_size])

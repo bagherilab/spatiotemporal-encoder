@@ -64,13 +64,15 @@ class RBM(nn.Module):
         return
 
     def sample_h(self, v: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        """Sample hidden units given visible units"""
         activation = torch.matmul(v, self.W) + self.h_bias
         if self.gaussian:
             return activation, torch.normal(activation, torch.ones_like(activation).to(self.device))
         p = torch.sigmoid(activation)
         return p, torch.bernoulli(p)
-    
+
     def sample_hk(self, v: torch.Tensor) -> torch.Tensor:
+        """Sample hidden units given visible units"""
         activation = torch.matmul(v, self.W) + self.h_bias
         if self.gaussian:
             return torch.normal(activation, torch.ones_like(activation).to(self.device))
@@ -78,6 +80,7 @@ class RBM(nn.Module):
         return torch.bernoulli(p)
 
     def sample_v(self, h: torch.Tensor) -> torch.Tensor:
+        """Sample visible units given hidden units"""
         activation = torch.matmul(h, self.W.t()) + self.v_bias
         p = torch.sigmoid(activation)
         return p
@@ -93,6 +96,7 @@ class RBM(nn.Module):
         weight_decay: float,
         batch_size: int,
     ) -> None:
+        """Update weights of the RBM"""
         self.W_momentum *= momentum_coef
 
         self.W_momentum += torch.matmul(v0.t(), ph0) - torch.matmul(vk.t(), phk)
@@ -192,7 +196,8 @@ class CRBM(nn.Module):
 
         return
 
-    def sample_h(self, v):
+    def sample_h(self, v: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        """Sample hidden units given visible units"""
         conv_op = F.conv2d(v, self.W, self.h_bias, stride=self.stride, padding=self.padding)
         p_h = torch.sigmoid(conv_op)
         if self.gaussian:
@@ -200,14 +205,26 @@ class CRBM(nn.Module):
 
         return p_h, torch.bernoulli(p_h)
 
-    def sample_v(self, h):
+    def sample_v(self, h: torch.Tensor) -> torch.Tensor:
+        """Sample visible units given hidden units"""
         deconv_op = F.conv_transpose2d(
             h, self.W, self.v_bias, stride=self.stride, padding=self.padding, output_padding=1
         )
         p_v = torch.sigmoid(deconv_op)
         return p_v
 
-    def update_weights(self, v0, vk, ph0, phk, lr, momentum_coef, weight_decay, batch_size):
+    def update_weights(
+        self,
+        v0: torch.Tensor,
+        vk: torch.Tensor,
+        ph0: torch.Tensor,
+        phk: torch.Tensor,
+        lr: float,
+        momentum_coef: float,
+        weight_decay: float,
+        batch_size: int,
+    ) -> None:
+        """Update weights of the CRBM"""
         self.W_momentum *= momentum_coef
 
         pos_grad = F.conv2d(
