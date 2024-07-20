@@ -41,7 +41,8 @@ class Runner:
         Dictionary of model names and their corresponding loss data
     """
 
-    def __init__(self, verbose: bool = False) -> None:
+    def __init__(self, pretrain: bool = False, verbose: bool = False) -> None:
+        self.pretrain = pretrain
         self.verbose = verbose
 
         self._UUID = uuid.uuid4()
@@ -129,7 +130,7 @@ class Runner:
             encoded_dataset = self._encode_dataset(model)
             self.writer.write_encoded_data(model_id, encoded_dataset)
 
-        best_model = min(self.losses, key=lambda x: self.losses[x].combined_loss_val)
+        best_model = min(self.losses, key=lambda x: min(self.losses[x].losses_val["combined"]))
 
         self.writer.write_results(
             "_best_model",
@@ -142,11 +143,11 @@ class Runner:
         # labels = self.dataset.labels
         # exp_id = self.dataset.exp_id
         labels = ["activity", "growth", "symmetry"]
-        exp_id = "092a30b5-db7a-4a13-b22d-5fe174d790ce"
+        exp_id = "d50d60f1-ae6b-4f4d-894f-c0416b4feb4f"
 
         encoder_models = []
         for folder_name in os.listdir(f"results/{exp_id}"):
-            if folder_name.startswith("1c_"):
+            if self._is_model_folder(folder_name):
                 encoder_models.append(folder_name)
         encoder_models.sort()
 
@@ -163,10 +164,9 @@ class Runner:
             X_val, y_val = encoded_dataset.get_data("val")
 
             for label in labels:
-                best_model_type = None
-                best_model_params = None
-                best_r2 = float("-inf")
+                print(label)
                 for model_type, model in models.items():
+                    print(model_type)
                     model_params = model.grid_search(X_train, y_train[label])
                     model = Emulator(model_type=model_type, params=model_params)
 
@@ -177,14 +177,10 @@ class Runner:
 
                     model.fit(X_train, y_train[label])
                     r2 = model.evaluate(X_val, y_val[label])
-                    if r2 > best_r2:
-                        best_r2 = r2
-                        best_model_type = model_type
-                        best_model_params = model_params
 
-                self.writer.write_emulation_results(
-                    best_model_type, label, best_model_params, best_r2
-                )
+                    self.writer.write_emulation_results(
+                        encoder_model, model_type, label, model_params, r2
+                    )
 
     def _train_model(self, model_name: str, model: CAE) -> None:
         """Trains a model on the dataset"""
@@ -193,6 +189,7 @@ class Runner:
         losses, val_losses, grad_norms = model.fit(
             train_loader,
             val_loader=val_loader,
+            pretrain=self.pretrain,
         )
 
         self.losses[model_name].add_train_loss(losses)
@@ -245,3 +242,19 @@ class Runner:
         self.logger.log(
             f"Trained model saved at results/{self._UUID}/{model_name}/trained_model.pth"
         )
+
+    def _is_model_folder(self, folder_name: str) -> bool:
+        """Check if folder is a model folder"""
+        folder_chunks = folder_name.split("_")
+        if len(folder_chunks) < 3:
+            return False
+        
+        model_id = folder_chunks[-1]
+        dim = folder_chunks[-2]
+        try:
+            int(dim[:-1])
+            int(model_id)
+        except ValueError:
+            return False
+        
+        return True

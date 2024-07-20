@@ -32,6 +32,7 @@ class Writer:
             "model": model_name,
             "loader": loader,
             "architecture": model.name,
+            "channels": dataset.channels,
             "params": model.params,
             "data_augmentations": [aug for aug in dataset.augmentations],
             "keys": dataset.keys,
@@ -46,7 +47,7 @@ class Writer:
             json.dump(results, r_file, indent=4)
 
     def write_emulation_results(
-        self, model_type: str, target: str, model_params: dict[str, float], r2: float
+        self, encoder_model: str, model_type: str, target: str, model_params: dict[str, float], r2: float
     ) -> None:
         """Writes the results of all emulators"""
         self._setup()
@@ -58,11 +59,14 @@ class Writer:
             with open(results_path, "r") as r_file:
                 results = json.load(r_file)
 
-        if model_type not in results:
-            results[model_type] = {}
+        if encoder_model not in results:
+            results[encoder_model] = {}
 
-        results[model_type][target] = model_params
-        results[model_type][target]["r2"] = r2
+        if model_type not in results[encoder_model]:
+            results[encoder_model][model_type] = {}
+
+        results[encoder_model][model_type][target] = model_params
+        results[encoder_model][model_type][target]["r2"] = r2
 
         with open(results_path, "w", encoding="utf-8") as r_file:
             json.dump(results, r_file, indent=4)

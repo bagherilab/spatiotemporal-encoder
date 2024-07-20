@@ -6,6 +6,9 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
+from simulation_encoder.models.rbm import RBM, CRBM
+from simulation_encoder.loader import Loader
+
 
 class BaseCNN(ABC, nn.Module):
     """
@@ -18,6 +21,7 @@ class BaseCNN(ABC, nn.Module):
         name: str = "",
         architecture: dict[str, list[dict[str, Any]]] = {},
         num_channels: int = 1,
+        image_size: int = 256,
         num_epochs: int = 10,
         params: dict[str, Any] = {},
         logger: Optional[Any] = None,
@@ -38,6 +42,7 @@ class BaseCNN(ABC, nn.Module):
         self,
         train_loader: DataLoader,
         val_loader: Optional[DataLoader] = None,
+        pretrain: bool = False,
     ) -> tuple[dict[str, list[float]], dict[str, list[float]], dict[str, list[float]]]:
         """
         Fits the network over the training data for a number of epochs.
@@ -57,6 +62,9 @@ class BaseCNN(ABC, nn.Module):
             Dicts of training loss, validation loss, and gradient norms
         """
         self.to(self.device)
+
+        if pretrain:
+            self.pretrain_encoder_rbm(train_loader)
 
         train_losses: dict[str, list[float]] = defaultdict(list)
         val_losses: dict[str, list[float]] = defaultdict(list)
@@ -90,6 +98,95 @@ class BaseCNN(ABC, nn.Module):
                 self.logger.log(msg)
 
         return (train_losses, val_losses, grad_norms)
+
+    def pretrain_encoder_rbm(
+        self,
+        train_loader: DataLoader,
+        rbm_epochs: int = 10,
+        rbm_lr: float = 0.01,
+        data_fraction: float = 0.2,
+    ) -> None:
+        """
+        Pretrains the encoder using a Restricted Boltzmann Machine.
+
+        Parameters
+        ----------
+        train_loader : DataLoader
+            DataLoader containing training data
+        rbm_epochs : int
+            Number of epochs to train the RBM
+        rbm_lr : float, optional
+            Learning rate for the RBM
+        data_fraction : float, optional
+            Fraction of data to use for training
+        """
+        train_loader = Loader._subsample_loader(train_loader, data_fraction)
+
+        num_layers = len(self.architecture["encoder"])
+        is_flattened = False
+        for i, (layer_params, layer) in enumerate(zip(self.architecture["encoder"], self.encoder)):
+            if layer_params["type"] == "Conv2d":
+                in_channels = layer_params["in_channels"]
+                out_channels = layer_params["out_channels"]
+                kernel_size = layer_params["kernel_size"]
+                stride = layer_params["stride"]
+                padding = layer_params["padding"]
+
+                print(f"CRBM {in_channels} channels to {out_channels} channels")
+                crbm = CRBM(
+                    in_channels,
+                    out_channels,
+                    kernel_size,
+                    stride,
+                    padding,
+                    device=self.device,
+                )
+                crbm.train(train_loader, rbm_epochs, rbm_lr)
+                train_loader = Loader._transform_dataloader(
+                    crbm.sample_hk, train_loader, self.device
+                )
+
+                layer.weight.data = crbm.W.data
+                layer.bias.data = crbm.h_bias.data
+
+            elif layer_params["type"] == "MaxPool2d":
+                kernel_size = layer_params["kernel_size"]
+                stride = layer_params["stride"]
+                maxpool = nn.MaxPool2d(kernel_size, stride)
+                train_loader = Loader._transform_dataloader(
+                    maxpool, train_loader, self.device
+                )
+
+            elif layer_params["type"] == "Linear":
+                in_features = layer_params["in_features"]
+                out_features = layer_params["out_features"]
+
+                if not is_flattened:
+                    train_loader = Loader._flatten_loader(train_loader)
+                    is_flattened = True
+
+                print(f"RBM {in_features} nodes to {out_features} nodes")
+                if i == num_layers - 1:
+                    gaussian = True
+                    rbm = RBM(in_features, out_features, gaussian, self.device)
+                else:
+                    gaussian = False
+                    rbm = RBM(in_features, out_features, gaussian, self.device)
+
+                rbm.train(train_loader, rbm_epochs, rbm_lr)
+
+                train_loader = Loader._transform_dataloader(
+                    rbm.sample_hk, train_loader, self.device
+                )
+
+                layer_params = self.architecture["encoder"][i]
+                layer = self.encoder[i]
+                layer.weight.data = rbm.W.t().data
+                layer.bias.data = rbm.h_bias.data
+
+                deoder_layer = self.decoder_image[num_layers - i - 1]
+                deoder_layer.weight.data = rbm.W.data
+                deoder_layer.bias.data = rbm.v_bias.data
 
     @abstractmethod
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, ...]:
@@ -125,21 +222,31 @@ class BaseCNN(ABC, nn.Module):
             layer_class = getattr(nn, layer_type, None)  # type: ignore
             if layer_class is None:
                 raise ValueError(f"Layer type {layer_type} not recognized")
-
             # Dynamically set the number of channels and latent dimension size
-            if layer_type == "Conv2d":
+            if layer_type == "Conv2d" or layer_type == "ConvTranspose2d":
                 if config.get("in_channels") == "num_channels":
                     config["in_channels"] = self.num_channels
                 if config.get("out_channels") == "num_channels":
                     config["out_channels"] = self.num_channels
+
             elif layer_type == "Linear":
                 if config.get("out_features") == "latent_dim":
                     config["out_features"] = self.latent_dim
                 if config.get("in_features") == "latent_dim":
                     config["in_features"] = self.latent_dim
+                if config.get("in_features") == "num_channels":
+                    config["in_features"] = self.image_size * self.image_size * self.num_channels
+                if config.get("out_features") == "num_channels":
+                    config["out_features"] = self.image_size * self.image_size * self.num_channels
+
+            elif layer_type == "BatchNorm1d":
+                if config.get("num_features") == "latent_dim":
+                    config["num_features"] = self.latent_dim
+                if config.get("num_features") == "num_channels":
+                    config["num_features"] = self.num_channels * self.image_size * self.image_size
 
             if layer_type == "Unflatten":
-                shape = config.get("shape")
+                shape = config.get("shape", [self.num_channels, self.image_size, self.image_size])
                 layer = layer_class(1, tuple(shape))  # type: ignore
             else:
                 layer = layer_class(**{k: v for k, v in config.items() if k != "type"})
@@ -150,10 +257,11 @@ class BaseCNN(ABC, nn.Module):
 
     def _get_grad_norm(self, layer: nn.Sequential) -> torch.Tensor:
         """Calculates the gradient norm of a model"""
-        try:
-            return torch.norm(layer[-1].weight.grad)
-        except AttributeError:
-            raise AttributeError(f"{layer} does not have a gradient attribute")
+        for i in range(1, len(layer) - 1):
+            if hasattr(layer[-i], "weight"):
+                return torch.norm(layer[-i].weight.grad)
+
+        raise AttributeError(f"No layers have gradient attribute")
 
     def _get_device(self) -> str:
         device = (

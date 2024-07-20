@@ -1,24 +1,27 @@
 experiment_name: ARCADE
 
 data:
-  image_dir: data/ARCADE/vascular_function/images
-  label_dir: data/ARCADE/vascular_function/labels
+  image_dir: data/ARCADE/vascular_function_128/images
+  label_dir: data/ARCADE/vascular_function_128/labels
+  image_size: 128
 
 models:
-  - architecture: vae
+  - architecture: vae_flat
     params: grid
 
 general_configs:
   batch_size: 32
   val_split: 0.2
   test_split: 0.2
-  verbose: true
   channels:
+    - cancer
     - graph
+  pretrain: true
+  verbose: true
 
 augmentations:
-  rotate:
-    degree: 180
+  # rotate:
+  #   degree: 180
 
 keys:
   - CH_Lav

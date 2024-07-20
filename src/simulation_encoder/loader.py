@@ -9,7 +9,7 @@ import pandas as pd
 from PIL import Image
 
 import torch
-from torch.utils.data import Dataset, DataLoader, Subset
+from torch.utils.data import Dataset, DataLoader, Subset, TensorDataset
 from torchvision import transforms
 
 from simulation_encoder.logger import ExperimentLogger
@@ -114,7 +114,7 @@ class Loader(ABC, Dataset):
             dataset,
             batch_size=self.batch_size,
             shuffle=(dataset_type == "train"),  # Shuffle only for training data
-            collate_fn=self._collate_fn,
+            collate_fn=Loader._collate_fn,
         )
 
     def get_indices(self) -> tuple[list[int], list[int], list[int]]:
@@ -208,9 +208,61 @@ class Loader(ABC, Dataset):
             groups[key].append(idx)
         return groups
 
-    def _collate_fn(
-        self, batch: list[tuple[torch.Tensor, int]]
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+    @staticmethod
+    def _subsample_loader(data_loader: DataLoader, frac: float) -> DataLoader:
+        if frac >= 1.0:
+            return data_loader
+
+        total_num_samples = len(data_loader.dataset)  # type: ignore
+        num_samples = int(total_num_samples * frac)
+        indices = np.random.choice(total_num_samples, num_samples, replace=False).tolist()
+        dataset = Subset(data_loader.dataset, indices)
+        return DataLoader(
+            dataset, batch_size=data_loader.batch_size, shuffle=True, collate_fn=Loader._collate_fn
+        )
+
+    @staticmethod
+    def _flatten_loader(data_loader: DataLoader) -> DataLoader:
+        flat_input = []
+        labels = []
+        batch_size = data_loader.batch_size
+
+        for data in data_loader:
+            features, targets = data
+            flat_features = features.view(features.size(0), -1)
+            flat_input.append(flat_features)
+            labels.append(targets)
+
+        flat_input = torch.cat(flat_input, dim=0)
+        labels = torch.cat(labels, dim=0)
+
+        dataset = TensorDataset(flat_input, labels)
+        return DataLoader(
+            dataset, batch_size=batch_size, shuffle=True, collate_fn=Loader._collate_fn
+        )
+
+    @staticmethod
+    def _transform_dataloader(
+        func: Callable[[torch.Tensor], torch.Tensor], data_loader: DataLoader, device: str = "cpu"
+    ) -> DataLoader:
+        transformed_data = []
+        labels = []
+        for feature, label in data_loader:
+            feature = feature.to(device)
+            transformed_features = func(feature)
+            transformed_data.append(transformed_features)
+            labels.append(label)
+        
+        transformed_data = torch.cat(transformed_data, dim=0)
+        labels = torch.cat(labels, dim=0)
+
+        dataset = TensorDataset(transformed_data, labels)
+        return DataLoader(
+            dataset, batch_size=data_loader.batch_size, shuffle=True, collate_fn=Loader._collate_fn
+        )
+
+    @staticmethod
+    def _collate_fn(batch: list[tuple[torch.Tensor, int]]) -> tuple[torch.Tensor, torch.Tensor]:
         images, labels = zip(*batch)
         images_stack = torch.stack(images)
         labels_tensor = torch.tensor(labels)
@@ -357,6 +409,7 @@ class ARCADELoader(Loader):
     ) -> Optional[dict[str, Augmentation]]:
         if not augmentations:
             return None
+
         augmentation_map: dict[str, Callable[..., Any]] = {
             "rotate": lambda degree: transforms.RandomRotation(degrees=degree),
         }
@@ -368,7 +421,9 @@ class ARCADELoader(Loader):
                 raise ValueError(f"Invalid augmentation name: {aug_name}")
 
             transform = augmentation_map[aug_name](*map(int, args))
-            augmentations_dict[aug_name] = Augmentation(transform, aug_name)
+
+            full_aug_name = f"{aug_name}_{'_'.join(map(str, args))}"
+            augmentations_dict[full_aug_name] = Augmentation(transform, aug_name)
 
         return augmentations_dict
 
@@ -550,7 +605,7 @@ class CSVLoader(Dataset):
         self._X_test, self._y_test = self._load_csv("test")
 
     def _load_csv(self, dataset_type: str) -> tuple[pd.DataFrame, pd.DataFrame]:
-        file_path = os.path.join(self.data_path, f"{dataset_type}.csv")
+        file_path = os.path.join(self.data_path, f"encoded_data/{dataset_type}.csv")
         data = pd.read_csv(file_path)
         self.feature_cols = [col for col in data.columns if col.startswith("dim_")]
         X, y = (
