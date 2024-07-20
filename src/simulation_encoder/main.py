@@ -39,6 +39,7 @@ def main() -> None:
         runner.add_models(model_param_sets)
 
     runner.run_encoder()
+    # runner.run_emulator()
 
 
 def create_dataset_params(main_config: dict[str, Any]) -> DatasetParams:

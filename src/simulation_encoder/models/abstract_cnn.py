@@ -132,25 +132,30 @@ class BaseCNN(ABC, nn.Module):
                 stride = layer_params["stride"]
                 padding = layer_params["padding"]
 
+                print(f"CRBM {in_channels} channels to {out_channels} channels")
                 crbm = CRBM(
                     in_channels,
                     out_channels,
                     kernel_size,
                     stride,
                     padding,
-                    gaussian=False,
                     device=self.device,
                 )
                 crbm.train(train_loader, rbm_epochs, rbm_lr)
                 train_loader = Loader._transform_dataloader(
-                    crbm.sample_h, train_loader, self.device
+                    crbm.sample_hk, train_loader, self.device
                 )
 
                 layer.weight.data = crbm.W.data
                 layer.bias.data = crbm.h_bias.data
 
             elif layer_params["type"] == "MaxPool2d":
-                train_loader = layer(train_loader)
+                kernel_size = layer_params["kernel_size"]
+                stride = layer_params["stride"]
+                maxpool = nn.MaxPool2d(kernel_size, stride)
+                train_loader = Loader._transform_dataloader(
+                    maxpool, train_loader, self.device
+                )
 
             elif layer_params["type"] == "Linear":
                 in_features = layer_params["in_features"]
@@ -160,7 +165,7 @@ class BaseCNN(ABC, nn.Module):
                     train_loader = Loader._flatten_loader(train_loader)
                     is_flattened = True
 
-                print(f"RBM {in_features} to {out_features}")
+                print(f"RBM {in_features} nodes to {out_features} nodes")
                 if i == num_layers - 1:
                     gaussian = True
                     rbm = RBM(in_features, out_features, gaussian, self.device)
@@ -217,23 +222,28 @@ class BaseCNN(ABC, nn.Module):
             layer_class = getattr(nn, layer_type, None)  # type: ignore
             if layer_class is None:
                 raise ValueError(f"Layer type {layer_type} not recognized")
-
             # Dynamically set the number of channels and latent dimension size
-            if layer_type == "Conv2d":
+            if layer_type == "Conv2d" or layer_type == "ConvTranspose2d":
                 if config.get("in_channels") == "num_channels":
                     config["in_channels"] = self.num_channels
                 if config.get("out_channels") == "num_channels":
                     config["out_channels"] = self.num_channels
+
             elif layer_type == "Linear":
                 if config.get("out_features") == "latent_dim":
                     config["out_features"] = self.latent_dim
                 if config.get("in_features") == "latent_dim":
                     config["in_features"] = self.latent_dim
-
                 if config.get("in_features") == "num_channels":
                     config["in_features"] = self.image_size * self.image_size * self.num_channels
                 if config.get("out_features") == "num_channels":
                     config["out_features"] = self.image_size * self.image_size * self.num_channels
+
+            elif layer_type == "BatchNorm1d":
+                if config.get("num_features") == "latent_dim":
+                    config["num_features"] = self.latent_dim
+                if config.get("num_features") == "num_channels":
+                    config["num_features"] = self.num_channels * self.image_size * self.image_size
 
             if layer_type == "Unflatten":
                 shape = config.get("shape", [self.num_channels, self.image_size, self.image_size])

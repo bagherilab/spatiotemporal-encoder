@@ -6,8 +6,6 @@ data:
   image_size: 128
 
 models:
-  - architecture: cae_flat
-    params: grid
   - architecture: vae_flat
     params: grid
 

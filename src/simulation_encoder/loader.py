@@ -605,7 +605,7 @@ class CSVLoader(Dataset):
         self._X_test, self._y_test = self._load_csv("test")
 
     def _load_csv(self, dataset_type: str) -> tuple[pd.DataFrame, pd.DataFrame]:
-        file_path = os.path.join(self.data_path, f"{dataset_type}.csv")
+        file_path = os.path.join(self.data_path, f"encoded_data/{dataset_type}.csv")
         data = pd.read_csv(file_path)
         self.feature_cols = [col for col in data.columns if col.startswith("dim_")]
         X, y = (

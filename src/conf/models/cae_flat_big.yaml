@@ -1,9 +1,15 @@
-type: VAE
+type: CAE
 architecture:
   encoder:
     - type: Flatten
     - type: Linear
       in_features: num_channels
+      out_features: 4096
+    - type: BatchNorm1d
+      num_features: 4096
+    - type: ReLU
+    - type: Linear
+      in_features: 4096
       out_features: 2048
     - type: BatchNorm1d
       num_features: 2048
@@ -68,6 +74,12 @@ architecture:
     - type: ReLU
     - type: Linear
       in_features: 2048
+      out_features: 4096
+    - type: BatchNorm1d
+      num_features: 4096
+    - type: ReLU
+    - type: Linear
+      in_features: 4096
       out_features: num_channels
     - type: Unflatten
     - type: Sigmoid
@@ -92,4 +104,10 @@ architecture:
     - type: ReLU
     - type: Linear
       in_features: 32
+      out_features: 16
+    - type: BatchNorm1d
+      num_features: 16
+    - type: ReLU
+    - type: Linear
+      in_features: 16
       out_features: 15
