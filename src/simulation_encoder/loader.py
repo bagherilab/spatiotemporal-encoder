@@ -381,6 +381,9 @@ class ARCADELoader(Loader):
             groups[group_key][image_type] = os.path.join(self.image_dir, file_name)
             groups[group_key]["seed_key"] = f"{context}_{vasc_type}_{seed}"
 
+            if not self.labels:
+                continue
+
             for label in self.labels:
                 if label in groups[group_key]["labels"] or not self.label_loader:
                     continue
@@ -554,9 +557,9 @@ class CSVLoader(Dataset):
         List of target labels.
     """
 
-    def __init__(self, exp_id: str, model: str, labels: list[str]) -> None:
+    def __init__(self, conf_name: str, exp_id: str, model: str, labels: list[str]) -> None:
         self.exp_id = exp_id
-        self.data_path = f"results/{exp_id}/{model}/"
+        self.data_path = f"results/{conf_name}/{exp_id}/{model}/"
         self.labels = labels
         self._load_data()
 

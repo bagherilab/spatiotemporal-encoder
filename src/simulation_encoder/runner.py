@@ -1,19 +1,22 @@
 import os
 import uuid
 from copy import deepcopy
+from collections import defaultdict
+from typing import Optional
 
 import torch
 import pandas as pd
 
 from simulation_encoder.loader import ARCADELoader, CSVLoader, AlphaNumericLoader, Loader
 from simulation_encoder.logger import ExperimentLogger
-from simulation_encoder.writer import Writer
+
 from simulation_encoder.models.cae import CAE
 from simulation_encoder.models.vae import VAE
 from simulation_encoder.models.emulator import Emulator
+
 from simulation_encoder.dataclass.param_sets import DatasetParams, ModelParams
 from simulation_encoder.dataclass.loss_data import LossData
-from simulation_encoder.plotter import line_plot, loss_plot
+from simulation_encoder.dataclass.emulator_results import EmulationResults, EncoderModelResult
 
 
 class Runner:
@@ -33,8 +36,6 @@ class Runner:
         Dictionary of model names and their corresponding CAE models
     dataset : Loader
         Dataset to be used for training and evaluation
-    writer : Writer
-        Writer object for saving things to disk
     logger : ExperimentLogger
         Logger object for logging
     losses : dict[str, LossData]
@@ -49,11 +50,10 @@ class Runner:
         self.models: dict[str, CAE | VAE] = {}
         self.dataset: Loader = None
 
-        self.writer = Writer(uuid=self._UUID)
         self.logger = ExperimentLogger(uuid=self._UUID, verbose=verbose)
         self.losses: dict[str, LossData] = {}
 
-    def add_dataset(self, dataset_params: DatasetParams) -> None:
+    def add_dataset(self, dataset_params: DatasetParams) -> tuple[list[int], list[int], list[int]]:
         """
         Set the dataset on which models should be trained
 
@@ -77,7 +77,8 @@ class Runner:
                 **params_dict,
                 logger=self.logger,
             )
-        self.writer.write_indices(self.dataset.get_indices())
+
+        return self.dataset.get_indices()
 
     def add_models(self, model_param_sets: list[ModelParams]) -> None:
         """
@@ -110,7 +111,19 @@ class Runner:
         device = model.device
         self.logger.log(f"{model_param_set.name} models added to runner. Device: {device}")
 
-    def run_encoder(self) -> None:
+    def get_losses(self) -> dict[str, LossData]:
+        """Returns the loss data for all models"""
+        return self.losses
+
+    def get_model(self, model_name: str) -> CAE | VAE:
+        """Returns the specified model"""
+        return self.models[model_name]
+
+    def get_dataset(self) -> Loader:
+        """Returns the dataset"""
+        return self.dataset
+
+    def run_encoder(self) -> dict:
         """Runs the training and evaluation of models"""
         if not self.dataset:
             raise ValueError("No dataset has been added to runner.")
@@ -121,68 +134,36 @@ class Runner:
         self.logger.log(f"Training points: {self.dataset.n_train} (including any augmented images)")
         self.logger.log(f"Testing points: {self.dataset.n_test}")
 
-        for model_id, model in self.models.items():
-            self.logger.log(f"------------------- {model_id} -------------------")
-            self._train_model(model_id, model)
-            # self._eval_model(model_id, model)
-            self._save_model(model_id, model)
-            self.writer.write_results(model_id, model, self.dataset, self.losses[model_id])
-            encoded_dataset = self._encode_dataset(model)
-            self.writer.write_encoded_data(model_id, encoded_dataset)
-
-        best_model = min(self.losses, key=lambda x: min(self.losses[x].losses_val["combined"]))
-
-        self.writer.write_results(
-            "_best_model",
-            self.models[best_model],
-            self.dataset,
-            self.losses[best_model],
+        results = defaultdict(
+            lambda: {
+                "encoded_data": None,
+                "model_state": None,
+                "plot_data": {"losses": None, "val_losses": None, "grad_norms": None},
+                "losses": self.losses,
+            }
         )
 
-    def run_emulator(self) -> None:
-        # labels = self.dataset.labels
-        # exp_id = self.dataset.exp_id
-        labels = ["activity", "growth", "symmetry"]
-        exp_id = "d50d60f1-ae6b-4f4d-894f-c0416b4feb4f"
+        for model_id, model in self.models.items():
+            self.logger.log(f"------------------- {model_id} -------------------")
+            losses, val_losses, grad_norms = self._train_model(model_id, model)
+            # self._eval_model(model_id, model)
 
-        encoder_models = []
-        for folder_name in os.listdir(f"results/{exp_id}"):
-            if self._is_model_folder(folder_name):
-                encoder_models.append(folder_name)
-        encoder_models.sort()
+            results[model_id]["model_state"] = model.state_dict()
+            encoded_dataset = self._encode_dataset(model)
+            results[model_id]["encoded_data"] = encoded_dataset
 
-        emulator_models = ["linear_regression", "random_forest", "svm"]
+            results[model_id]["plot_data"] = {
+                "losses": losses,
+                "val_losses": val_losses,
+                "grad_norms": grad_norms,
+            }
 
-        for encoder_model in encoder_models:
-            print(encoder_model)
-            encoded_dataset = CSVLoader(exp_id=exp_id, model=encoder_model, labels=labels)
-            models = {}
-            for model_type in emulator_models:
-                models[model_type] = Emulator(model_type=model_type)
+        best_model = min(self.losses, key=lambda x: min(self.losses[x].losses_val["combined"]))
+        results["best_model"] = best_model
 
-            X_train, y_train = encoded_dataset.get_data("train")
-            X_val, y_val = encoded_dataset.get_data("val")
+        return results
 
-            for label in labels:
-                print(label)
-                for model_type, model in models.items():
-                    print(model_type)
-                    model_params = model.grid_search(X_train, y_train[label])
-                    model = Emulator(model_type=model_type, params=model_params)
-
-                    X_train = (X_train - X_train.mean()) / X_train.std()
-                    y_train[label] = (y_train[label] - y_train[label].mean()) / y_train[label].std()
-                    X_val = (X_val - X_train.mean()) / X_train.std()
-                    y_val[label] = (y_val[label] - y_train[label].mean()) / y_train[label].std()
-
-                    model.fit(X_train, y_train[label])
-                    r2 = model.evaluate(X_val, y_val[label])
-
-                    self.writer.write_emulation_results(
-                        encoder_model, model_type, label, model_params, r2
-                    )
-
-    def _train_model(self, model_name: str, model: CAE) -> None:
+    def _train_model(self, model_name: str, model: CAE) -> tuple:
         """Trains a model on the dataset"""
         train_loader = self.dataset.get_dataloader(dataset_type="train")
         val_loader = self.dataset.get_dataloader(dataset_type="val")
@@ -195,8 +176,7 @@ class Runner:
         self.losses[model_name].add_train_loss(losses)
         self.losses[model_name].add_val_loss(val_losses)
 
-        line_plot(grad_norms, "grad_norms", self._UUID, model_name, "Epoch", "Gradient Norm")
-        loss_plot(losses["combined"], val_losses["combined"], self._UUID, model_name)
+        return losses, val_losses, grad_norms
 
     def _eval_model(self, model_name: str, model: CAE) -> None:
         """Evaluates all models currently in runner"""
@@ -218,13 +198,12 @@ class Runner:
         encoded_val = pd.DataFrame(encoded_val, columns=column_names)
         encoded_test = pd.DataFrame(encoded_test, columns=column_names)
 
-        try:
+        if self.dataset.labels:
             for label in self.dataset.labels:
                 encoded_train[label] = self.dataset.get_labels(label=label, dataset_type="train")
                 encoded_val[label] = self.dataset.get_labels(label=label, dataset_type="val")
                 encoded_test[label] = self.dataset.get_labels(label=label, dataset_type="test")
-        except AttributeError:
-            pass
+
 
         encoded_train["timepoint"] = self.dataset.get_timepoints(dataset_type="train")
         encoded_val["timepoint"] = self.dataset.get_timepoints(dataset_type="val")
@@ -243,12 +222,95 @@ class Runner:
             f"Trained model saved at results/{self._UUID}/{model_name}/trained_model.pth"
         )
 
+    def run_emulator(self, conf_name: str) -> Optional[EmulationResults]:
+        """Runs emulation for the encoded datasets and returns the results"""
+        labels = self.dataset.labels
+
+        if not self.dataset:
+            raise ValueError("No dataset has been added to runner.")
+        if not labels:
+            return
+        
+        emulator_models = ["linear_regression", "random_forest", "svm"]
+
+        encoder_models = self._get_encoder_models(conf_name)
+
+        emulation_results = EmulationResults()
+        for experiment, encoder_models in encoder_models.items():
+            for encoder_model in encoder_models:
+                encoded_dataset = CSVLoader(conf_name=conf_name, exp_id=experiment, model=encoder_model, labels=labels)
+                models = self._initialize_models(emulator_models)
+
+                X_train, y_train = encoded_dataset.get_data("train")
+                X_val, y_val = encoded_dataset.get_data("val")
+
+                encoder_model_result = emulation_results.add_encoder_model_result(encoder_model)
+                self._run_emulation_for_model(
+                    models, labels, X_train, y_train, X_val, y_val, encoder_model_result
+                )
+
+        return emulation_results
+
+    def _run_emulation_for_model(
+        self,
+        models: dict,
+        labels: list,
+        X_train: pd.DataFrame,
+        y_train: pd.DataFrame,
+        X_val: pd.DataFrame,
+        y_val: pd.DataFrame,
+        encoder_model_result: EncoderModelResult,
+    ) -> dict:
+        """Run emulation for a single encoder model"""
+        for label in labels:
+            label_result = encoder_model_result.add_label_result(label)
+            for model_type, model in models.items():
+                model_params = model.grid_search(X_train, y_train[label])
+                model = Emulator(model_type=model_type, params=model_params)
+
+                X_train_norm, y_train_norm, X_val_norm, y_val_norm = self._normalize_data(
+                    X_train, y_train[label], X_val, y_val[label]
+                )
+
+                model.fit(X_train_norm, y_train_norm)
+                r2_score = model.evaluate(X_val_norm, y_val_norm)
+
+                label_result.add_model_result(model_type, model_params, r2_score)
+
+    def _get_encoder_models(self, conf_name: str) -> list:
+        """Get list of encoder model folder names"""
+        encoder_models = {}
+        for experiment in os.listdir(f"results/{conf_name}"):
+            encoder_models[experiment] = []
+            for model in os.listdir(f"results/{conf_name}/{experiment}"):
+                if self._is_model_folder(model):
+                    encoder_models[experiment].append(model)
+            encoder_models[experiment].sort()
+        return encoder_models
+
+    def _initialize_models(self, emulator_models: list[str]) -> dict:
+        """Initialize emulator models"""
+        models = {}
+        for model_type in emulator_models:
+            models[model_type] = Emulator(model_type=model_type)
+        return models
+
+    def _normalize_data(
+        self, X_train: pd.DataFrame, y_train: pd.Series, X_val: pd.DataFrame, y_val: pd.Series
+    ) -> tuple:
+        """Normalize the training and validation data"""
+        X_train_norm = (X_train - X_train.mean()) / X_train.std()
+        y_train_norm = (y_train - y_train.mean()) / y_train.std()
+        X_val_norm = (X_val - X_train.mean()) / X_train.std()
+        y_val_norm = (y_val - y_train.mean()) / y_train.std()
+        return X_train_norm, y_train_norm, X_val_norm, y_val_norm
+
     def _is_model_folder(self, folder_name: str) -> bool:
         """Check if folder is a model folder"""
         folder_chunks = folder_name.split("_")
         if len(folder_chunks) < 3:
             return False
-        
+
         model_id = folder_chunks[-1]
         dim = folder_chunks[-2]
         try:
@@ -256,5 +318,5 @@ class Runner:
             int(model_id)
         except ValueError:
             return False
-        
+
         return True

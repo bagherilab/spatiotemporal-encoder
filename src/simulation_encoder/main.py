@@ -10,6 +10,8 @@ if str(Path(__file__).parent.parent) not in sys.path:
     sys.path.append(str(Path(__file__).parent.parent))
 
 from simulation_encoder.runner import Runner
+from simulation_encoder.writer import Writer
+from simulation_encoder.plotter import Plotter
 from simulation_encoder.dataclass.param_sets import DatasetParams, ModelParams
 from conf.utils.generate_hyperparams import generate_hyperparameters
 
@@ -26,48 +28,57 @@ def main() -> None:
     and the run method is called to start the simulation encoder."""
 
     main_config = _load_yaml(CONFIG_YAML)
-    pretrain = main_config["general_configs"]["pretrain"]
-    verbose = main_config["general_configs"]["verbose"]
+    config_name = main_config["experiment_name"]
+    for experiment_name, experiment_config in main_config["experiments"].items():
+        pretrain = experiment_config["general_configs"]["pretrain"]
+        verbose = experiment_config["general_configs"]["verbose"]
 
-    runner = Runner(pretrain, verbose)
-    dataset_params = create_dataset_params(main_config)
-    runner.add_dataset(dataset_params)
+        runner = Runner(pretrain, verbose)
+        writer = Writer(results_dir=f"results/{config_name}", uuid=experiment_name)
+        plotter = Plotter(results_dir=f"results/{config_name}", uuid=experiment_name)
+        dataset_params = create_dataset_params(experiment_name, experiment_config)
+        indices = runner.add_dataset(dataset_params)
+        writer.write_train_test_indices(indices)
 
-    n_channels = len(main_config["general_configs"]["channels"])
-    for model in main_config["models"]:
+        n_channels = len(experiment_config["general_configs"]["channels"])
+        model = experiment_config["model"]
         model_param_sets = create_model_param_sets(model, n_channels)
         runner.add_models(model_param_sets)
 
-    runner.run_encoder()
-    # runner.run_emulator()
+        encoder_results = runner.run_encoder()
+        handle_encoder_results(encoder_results, runner, writer, plotter)
+
+        emulation_results = runner.run_emulator(config_name)
+        if emulation_results:
+            writer.write_emulation_results(emulation_results)
 
 
-def create_dataset_params(main_config: dict[str, Any]) -> DatasetParams:
-    """Create the dataset parameters from the main config file"""
+def create_dataset_params(experiment_name: str, experiment_config: dict[str, Any]) -> DatasetParams:
+    """Create the dataset parameters from the experiment config file"""
 
-    if "alphanumeric" in main_config["experiment_name"]:
+    if "alphanumeric" in experiment_name.lower():
         dataset_params = DatasetParams(
             loader="alphanumeric",
-            channels=main_config["general_configs"]["channels"],
-            image_dir=main_config["data"]["image_dir"],
-            batch_size=main_config["general_configs"]["batch_size"],
-            val_split=main_config["general_configs"]["val_split"],
-            test_split=main_config["general_configs"]["test_split"],
-            keys=main_config["keys"],
-            augmentations=main_config["augmentations"],
+            channels=experiment_config["general_configs"]["channels"],
+            image_dir=experiment_config["data"]["image_dir"],
+            batch_size=experiment_config["general_configs"]["batch_size"],
+            val_split=experiment_config["general_configs"]["val_split"],
+            test_split=experiment_config["general_configs"]["test_split"],
+            keys=experiment_config["keys"],
+            augmentations=experiment_config["data"].get("augmentations", {}),
         )
-    elif "ARCADE" in main_config["experiment_name"]:
+    elif "arcade" in experiment_name.lower():
         dataset_params = DatasetParams(
             loader="ARCADE",
-            channels=main_config["general_configs"]["channels"],
-            image_dir=main_config["data"]["image_dir"],
-            label_dir=main_config["data"]["label_dir"],
-            batch_size=main_config["general_configs"]["batch_size"],
-            val_split=main_config["general_configs"]["val_split"],
-            test_split=main_config["general_configs"]["test_split"],
-            keys=main_config["keys"],
-            labels=main_config["emulator_targets"],
-            augmentations=main_config["augmentations"],
+            channels=experiment_config["general_configs"]["channels"],
+            image_dir=experiment_config["data"]["image_dir"],
+            label_dir=experiment_config["data"]["label_dir"],
+            batch_size=experiment_config["general_configs"]["batch_size"],
+            val_split=experiment_config["general_configs"]["val_split"],
+            test_split=experiment_config["general_configs"]["test_split"],
+            keys=experiment_config["keys"],
+            labels=experiment_config["emulator_targets"],
+            augmentations=experiment_config["data"].get("augmentations", {}),
         )
 
     return dataset_params
@@ -99,6 +110,39 @@ def create_model_param_sets(model: dict[str, Any], n_channels: int) -> list[Mode
         model_param_sets.append(model_params)
 
     return model_param_sets
+
+
+def handle_encoder_results(
+    encoder_results: dict, runner: Runner, writer: Writer, plotter: Plotter
+) -> None:
+    """Handles writing and plotting of encoder results"""
+    best_model_id = encoder_results["best_model"]
+    best_losses = None
+    dataset = runner.get_dataset()
+
+    for model_id, data in encoder_results.items():
+        if model_id == "best_model":
+            continue
+
+        writer.write_encoded_data(model_id, data["encoded_data"])
+        writer.write_model_state(model_id, data["model_state"])
+
+        plot_data = data["plot_data"]
+        plotter.line_plot(plot_data["grad_norms"], "grad_norms", "Epoch", "Gradient Norm")
+        plotter.loss_plot(plot_data["losses"]["combined"], plot_data["val_losses"]["combined"])
+
+        losses = data["losses"][model_id]
+        writer.write_encoder_results(model_id, runner.get_model(model_id), dataset, losses)
+
+        if model_id == best_model_id:
+            best_losses = losses
+
+    writer.write_encoder_results(
+        "_best_model",
+        runner.get_model(best_model_id),
+        dataset,
+        best_losses,
+    )
 
 
 def _load_yaml(yaml_file: str) -> dict[str, Any]:

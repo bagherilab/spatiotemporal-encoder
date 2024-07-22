@@ -2,24 +2,29 @@ import os
 import json
 
 import pandas as pd
+import torch
 
 from simulation_encoder.loader import ARCADELoader, AlphaNumericLoader, Loader
 from simulation_encoder.models.cae import CAE
+
 from simulation_encoder.dataclass.loss_data import LossData
+from simulation_encoder.dataclass.emulator_results import EmulationResults
 
 
 class Writer:
     """Class for writing information to disk"""
 
-    def __init__(self, results_dir: str = "results/", uuid: str = "none"):
+    def __init__(self, results_dir: str = "results/", uuid: str = ""):
         self.uuid = uuid
         self.results_dir = results_dir
         self.results_path = os.path.join(results_dir, str(self.uuid))
 
-    def write_results(self, model_name: str, model: CAE, dataset: Loader, losses: LossData) -> None:
-        """Writes the results of running the models to disk"""
         self._setup()
 
+    def write_encoder_results(
+        self, model_name: str, model: CAE, dataset: Loader, losses: LossData
+    ) -> None:
+        """Writes the results of running the models to disk"""
         model_path = os.path.join(self.results_path, model_name)
         loader = (
             "ARCADE"
@@ -46,34 +51,35 @@ class Writer:
         with open(os.path.join(model_path, "results.json"), "w", encoding="utf-8") as r_file:
             json.dump(results, r_file, indent=4)
 
-    def write_emulation_results(
-        self, encoder_model: str, model_type: str, target: str, model_params: dict[str, float], r2: float
-    ) -> None:
-        """Writes the results of all emulators"""
-        self._setup()
-        results_path = os.path.join(self.results_path, "emulator_results.json")
+    def write_emulation_results(self, emulation_results: EmulationResults) -> None:
+        """Writes the results of all emulators to disk"""
+        emulation_results_path = os.path.join(self.results_path, "emulation_results.json")
 
-        if not os.path.exists(results_path):
-            results = {}
-        else:
-            with open(results_path, "r") as r_file:
-                results = json.load(r_file)
+        results = {}
+        for encoder_model, encoder_result in emulation_results.get_results().items():
+            results[encoder_model] = {
+                label: {
+                    model_type: {
+                        "model_params": model_result.model_params,
+                        "r2_score": model_result.r2_score,
+                    }
+                    for model_type, model_result in label_result.model_results.items()
+                }
+                for label, label_result in encoder_result.label_results.items()
+            }
 
-        if encoder_model not in results:
-            results[encoder_model] = {}
-
-        if model_type not in results[encoder_model]:
-            results[encoder_model][model_type] = {}
-
-        results[encoder_model][model_type][target] = model_params
-        results[encoder_model][model_type][target]["r2"] = r2
-
-        with open(results_path, "w", encoding="utf-8") as r_file:
+        with open(emulation_results_path, "w", encoding="utf-8") as r_file:
             json.dump(results, r_file, indent=4)
 
-    def write_indices(self, indices: tuple[list[int], list[int], list[int]]) -> None:
+    def write_model_state(self, model_name: str, model_state: dict) -> None:
+        """Writes the model state to disk"""
+        model_path = os.path.join(self.results_path, model_name)
+        self._create_dir(model_path)
+
+        torch.save(model_state, os.path.join(model_path, "model_state.pth"))
+
+    def write_train_test_indices(self, indices: tuple[list[int], list[int], list[int]]) -> None:
         """Writes the train and test indices to disk"""
-        self._setup()
         indices_path = os.path.join(self.results_path, "indices.json")
 
         indices_dict = {"train": indices[0], "val": indices[1], "test": indices[2]}
@@ -82,7 +88,6 @@ class Writer:
 
     def write_encoded_data(self, model_name: str, encoded_data: dict[str, pd.DataFrame]) -> None:
         """Saves encoded dataset and labels for downstream tasks"""
-        self._setup()
         model_path = os.path.join(self.results_path, model_name)
         self._create_dir(model_path)
         encoded_data_path = os.path.join(model_path, "encoded_data")

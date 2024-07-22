@@ -1,41 +1,73 @@
-experiment_name: ARCADE
-
-data:
-  image_dir: data/ARCADE/vascular_function_128/images
-  label_dir: data/ARCADE/vascular_function_128/labels
-  image_size: 128
-
-models:
-  - architecture: vae_flat
-    params: grid
-
-general_configs:
-  batch_size: 32
-  val_split: 0.2
-  test_split: 0.2
-  channels:
-    - cancer
-    - graph
-  pretrain: true
-  verbose: true
-
-augmentations:
-  # rotate:
-  #   degree: 180
-
-keys:
-  - CH_Lav
-  - CH_Lava
-  - CH_Lvav
-  - CH_Sav
-  - CH_Savav
-  - C_Lav
-  - C_Lava
-  - C_Lvav
-  - C_Sav
-  - C_Savav
-
-emulator_targets:
-  - activity
-  - growth
-  - symmetry
+experiment_name: cae-vae
+experiments:
+  ARCADE-CAE:
+    data:
+      image_dir: data/ARCADE/vascular_function_128/images
+      label_dir: data/ARCADE/vascular_function_128/labels
+      image_size: 128
+      augmentations:
+        # rotate:
+        #   degree: 180
+    model:
+      architecture: cae
+      params: grid
+    general_configs:
+      batch_size: 32
+      val_split: 0.2
+      test_split: 0.2
+      channels:
+        - cancer
+        # - graph
+      pretrain: false
+      verbose: true
+    keys:
+      - CH_Lav
+      - CH_Lava
+      - CH_Lvav
+      - CH_Sav
+      - CH_Savav
+      - C_Lav
+      - C_Lava
+      - C_Lvav
+      - C_Sav
+      - C_Savav
+    emulator_targets:
+      # - activity
+      # - growth
+      # - symmetry
+      
+  ARCADE-VAE:
+    data:
+      image_dir: data/ARCADE/vascular_function_128/images
+      label_dir: data/ARCADE/vascular_function_128/labels
+      image_size: 128
+      augmentations:
+        # rotate:
+        #   degree: 180
+    model:
+      architecture: vae
+      params: grid
+    general_configs:
+      batch_size: 32
+      val_split: 0.2
+      test_split: 0.2
+      channels:
+        - cancer
+        # - graph
+      pretrain: false
+      verbose: true
+    keys:
+      - CH_Lav
+      - CH_Lava
+      - CH_Lvav
+      - CH_Sav
+      - CH_Savav
+      - C_Lav
+      - C_Lava
+      - C_Lvav
+      - C_Sav
+      - C_Savav
+    emulator_targets:
+      # - activity
+      # - growth
+      # - symmetry

@@ -50,18 +50,17 @@ class TestRunner(unittest.TestCase):
         # Checks that the model was added
         self.assertIn("test_model_2d_0", model_id)
 
-
     """
     YOUR TURN 
     These tests are a little trick (hence why i havent done them yet)
     But you could conssider mocking a dataset and a model in the run_encoder test and
     maybe using the assert_called_with method to check that the model is being called correct?"""
+
     def test_add_dataset(self):
         assert False
 
     def run_encoder(self):
         assert False
-
 
 
 if __name__ == "__main__":

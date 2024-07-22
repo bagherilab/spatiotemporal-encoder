@@ -153,9 +153,7 @@ class BaseCNN(ABC, nn.Module):
                 kernel_size = layer_params["kernel_size"]
                 stride = layer_params["stride"]
                 maxpool = nn.MaxPool2d(kernel_size, stride)
-                train_loader = Loader._transform_dataloader(
-                    maxpool, train_loader, self.device
-                )
+                train_loader = Loader._transform_dataloader(maxpool, train_loader, self.device)
 
             elif layer_params["type"] == "Linear":
                 in_features = layer_params["in_features"]

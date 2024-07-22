@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 
-class RBM(nn.Module):
+class RBM:
     """
     Restricted boltzmann machine
 
@@ -20,8 +20,6 @@ class RBM(nn.Module):
     """
 
     def __init__(self, visible_dim: int, hidden_dim: int, gaussian: bool, device: str = "cpu"):
-        super().__init__()
-
         self.visible_dim = visible_dim
         self.hidden_dim = hidden_dim
         self.gaussian = gaussian
@@ -114,7 +112,7 @@ class RBM(nn.Module):
         self.W -= self.W * weight_decay
 
 
-class CRBM(nn.Module):
+class CRBM:
     """
     Convolutional Restricted Boltzmann Machine
 
@@ -134,9 +132,15 @@ class CRBM(nn.Module):
         Device to run the model on
     """
 
-    def __init__(self, visible_dim, hidden_dim, kernel_size=3, stride=1, padding=1, device='cpu'):
-        super(CRBM, self).__init__()
-
+    def __init__(
+        self,
+        visible_dim: int,
+        hidden_dim: int,
+        kernel_size: int = 3,
+        stride: int = 1,
+        padding: int = 1,
+        device: str = "cpu",
+    ):
         self.visible_dim = visible_dim
         self.hidden_dim = hidden_dim
         self.kernel_size = kernel_size
@@ -144,7 +148,9 @@ class CRBM(nn.Module):
         self.padding = padding
         self.device = device
 
-        self.W = nn.Parameter(torch.randn(hidden_dim, visible_dim, kernel_size, kernel_size).to(self.device) * 0.1)
+        self.W = nn.Parameter(
+            torch.randn(hidden_dim, visible_dim, kernel_size, kernel_size).to(self.device) * 0.1
+        )
         self.h_bias = nn.Parameter(torch.zeros(hidden_dim).to(self.device))
         self.v_bias = nn.Parameter(torch.zeros(visible_dim).to(self.device))
 
@@ -155,13 +161,13 @@ class CRBM(nn.Module):
 
         self.to(self.device)
 
-    def sample_h(self, v):
+    def sample_h(self, v: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """Sample hidden units given visible units"""
         conv_output = F.conv2d(v, self.W, stride=self.stride, padding=self.padding)
         activation = conv_output + self.h_bias.view(1, -1, 1, 1)
         p = torch.sigmoid(activation)
         return p, torch.bernoulli(p)
-    
+
     def sample_hk(self, v: torch.Tensor) -> torch.Tensor:
         """Sample only the distribution"""
         conv_output = F.conv2d(v, self.W, stride=self.stride, padding=self.padding)
@@ -169,9 +175,11 @@ class CRBM(nn.Module):
         p = torch.sigmoid(activation)
         return torch.bernoulli(p)
 
-    def sample_v(self, h):
+    def sample_v(self, h: torch.Tensor) -> torch.Tensor:
         """Sample visible units given hidden units"""
-        conv_transpose_output = F.conv_transpose2d(h, self.W, stride=self.stride, padding=self.padding, output_padding=self.output_padding)
+        conv_transpose_output = F.conv_transpose2d(
+            h, self.W, stride=self.stride, padding=self.padding, output_padding=self.output_padding
+        )
         activation = conv_transpose_output + self.v_bias.view(1, -1, 1, 1)
         p = torch.sigmoid(activation)
         return p
@@ -188,12 +196,26 @@ class CRBM(nn.Module):
     ) -> None:
         """Update weights of the CRBM"""
         # Calculate positive and negative gradients
-        delta_W_pos = F.conv2d(v0.permute(1, 0, 2, 3), ph0.permute(1, 0, 2, 3), stride=self.stride, padding=self.padding).permute(1, 0, 2, 3)
-        delta_W_neg = F.conv2d(vk.permute(1, 0, 2, 3), phk.permute(1, 0, 2, 3), stride=self.stride, padding=self.padding).permute(1, 0, 2, 3)
+        delta_W_pos = F.conv2d(
+            v0.permute(1, 0, 2, 3),
+            ph0.permute(1, 0, 2, 3),
+            stride=self.stride,
+            padding=self.padding,
+        ).permute(1, 0, 2, 3)
+        delta_W_neg = F.conv2d(
+            vk.permute(1, 0, 2, 3),
+            phk.permute(1, 0, 2, 3),
+            stride=self.stride,
+            padding=self.padding,
+        ).permute(1, 0, 2, 3)
 
         # Resize delta_W_pos and delta_W_neg to match W's shape
-        delta_W_pos = F.interpolate(delta_W_pos, size=self.W.shape[2:], mode='bilinear', align_corners=False)
-        delta_W_neg = F.interpolate(delta_W_neg, size=self.W.shape[2:], mode='bilinear', align_corners=False)
+        delta_W_pos = F.interpolate(
+            delta_W_pos, size=self.W.shape[2:], mode="bilinear", align_corners=False
+        )
+        delta_W_neg = F.interpolate(
+            delta_W_neg, size=self.W.shape[2:], mode="bilinear", align_corners=False
+        )
 
         # Update weights and biases without momentum
         self.W.data += lr * (delta_W_pos - delta_W_neg) / batch_size
