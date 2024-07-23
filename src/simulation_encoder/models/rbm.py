@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 
-class RBM:
+class RBM(nn.Module):
     """
     Restricted boltzmann machine
 
@@ -20,6 +20,8 @@ class RBM:
     """
 
     def __init__(self, visible_dim: int, hidden_dim: int, gaussian: bool, device: str = "cpu"):
+        super(RBM, self).__init__()
+
         self.visible_dim = visible_dim
         self.hidden_dim = hidden_dim
         self.gaussian = gaussian
@@ -112,7 +114,7 @@ class RBM:
         self.W -= self.W * weight_decay
 
 
-class CRBM:
+class CRBM(nn.Module):
     """
     Convolutional Restricted Boltzmann Machine
 
@@ -141,6 +143,8 @@ class CRBM:
         padding: int = 1,
         device: str = "cpu",
     ):
+        super(CRBM, self).__init__()
+
         self.visible_dim = visible_dim
         self.hidden_dim = hidden_dim
         self.kernel_size = kernel_size

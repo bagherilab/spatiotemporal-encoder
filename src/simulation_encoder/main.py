@@ -1,3 +1,6 @@
+import cProfile
+import pstats
+
 import os
 import sys
 from pathlib import Path
@@ -169,4 +172,9 @@ def _load_model_yaml(architecture_name: str, yaml_path: str = f"src/conf/models"
 
 
 if __name__ == "__main__":
-    main()
+    with cProfile.Profile() as pr:
+        main()
+    
+    stats = pstats.Stats(pr)
+    stats.sort_stats(pstats.SortKey.TIME)
+    stats.dump_stats("profile_output.prof")
