@@ -215,13 +215,6 @@ class Runner:
 
         return {"train": encoded_train, "val": encoded_val, "test": encoded_test}
 
-    def _save_model(self, model_name: str, model: CAE) -> None:
-        """Saves trained model parameters"""
-        torch.save(model.state_dict(), f"results/{self._UUID}/{model_name}/trained_model.pth")
-        self.logger.log(
-            f"Trained model saved at results/{self._UUID}/{model_name}/trained_model.pth"
-        )
-
     def run_emulator(self, conf_name: str) -> Optional[EmulationResults]:
         """Runs emulation for the encoded datasets and returns the results"""
         labels = self.dataset.labels

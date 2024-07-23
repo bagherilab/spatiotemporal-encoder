@@ -14,10 +14,10 @@ from simulation_encoder.dataclass.emulator_results import EmulationResults
 class Writer:
     """Class for writing information to disk"""
 
-    def __init__(self, results_dir: str = "results/", uuid: str = ""):
-        self.uuid = uuid
+    def __init__(self, results_dir: str = "results/", experiment_name: str = ""):
+        self.experiment_name = experiment_name
         self.results_dir = results_dir
-        self.results_path = os.path.join(results_dir, str(self.uuid))
+        self.results_path = os.path.join(results_dir, str(self.experiment_name))
 
         self._setup()
 

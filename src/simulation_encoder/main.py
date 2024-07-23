@@ -34,8 +34,8 @@ def main() -> None:
         verbose = experiment_config["general_configs"]["verbose"]
 
         runner = Runner(pretrain, verbose)
-        writer = Writer(results_dir=f"results/{config_name}", uuid=experiment_name)
-        plotter = Plotter(results_dir=f"results/{config_name}", uuid=experiment_name)
+        writer = Writer(results_dir=f"results/{config_name}", experiment_name=experiment_name)
+        plotter = Plotter(results_dir=f"results/{config_name}", experiment_name=experiment_name)
         dataset_params = create_dataset_params(experiment_name, experiment_config)
         indices = runner.add_dataset(dataset_params)
         writer.write_train_test_indices(indices)
@@ -128,8 +128,8 @@ def handle_encoder_results(
         writer.write_model_state(model_id, data["model_state"])
 
         plot_data = data["plot_data"]
-        plotter.line_plot(plot_data["grad_norms"], "grad_norms", "Epoch", "Gradient Norm")
-        plotter.loss_plot(plot_data["losses"]["combined"], plot_data["val_losses"]["combined"])
+        plotter.line_plot(model_id, plot_data["grad_norms"], "grad_norms", "Epoch", "Gradient Norm")
+        plotter.loss_plot(model_id, plot_data["losses"]["combined"], plot_data["val_losses"]["combined"])
 
         losses = data["losses"][model_id]
         writer.write_encoder_results(model_id, runner.get_model(model_id), dataset, losses)
