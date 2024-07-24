@@ -1,11 +1,13 @@
-from typing import Optional, Union
+from typing import Optional
 from pydantic import BaseModel, Field, field_validator, model_validator
+
+""" Pydantic models for the configuration files """
 
 class DataConfig(BaseModel):
     image_dir: str = Field(..., description="Path to the directory with images")
     label_dir: str = Field(..., description="Path to the directory with labels")
     image_size: int = Field(..., gt=0, description="Size of the images, must be greater than 0")
-    augmentations: Optional[dict[str, dict[str, Union[int, float, bool]]]] = None
+    augmentations: Optional[dict[str, dict[str, int | float | bool]]] = None
 
     @field_validator('image_size')
     def check_image_size(cls, value):
@@ -13,7 +15,7 @@ class DataConfig(BaseModel):
             raise ValueError("image_size must be greater than 0")
         return value
 
-class ModelConfig(BaseModel):
+class ModelParamsConfig(BaseModel):
     architecture: str = Field(..., description="Model architecture name")
     params: str = Field(..., description="Path or name of the hyperparameter configuration")
 
@@ -39,7 +41,7 @@ class GeneralConfig(BaseModel):
         
 class ExperimentConfig(BaseModel):
     data: DataConfig
-    model: ModelConfig
+    model: ModelParamsConfig
     general_configs: GeneralConfig
     keys: list[str] = Field(..., description="List of keys")
     emulator_targets: Optional[list[str]] = None
@@ -47,6 +49,8 @@ class ExperimentConfig(BaseModel):
 class MainConfig(BaseModel):
     experiment_name: str = Field(..., description="Name of the experiment")
     experiments: dict[str, ExperimentConfig] = Field(..., description="Dictionary of experiment configurations")
+
+""" Hyperparameter configuration """
 
 class HyperparameterRangeConfig(BaseModel):
     range: list[float] = Field(..., description="Range of continuous hyperparameters")
@@ -66,3 +70,54 @@ class HyperparameterConfig(BaseModel):
     num_epochs: int = Field(..., gt=0, description="Number of epochs for training")
     continuous: Optional[dict[str, HyperparameterRangeConfig]] = None
     discrete: Optional[dict[str, HyperparameterDiscreteConfig]] = None
+
+""" Model architecture and type """
+
+class LayerConfig(BaseModel):
+    type: str = Field(..., description="Name of layer in PyTorch")
+    in_features: Optional[int | str] = None
+    out_features: Optional[int | str] = None
+    num_features: Optional[int | str] = None
+    in_channels: Optional[int | str] = None
+    out_channels: Optional[int | str] = None
+    kernel_size: Optional[int] = None
+    stride: Optional[int] = None
+    shape: Optional[list[int]] = None
+    padding: Optional[int] = None
+    output_padding: Optional[int] = None
+    activation: Optional[str] = None
+
+    @model_validator(mode="before")
+    def check_layers(cls, values):
+        layer_type = values.get('type')
+        if layer_type is None:
+            raise ValueError('Missing layer type')
+        if layer_type == "Linear" and (values.get('in_features') is None or values.get('out_features') is None):
+            raise ValueError('Missing in_features for Linear layer')
+        if layer_type in ["BatchNorm1d", "BatchNorm2d"] and values.get('num_features') is None:
+            raise ValueError('Missing num_features for BatchNorm layer')
+        if layer_type in ["Conv2d", "ConvTranspose2d"] and (values.get('in_channels') is None or values.get('out_channels') is None):
+            raise ValueError('Missing in_channels or out_channels for Conv2d layer')
+        if layer_type == "Unflatten" and values.get('shape') is None:
+            raise ValueError('Missing shape for Unflatten layer')
+        
+        return values
+
+class EncoderDecoderConfig(BaseModel):
+    encoder: list[LayerConfig]
+    decoder_image: list[LayerConfig]
+    decoder_timepoint: list[LayerConfig]
+
+    @model_validator(mode="before")
+    def check_encoders_decoders(cls, values):
+        if 'encoder' not in values:
+            raise ValueError('Missing encoder configuration')
+        if 'decoder_image' not in values:
+            raise ValueError('Missing image decoder configuration')
+        if 'decoder_timepoint' not in values:
+            raise ValueError('Missing timepoint decoder configuration')
+        return values
+
+class ModelArchitectureConfig(BaseModel):
+    type: str = Field(..., description="Type of model architecture")
+    architecture: EncoderDecoderConfig

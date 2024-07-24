@@ -4,8 +4,10 @@ import time
 
 import os
 import sys
+import uuid
 from pathlib import Path
 from typing import Any
+from copy import deepcopy
 
 import yaml
 from pydantic import BaseModel, ValidationError
@@ -17,8 +19,15 @@ if str(Path(__file__).parent.parent) not in sys.path:
 from simulation_encoder.runner import Runner
 from simulation_encoder.writer import Writer
 from simulation_encoder.plotter import Plotter
+from simulation_encoder.logger import Logger
+from simulation_encoder.loader import Loader, ARCADELoader, AlphaNumericLoader
+
+from simulation_encoder.models.abstract_cnn import BaseCNN
+from simulation_encoder.models.cae import CAE
+from simulation_encoder.models.vae import VAE
+
 from simulation_encoder.dataclass.param_sets import DatasetParams, ModelParams
-from simulation_encoder.dataclass.config_schemas import MainConfig, HyperparameterConfig, ExperimentConfig, ModelConfig
+from simulation_encoder.dataclass.config_schemas import MainConfig, HyperparameterConfig, ExperimentConfig, ModelParamsConfig, ModelArchitectureConfig
 from conf.utils.generate_hyperparams import generate_hyperparameters
 
 CONFIG_YAML = "src/conf/config.yaml"
@@ -40,32 +49,36 @@ def main() -> None:
 
     config_name = main_config.experiment_name
     for experiment_name, experiment_config in main_config.experiments.items():
-        try:
-            pretrain = experiment_config.general_configs.pretrain
-            verbose = experiment_config.general_configs.verbose
+        # try:
+        pretrain = experiment_config.general_configs.pretrain
+        verbose = experiment_config.general_configs.verbose
 
-            runner = Runner(pretrain, verbose)
-            writer = Writer(results_dir=f"results/{config_name}", experiment_name=experiment_name)
-            plotter = Plotter(results_dir=f"results/{config_name}", experiment_name=experiment_name)
-            dataset_params = create_dataset_params(experiment_name, experiment_config)
-            indices = runner.add_dataset(dataset_params)
-            writer.write_train_test_indices(indices)
+        runner = Runner(pretrain, verbose)
+        writer = Writer(results_dir=f"results/{config_name}", experiment_name=experiment_name)
+        plotter = Plotter(results_dir=f"results/{config_name}", experiment_name=experiment_name)
+        logger = Logger(experiment_name=experiment_name, log_dir=f"logs/{config_name}")
 
-            n_channels = len(experiment_config.general_configs.channels)
-            model = experiment_config.model
-            model_param_sets = create_model_param_sets(model, n_channels)
-            runner.add_models(model_param_sets)
+        dataset_params = create_dataset_params(experiment_name, experiment_config)
+        dataset = create_dataset(dataset_params, logger)
+        runner.add_dataset(dataset)
+        writer.write_train_test_indices(dataset.get_indices())
 
-            encoder_results = runner.run_encoder()
-            handle_encoder_results(encoder_results, runner, writer, plotter)
+        
+        model = experiment_config.model
+        n_channels = len(experiment_config.general_configs.channels)
+        model_param_sets = create_model_param_sets(model, n_channels)
+        models = create_models(model_param_sets, logger)
+        runner.add_models(models, logger)
 
-            emulation_results = runner.run_emulator(config_name)
-            if emulation_results:
-                writer.write_emulation_results(emulation_results)
-        except Exception as e:
-            print(f"Error processing experiment '{experiment_name}': {type(e).__name__}: {e}")
-            continue
+        encoder_results = runner.run_encoder(experiment_name, logger)
+        handle_encoder_results(encoder_results, runner, writer, plotter)
 
+        emulation_results = runner.run_emulator(config_name)
+        if emulation_results:
+            writer.write_emulation_results(emulation_results)
+        # except Exception as e:
+        #     print(f"Error processing experiment '{experiment_name}': {type(e).__name__}: {e}")
+        #     continue
 
 def create_dataset_params(experiment_name: str, experiment_config: ExperimentConfig) -> DatasetParams:
     """Create the dataset parameters from the experiment config file"""
@@ -97,8 +110,26 @@ def create_dataset_params(experiment_name: str, experiment_config: ExperimentCon
 
     return dataset_params
 
+def create_dataset(dataset_params: DatasetParams, logger: Logger) -> Loader:
+    """Create the dataset object from the dataset parameters"""
+    params_dict = dataset_params.__dict__
+    loader = params_dict.pop("loader")
+    if loader == "ARCADE":
+        dataset = ARCADELoader(
+            **params_dict,
+            logger=logger,
+        )
+    elif loader == "alphanumeric":
+        del params_dict["label_dir"]
+        del params_dict["labels"]
+        dataset = AlphaNumericLoader(
+            **params_dict,
+            logger=logger,
+        )
 
-def create_model_param_sets(model: ModelConfig, n_channels: int) -> list[ModelParams]:
+    return dataset
+
+def create_model_param_sets(model: ModelParamsConfig, n_channels: int) -> list[ModelParams]:
     """Create the model parameters from model config files and hyperparameter yaml files"""
 
     model_name = model.architecture
@@ -114,8 +145,8 @@ def create_model_param_sets(model: ModelConfig, n_channels: int) -> list[ModelPa
     for param_set in param_sets:
         model_params = ModelParams(
             name=model_name,
-            model_type=model_yaml["type"],
-            architecture=model_yaml["architecture"],
+            model_type=model_yaml.type,
+            architecture=model_yaml.architecture.dict(exclude_none=True),
             num_channels=n_channels,
             num_epochs=num_epochs,
             params=param_set,
@@ -124,6 +155,21 @@ def create_model_param_sets(model: ModelConfig, n_channels: int) -> list[ModelPa
 
     return model_param_sets
 
+def create_models(model_param_sets: list[ModelParams], logger: Logger) -> list[BaseCNN]:
+    models = []
+
+    for model_param_set in model_param_sets:
+        params_dict = model_param_set.__dict__
+        model_type = params_dict.pop("model_type")
+        if model_type == "CAE":
+            model = CAE(**deepcopy(model_param_set.__dict__), logger=logger)
+        elif model_type == "VAE":
+            model = VAE(**deepcopy(model_param_set.__dict__), logger=logger)
+        else:
+            raise ValueError(f"Model type {model_type} not recognized")
+
+    models.append(model)
+    return models
 
 def handle_encoder_results(
     encoder_results: dict, runner: Runner, writer: Writer, plotter: Plotter
@@ -158,28 +204,26 @@ def handle_encoder_results(
     )
 
 def _load_yaml(yaml_file: str, config_class: BaseModel) -> BaseModel:
-    try:
-        with open(yaml_file, "r") as file:
-            config = yaml.safe_load(file)
-        return config_class(**config)
-    except FileNotFoundError as e:
-        raise FileNotFoundError(f"File {yaml_file} not found") from e
-    except ValidationError as e:
-        raise ValidationError(f"Configuration validation error: {e}") from e
+    # try:
+    with open(yaml_file, "r") as file:
+        config = yaml.safe_load(file)
+    return config_class(**config)
+    # except FileNotFoundError as e:
+    #     raise FileNotFoundError(f"File {yaml_file} not found") from e
+    # except ValidationError as e:
+    #     raise ValidationError(f"Configuration validation error: {e}") from e
 
 def _load_hyperparams(yaml_name: str) -> HyperparameterConfig:
     yaml_file = yaml_name if yaml_name.endswith(".yaml") else yaml_name + ".yaml"
     yaml_path = f"src/conf/hyperparams/{yaml_file}"
     return _load_yaml(yaml_path, HyperparameterConfig)
 
-
 def _load_model_yaml(architecture_name: str, yaml_path: str = f"src/conf/models") -> dict[str, Any]:
     yaml_file = (
         architecture_name if architecture_name.endswith(".yaml") else architecture_name + ".yaml"
     )
     yaml_path = os.path.join(yaml_path, yaml_file)
-    return _load_yaml(yaml_path, dict)  # Assuming model yaml is a dict
-
+    return _load_yaml(yaml_path, ModelArchitectureConfig)
 
 if __name__ == "__main__":
     # with cProfile.Profile() as pr:

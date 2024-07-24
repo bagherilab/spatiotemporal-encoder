@@ -7,7 +7,7 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
-from simulation_encoder.logger import ExperimentLogger
+from simulation_encoder.logger import Logger
 from simulation_encoder.models.abstract_cnn import BaseCNN
 
 
@@ -37,7 +37,7 @@ class CAE(BaseCNN):
         num_epochs: int = 5,
         image_size: int = 128,
         params: dict[str, Any] = {},
-        logger: Optional[ExperimentLogger] = None,
+        logger: Optional[Logger] = None,
     ):
         super().__init__()
 

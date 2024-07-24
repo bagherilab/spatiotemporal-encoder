@@ -6,7 +6,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from simulation_encoder.logger import ExperimentLogger
+from simulation_encoder.logger import Logger
 from simulation_encoder.models.abstract_cnn import BaseCNN
 
 
@@ -36,7 +36,7 @@ class VAE(BaseCNN):
         num_channels: int = 1,
         num_epochs: int = 5,
         params: dict[str, Any] = {},
-        logger: Optional[ExperimentLogger] = None,
+        logger: Optional[Logger] = None,
     ):
         super().__init__()
 

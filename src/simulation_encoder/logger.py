@@ -2,7 +2,7 @@ import os
 import logging
 
 
-class ExperimentLogger:
+class Logger:
     """
     Attributes
     ----------
@@ -25,16 +25,16 @@ class ExperimentLogger:
 
     def __init__(
         self,
-        uuid: str = "none",
+        experiment_name: str = "none",
         log_dir: str = "logs/",
         format_str: str = "%(asctime)s:%(name)s:%(message)s",
         level: int = logging.INFO,
         verbose: bool = False,
     ):
-        self.uuid = uuid
+        self.experiment_name = experiment_name
         self.log_dir = log_dir
-        self.log_path = os.path.join(log_dir, f"{self.uuid}.log")
-        self.logger = logging.getLogger(str(self.uuid))
+        self.log_path = os.path.join(log_dir, f"{self.experiment_name}.log")
+        self.logger = logging.getLogger(str(self.experiment_name))
         self.verbose = verbose
         self._create_log_file()
         self._set_up_logger(format_str, level)

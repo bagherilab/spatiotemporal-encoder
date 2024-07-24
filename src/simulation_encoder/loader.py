@@ -12,7 +12,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader, Subset, TensorDataset
 from torchvision import transforms
 
-from simulation_encoder.logger import ExperimentLogger
+from src.simulation_encoder.logger import Logger
 
 
 class Augmentation:
@@ -308,7 +308,7 @@ class ARCADELoader(Loader):
         val_split: float = 0.2,
         test_split: float = 0.2,
         batch_size: int = 10,
-        logger: Optional[ExperimentLogger] = None,
+        logger: Optional[Logger] = None,
         augmentations: Optional[dict[str, Any]] = None,
         indices_file: Optional[str] = None,
         random_seed: int = 42,
@@ -483,7 +483,7 @@ class AlphaNumericLoader(Loader):
         val_split: float = 0.2,
         test_split: float = 0.2,
         batch_size: int = 10,
-        logger: Optional[ExperimentLogger] = None,
+        logger: Optional[Logger] = None,
         indices_file: Optional[str] = None,
         augmentations: Optional[dict[str, Any]] = None,
         random_seed: int = 42,

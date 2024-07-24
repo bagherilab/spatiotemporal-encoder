@@ -1,20 +1,17 @@
 import os
-import uuid
-from copy import deepcopy
 from collections import defaultdict
 from typing import Optional
 
-import torch
 import pandas as pd
 
-from simulation_encoder.loader import ARCADELoader, CSVLoader, AlphaNumericLoader, Loader
-from simulation_encoder.logger import ExperimentLogger
+from simulation_encoder.loader import CSVLoader, Loader
+from simulation_encoder.logger import Logger
 
+from simulation_encoder.models.abstract_cnn import BaseCNN
 from simulation_encoder.models.cae import CAE
 from simulation_encoder.models.vae import VAE
 from simulation_encoder.models.emulator import Emulator
 
-from simulation_encoder.dataclass.param_sets import DatasetParams, ModelParams
 from simulation_encoder.dataclass.loss_data import LossData
 from simulation_encoder.dataclass.emulator_results import EmulationResults, EncoderModelResult
 
@@ -36,8 +33,6 @@ class Runner:
         Dictionary of model names and their corresponding CAE models
     dataset : Loader
         Dataset to be used for training and evaluation
-    logger : ExperimentLogger
-        Logger object for logging
     losses : dict[str, LossData]
         Dictionary of model names and their corresponding loss data
     """
@@ -46,70 +41,44 @@ class Runner:
         self.pretrain = pretrain
         self.verbose = verbose
 
-        self._UUID = uuid.uuid4()
         self.models: dict[str, CAE | VAE] = {}
         self.dataset: Loader = None
 
-        self.logger = ExperimentLogger(uuid=self._UUID, verbose=verbose)
         self.losses: dict[str, LossData] = {}
 
-    def add_dataset(self, dataset_params: DatasetParams) -> tuple[list[int], list[int], list[int]]:
+    def add_dataset(self, dataset: Loader) -> None:
         """
         Set the dataset on which models should be trained
 
         Parameters
         ----------
-        dataset_params : DatasetParams
-            Object containing dataset parameters
+        dataset : Loader
+            Dataset to be used for training and evaluation
         """
 
-        params_dict = dataset_params.__dict__
-        loader = params_dict.pop("loader")
-        if loader == "ARCADE":
-            self.dataset = ARCADELoader(
-                **params_dict,
-                logger=self.logger,
-            )
-        elif loader == "alphanumeric":
-            del params_dict["label_dir"]
-            del params_dict["labels"]
-            self.dataset = AlphaNumericLoader(
-                **params_dict,
-                logger=self.logger,
-            )
+        self.dataset = dataset
 
-        return self.dataset.get_indices()
-
-    def add_models(self, model_param_sets: list[ModelParams]) -> None:
+    def add_models(self, models: list[BaseCNN], logger: Logger) -> None:
         """
         Add models to be trained by the runner
 
         Parameters
         ----------
-        model_param_sets : list[ModelParams]
-            List of dataclasses containing model hyperparameters
+        model_param_sets : list[BaseCNN]
+            List of models to be trained
         """
         model_num = 0
-        for model_param_set in model_param_sets:
-            params_dict = model_param_set.__dict__
-            model_type = params_dict.pop("model_type")
-            if model_type == "CAE":
-                model = CAE(**deepcopy(model_param_set.__dict__), logger=self.logger)
-            elif model_type == "VAE":
-                model = VAE(**deepcopy(model_param_set.__dict__), logger=self.logger)
-            else:
-                raise ValueError(f"Model type {model_type} not recognized")
-
-            latent_dim = model_param_set.params["latent_dim"]
-            model_id = f"{model_param_set.name}_{latent_dim}d_{model_num}"
+        for model in models:
+            latent_dim = model.latent_dim
+            model_id = f"{model.name}_{latent_dim}d_{model_num}"
             while model_id in self.models:
                 model_num += 1
-                model_id = f"{model_param_set.name}_{latent_dim}d_{model_num}"
+                model_id = f"{model.name}_{latent_dim}d_{model_num}"
             self.models[model_id] = model
             self.losses[model_id] = LossData()
 
         device = model.device
-        self.logger.log(f"{model_param_set.name} models added to runner. Device: {device}")
+        logger.log(f"{model.name} models added to runner. Device: {device}")
 
     def get_losses(self) -> dict[str, LossData]:
         """Returns the loss data for all models"""
@@ -123,16 +92,16 @@ class Runner:
         """Returns the dataset"""
         return self.dataset
 
-    def run_encoder(self) -> dict:
+    def run_encoder(self, experiemnt_name: str, logger: Logger) -> dict:
         """Runs the training and evaluation of models"""
         if not self.dataset:
             raise ValueError("No dataset has been added to runner.")
         if not self.models:
             raise ValueError("No models have been added to runner.")
 
-        self.logger.log(f"Run ID: {self._UUID}")
-        self.logger.log(f"Training points: {self.dataset.n_train} (including any augmented images)")
-        self.logger.log(f"Testing points: {self.dataset.n_test}")
+        logger.log(f"Experiment name: {experiemnt_name}")
+        logger.log(f"Training points: {self.dataset.n_train} (including any augmented images)")
+        logger.log(f"Testing points: {self.dataset.n_test}")
 
         results = defaultdict(
             lambda: {
@@ -144,7 +113,7 @@ class Runner:
         )
 
         for model_id, model in self.models.items():
-            self.logger.log(f"------------------- {model_id} -------------------")
+            logger.log(f"------------------- {model_id} -------------------")
             losses, val_losses, grad_norms = self._train_model(model_id, model)
             # self._eval_model(model_id, model)
 
@@ -179,12 +148,13 @@ class Runner:
 
         return losses, val_losses, grad_norms
 
-    def _eval_model(self, model_name: str, model: CAE) -> None:
+    def _eval_model(self, model_name: str, model: CAE) -> float:
         """Evaluates all models currently in runner"""
         test_loader = self.dataset.get_dataloader(dataset_type="test")
         test_loss = model.eval_one_epoch(test_loader)
         self.losses[model_name].add_test_loss(test_loss)
-        self.logger.log(f"Test loss: {self.losses[model_name].combined_loss_test}")
+        
+        return test_loss
 
     def _encode_dataset(self, model: CAE) -> dict[str, pd.DataFrame]:
         """Encodes the dataset using the model. Final dataframe includes labels and seed keys"""
