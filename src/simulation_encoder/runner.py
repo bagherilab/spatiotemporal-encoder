@@ -1,6 +1,6 @@
 import os
 from collections import defaultdict
-from typing import Optional
+from typing import Optional, Any
 
 import pandas as pd
 
@@ -103,12 +103,13 @@ class Runner:
         logger.log(f"Training points: {self.dataset.n_train} (including any augmented images)")
         logger.log(f"Testing points: {self.dataset.n_test}")
 
-        results = defaultdict(
+        results: dict = defaultdict(
             lambda: {
                 "encoded_data": None,
                 "model_state": None,
-                "plot_data": {"losses": None, "val_losses": None, "grad_norms": None},
+                "best_model": None,
                 "losses": self.losses,
+                "plot_data": {"losses": None, "val_losses": None, "grad_norms": None},
             }
         )
 
@@ -153,7 +154,7 @@ class Runner:
         test_loader = self.dataset.get_dataloader(dataset_type="test")
         test_loss = model.eval_one_epoch(test_loader)
         self.losses[model_name].add_test_loss(test_loss)
-        
+
         return test_loss
 
     def _encode_dataset(self, model: CAE) -> dict[str, pd.DataFrame]:
@@ -175,7 +176,6 @@ class Runner:
                 encoded_val[label] = self.dataset.get_labels(label=label, dataset_type="val")
                 encoded_test[label] = self.dataset.get_labels(label=label, dataset_type="test")
 
-
         encoded_train["timepoint"] = self.dataset.get_timepoints(dataset_type="train")
         encoded_val["timepoint"] = self.dataset.get_timepoints(dataset_type="val")
         encoded_test["timepoint"] = self.dataset.get_timepoints(dataset_type="test")
@@ -193,22 +193,25 @@ class Runner:
         if not self.dataset:
             raise ValueError("No dataset has been added to runner.")
         if not labels:
-            return
-        
-        emulator_models = ["linear_regression", "random_forest", "svm"]
+            return None
 
+        emulator_models = ["linear_regression", "random_forest", "svm"]
         encoder_models = self._get_encoder_models(conf_name)
 
         emulation_results = EmulationResults()
-        for experiment, encoder_models in encoder_models.items():
-            for encoder_model in encoder_models:
-                encoded_dataset = CSVLoader(conf_name=conf_name, exp_id=experiment, model=encoder_model, labels=labels)
+        for experiment, encoder_model_names in encoder_models.items():
+            for encoder_model_name in encoder_model_names:
+                encoded_dataset = CSVLoader(
+                    conf_name=conf_name, exp_id=experiment, model=encoder_model_name, labels=labels
+                )
                 models = self._initialize_models(emulator_models)
 
                 X_train, y_train = encoded_dataset.get_data("train")
                 X_val, y_val = encoded_dataset.get_data("val")
 
-                encoder_model_result = emulation_results.add_encoder_model_result(encoder_model)
+                encoder_model_result = emulation_results.add_encoder_model_result(
+                    encoder_model_name
+                )
                 self._run_emulation_for_model(
                     models, labels, X_train, y_train, X_val, y_val, encoder_model_result
                 )
@@ -224,7 +227,7 @@ class Runner:
         X_val: pd.DataFrame,
         y_val: pd.DataFrame,
         encoder_model_result: EncoderModelResult,
-    ) -> dict:
+    ) -> None:
         """Run emulation for a single encoder model"""
         for label in labels:
             label_result = encoder_model_result.add_label_result(label)
@@ -241,9 +244,9 @@ class Runner:
 
                 label_result.add_model_result(model_type, model_params, r2_score)
 
-    def _get_encoder_models(self, conf_name: str) -> list:
+    def _get_encoder_models(self, conf_name: str) -> dict[str, list[str]]:
         """Get list of encoder model folder names"""
-        encoder_models = {}
+        encoder_models: dict[str, list[str]] = {}
         for experiment in os.listdir(f"results/{conf_name}"):
             encoder_models[experiment] = []
             for model in os.listdir(f"results/{conf_name}/{experiment}"):

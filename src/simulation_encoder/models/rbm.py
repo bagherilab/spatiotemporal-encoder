@@ -39,7 +39,9 @@ class RBM(nn.Module):
 
         self.to(self.device)
 
-    def train(self, dataloader: DataLoader, num_epochs: int, lr: float = 0.01, k: int = 3) -> None:
+    def train_machine(
+        self, dataloader: DataLoader, num_epochs: int, lr: float = 0.01, k: int = 3
+    ) -> None:
         """Train the RBM"""
         loss = nn.MSELoss()
         for epoch in range(num_epochs):
@@ -229,7 +231,9 @@ class CRBM(nn.Module):
         # Apply weight decay
         self.W.data -= self.W.data * weight_decay
 
-    def train(self, dataloader: DataLoader, num_epochs: int, lr: float = 0.01, k: int = 3) -> None:
+    def train_machine(
+        self, dataloader: DataLoader, num_epochs: int, lr: float = 0.01, k: int = 3
+    ) -> None:
         """Train the CRBM"""
         loss = nn.MSELoss()
         for epoch in range(num_epochs):

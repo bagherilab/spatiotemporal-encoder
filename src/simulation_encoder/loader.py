@@ -233,10 +233,10 @@ class Loader(ABC, Dataset):
             flat_input.append(flat_features)
             labels.append(targets)
 
-        flat_input = torch.cat(flat_input, dim=0)
-        labels = torch.cat(labels, dim=0)
+        flat_input_tensor = torch.cat(flat_input, dim=0)  # type: ignore
+        labels_tensor = torch.cat(labels, dim=0)  # type: ignore
 
-        dataset = TensorDataset(flat_input, labels)
+        dataset = TensorDataset(flat_input_tensor, labels_tensor)
         return DataLoader(
             dataset, batch_size=batch_size, shuffle=True, collate_fn=Loader._collate_fn
         )
@@ -252,11 +252,11 @@ class Loader(ABC, Dataset):
             transformed_features = func(feature)
             transformed_data.append(transformed_features)
             labels.append(label)
-        
-        transformed_data = torch.cat(transformed_data, dim=0)
-        labels = torch.cat(labels, dim=0)
 
-        dataset = TensorDataset(transformed_data, labels)
+        transformed_data_tensor = torch.cat(transformed_data, dim=0)  # type: ignore
+        labels_tensor = torch.cat(labels, dim=0)  # type: ignore
+
+        dataset = TensorDataset(transformed_data_tensor, labels_tensor)
         return DataLoader(
             dataset, batch_size=data_loader.batch_size, shuffle=True, collate_fn=Loader._collate_fn
         )

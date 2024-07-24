@@ -141,7 +141,7 @@ class BaseCNN(ABC, nn.Module):
                     padding,
                     device=self.device,
                 )
-                crbm.train(train_loader, rbm_epochs, rbm_lr)
+                crbm.train_machine(train_loader, rbm_epochs, rbm_lr)
                 train_loader = Loader._transform_dataloader(
                     crbm.sample_hk, train_loader, self.device
                 )
@@ -171,7 +171,7 @@ class BaseCNN(ABC, nn.Module):
                     gaussian = False
                     rbm = RBM(in_features, out_features, gaussian, self.device)
 
-                rbm.train(train_loader, rbm_epochs, rbm_lr)
+                rbm.train_machine(train_loader, rbm_epochs, rbm_lr)
 
                 train_loader = Loader._transform_dataloader(
                     rbm.sample_hk, train_loader, self.device

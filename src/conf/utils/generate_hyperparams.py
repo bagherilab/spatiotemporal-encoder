@@ -3,7 +3,10 @@ from typing import Any
 
 import numpy as np
 
-from simulation_encoder.dataclass.config_schemas import HyperparameterDiscreteConfig, HyperparameterRangeConfig
+from simulation_encoder.dataclass.config_schemas import (
+    HyperparameterDiscreteConfig,
+    HyperparameterRangeConfig,
+)
 
 
 def generate_hyperparameters(
@@ -28,15 +31,16 @@ def generate_hyperparameters(
 
     return param_sets
 
-def _get_continuous_values(continuous_params: dict[str, HyperparameterRangeConfig]) -> dict[str, list[float]]:
+
+def _get_continuous_values(
+    continuous_params: dict[str, HyperparameterRangeConfig]
+) -> dict[str, list[float]]:
     continuous_values = {}
     if continuous_params:
         for param, param_info in continuous_params.items():
             num_samples = param_info.num_samples
             if param_info.search == "linear":
-                values = np.linspace(
-                    param_info.range[0], param_info.range[1], num_samples
-                ).tolist()
+                values = np.linspace(param_info.range[0], param_info.range[1], num_samples).tolist()
             elif param_info.search == "log":
                 values = np.logspace(
                     np.log10(param_info.range[0]),
@@ -48,7 +52,10 @@ def _get_continuous_values(continuous_params: dict[str, HyperparameterRangeConfi
             continuous_values[param] = values
     return continuous_values
 
-def _get_discrete_values(discrete_params: dict[str, HyperparameterDiscreteConfig]) -> dict[str, list[float]]:
+
+def _get_discrete_values(
+    discrete_params: dict[str, HyperparameterDiscreteConfig]
+) -> dict[str, list[float]]:
     discrete_values = {}
     if discrete_params:
         for param, param_info in discrete_params.items():

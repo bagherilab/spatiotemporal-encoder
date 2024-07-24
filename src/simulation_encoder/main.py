@@ -27,10 +27,17 @@ from simulation_encoder.models.cae import CAE
 from simulation_encoder.models.vae import VAE
 
 from simulation_encoder.dataclass.param_sets import DatasetParams, ModelParams
-from simulation_encoder.dataclass.config_schemas import MainConfig, HyperparameterConfig, ExperimentConfig, ModelParamsConfig, ModelArchitectureConfig
+from simulation_encoder.dataclass.config_schemas import (
+    MainConfig,
+    HyperparameterConfig,
+    ExperimentConfig,
+    ModelParamsConfig,
+    ModelArchitectureConfig,
+)
 from conf.utils.generate_hyperparams import generate_hyperparameters
 
 CONFIG_YAML = "src/conf/config.yaml"
+
 
 def main() -> None:
     """Entry point for the simulation encoder. This function reads the config.yaml file and
@@ -47,9 +54,8 @@ def main() -> None:
         print(f"Configuration validation error: {e}")
         return
 
-    config_name = main_config.experiment_name
-    for experiment_name, experiment_config in main_config.experiments.items():
-        # try:
+    config_name = main_config.experiment_name  # type: ignore
+    for experiment_name, experiment_config in main_config.experiments.items():  # type: ignore
         pretrain = experiment_config.general_configs.pretrain
         verbose = experiment_config.general_configs.verbose
 
@@ -63,7 +69,6 @@ def main() -> None:
         runner.add_dataset(dataset)
         writer.write_train_test_indices(dataset.get_indices())
 
-        
         model = experiment_config.model
         n_channels = len(experiment_config.general_configs.channels)
         model_param_sets = create_model_param_sets(model, n_channels)
@@ -76,11 +81,11 @@ def main() -> None:
         emulation_results = runner.run_emulator(config_name)
         if emulation_results:
             writer.write_emulation_results(emulation_results)
-        # except Exception as e:
-        #     print(f"Error processing experiment '{experiment_name}': {type(e).__name__}: {e}")
-        #     continue
 
-def create_dataset_params(experiment_name: str, experiment_config: ExperimentConfig) -> DatasetParams:
+
+def create_dataset_params(
+    experiment_name: str, experiment_config: ExperimentConfig
+) -> DatasetParams:
     """Create the dataset parameters from the experiment config file"""
 
     if "alphanumeric" in experiment_name.lower():
@@ -110,6 +115,7 @@ def create_dataset_params(experiment_name: str, experiment_config: ExperimentCon
 
     return dataset_params
 
+
 def create_dataset(dataset_params: DatasetParams, logger: Logger) -> Loader:
     """Create the dataset object from the dataset parameters"""
     params_dict = dataset_params.__dict__
@@ -129,6 +135,7 @@ def create_dataset(dataset_params: DatasetParams, logger: Logger) -> Loader:
 
     return dataset
 
+
 def create_model_param_sets(model: ModelParamsConfig, n_channels: int) -> list[ModelParams]:
     """Create the model parameters from model config files and hyperparameter yaml files"""
 
@@ -145,8 +152,8 @@ def create_model_param_sets(model: ModelParamsConfig, n_channels: int) -> list[M
     for param_set in param_sets:
         model_params = ModelParams(
             name=model_name,
-            model_type=model_yaml.type,
-            architecture=model_yaml.architecture.dict(exclude_none=True),
+            model_type=model_yaml.type,  # type: ignore
+            architecture=model_yaml.architecture.dict(exclude_none=True),  # type: ignore
             num_channels=n_channels,
             num_epochs=num_epochs,
             params=param_set,
@@ -154,6 +161,7 @@ def create_model_param_sets(model: ModelParamsConfig, n_channels: int) -> list[M
         model_param_sets.append(model_params)
 
     return model_param_sets
+
 
 def create_models(model_param_sets: list[ModelParams], logger: Logger) -> list[BaseCNN]:
     models = []
@@ -170,6 +178,7 @@ def create_models(model_param_sets: list[ModelParams], logger: Logger) -> list[B
 
     models.append(model)
     return models
+
 
 def handle_encoder_results(
     encoder_results: dict, runner: Runner, writer: Writer, plotter: Plotter
@@ -188,7 +197,9 @@ def handle_encoder_results(
 
         plot_data = data["plot_data"]
         plotter.line_plot(model_id, plot_data["grad_norms"], "grad_norms", "Epoch", "Gradient Norm")
-        plotter.loss_plot(model_id, plot_data["losses"]["combined"], plot_data["val_losses"]["combined"])
+        plotter.loss_plot(
+            model_id, plot_data["losses"]["combined"], plot_data["val_losses"]["combined"]
+        )
 
         losses = data["losses"][model_id]
         writer.write_encoder_results(model_id, runner.get_model(model_id), dataset, losses)
@@ -203,36 +214,41 @@ def handle_encoder_results(
         best_losses,
     )
 
+
 def _load_yaml(yaml_file: str, config_class: BaseModel) -> BaseModel:
     # try:
     with open(yaml_file, "r") as file:
         config = yaml.safe_load(file)
-    return config_class(**config)
+    return config_class(**config)  # type: ignore
     # except FileNotFoundError as e:
     #     raise FileNotFoundError(f"File {yaml_file} not found") from e
     # except ValidationError as e:
     #     raise ValidationError(f"Configuration validation error: {e}") from e
+
 
 def _load_hyperparams(yaml_name: str) -> HyperparameterConfig:
     yaml_file = yaml_name if yaml_name.endswith(".yaml") else yaml_name + ".yaml"
     yaml_path = f"src/conf/hyperparams/{yaml_file}"
     return _load_yaml(yaml_path, HyperparameterConfig)
 
-def _load_model_yaml(architecture_name: str, yaml_path: str = f"src/conf/models") -> dict[str, Any]:
+
+def _load_model_yaml(
+    architecture_name: str, yaml_path: str = f"src/conf/models"
+) -> ModelArchitectureConfig:
     yaml_file = (
         architecture_name if architecture_name.endswith(".yaml") else architecture_name + ".yaml"
     )
     yaml_path = os.path.join(yaml_path, yaml_file)
     return _load_yaml(yaml_path, ModelArchitectureConfig)
 
+
 if __name__ == "__main__":
     # with cProfile.Profile() as pr:
     #     main()
-    
+
     # stats = pstats.Stats(pr)
     # stats.sort_stats(pstats.SortKey.TIME)
     # stats.dump_stats("profile_output.prof")
-
 
     start_time = time.time()
     main()
