@@ -72,15 +72,13 @@ class Loader(ABC, Dataset):
         self.groups: list[dict[str, Any]] = []
         self.augmentations: dict[str, Augmentation] = {}
 
-        self.images = self._preload_images()
-
     def __len__(self) -> int:
         return len(self.groups)
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, int]:
         group = self.groups[idx]
         timepoint = int(group["timepoint"])
-        image_tensor = self.images[idx]
+        image_tensor = self._get_image_tensors(group, self.channels)
 
         return image_tensor, timepoint
 
@@ -167,13 +165,6 @@ class Loader(ABC, Dataset):
 
         augmentation = self.augmentations[augmentation_name]
         return augmentation(full_tensor)
-    
-    def _preload_images(self) -> dict[int, torch.Tensor]:
-        images = {}
-        for idx, group in enumerate(self.groups):
-            for image_idx in group['indices']:
-                images[image_idx] = self._get_image_tensors(group, self.channels)
-        return images
 
     def _split_data(self, shuffle: bool = True) -> None:
         if self.indices_file:

@@ -63,7 +63,7 @@ def main() -> None:
             if emulation_results:
                 writer.write_emulation_results(emulation_results)
         except Exception as e:
-            print(f"Error processing experiment '{experiment_name}': {e}")
+            print(f"Error processing experiment '{experiment_name}': {type(e).__name__}: {e}")
             continue
 
 

@@ -167,6 +167,7 @@ class Runner:
         """Trains a model on the dataset"""
         train_loader = self.dataset.get_dataloader(dataset_type="train")
         val_loader = self.dataset.get_dataloader(dataset_type="val")
+
         losses, val_losses, grad_norms = model.fit(
             train_loader,
             val_loader=val_loader,
