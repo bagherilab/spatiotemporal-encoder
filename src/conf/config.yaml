@@ -1,6 +1,6 @@
-experiment_name: cae-vae
+experiment_name: cae-pretrain
 experiments:
-  ARCADE-CAE:
+  ARCADE-CAE-PRETRAIN:
     data:
       image_dir: data/ARCADE/vascular_function_128/images
       label_dir: data/ARCADE/vascular_function_128/labels
@@ -9,7 +9,7 @@ experiments:
         # rotate:
         #   degree: 180
     model:
-      architecture: cae
+      architecture: cae_flat_big
       params: grid
     general_configs:
       batch_size: 32
@@ -17,8 +17,8 @@ experiments:
       test_split: 0.2
       channels:
         - cancer
-        # - graph
-      pretrain: false
+        - graph
+      pretrain: true
       verbose: true
     keys:
       - CH_Lav
@@ -36,7 +36,7 @@ experiments:
       # - growth
       # - symmetry
       
-  ARCADE-VAE:
+  ARCADE-CAE:
     data:
       image_dir: data/ARCADE/vascular_function_128/images
       label_dir: data/ARCADE/vascular_function_128/labels
@@ -45,7 +45,7 @@ experiments:
         # rotate:
         #   degree: 180
     model:
-      architecture: vae
+      architecture: cae_flat_big
       params: grid
     general_configs:
       batch_size: 32
@@ -53,7 +53,7 @@ experiments:
       test_split: 0.2
       channels:
         - cancer
-        # - graph
+        - graph
       pretrain: false
       verbose: true
     keys:

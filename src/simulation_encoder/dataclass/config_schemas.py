@@ -121,8 +121,6 @@ class LayerConfig(BaseModel):
             values.get("in_channels") is None or values.get("out_channels") is None
         ):
             raise ValueError("Missing in_channels or out_channels for Conv2d layer")
-        if layer_type == "Unflatten" and values.get("shape") is None:
-            raise ValueError("Missing shape for Unflatten layer")
 
         return values
 

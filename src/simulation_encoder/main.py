@@ -72,6 +72,7 @@ def main() -> None:
         model = experiment_config.model
         n_channels = len(experiment_config.general_configs.channels)
         model_param_sets = create_model_param_sets(model, n_channels)
+
         models = create_models(model_param_sets, logger)
         runner.add_models(models, logger)
 
@@ -153,7 +154,7 @@ def create_model_param_sets(model: ModelParamsConfig, n_channels: int) -> list[M
         model_params = ModelParams(
             name=model_name,
             model_type=model_yaml.type,  # type: ignore
-            architecture=model_yaml.architecture.dict(exclude_none=True),  # type: ignore
+            architecture=model_yaml.architecture.model_dump(exclude_none=True),  # type: ignore
             num_channels=n_channels,
             num_epochs=num_epochs,
             params=param_set,
@@ -165,7 +166,6 @@ def create_model_param_sets(model: ModelParamsConfig, n_channels: int) -> list[M
 
 def create_models(model_param_sets: list[ModelParams], logger: Logger) -> list[BaseCNN]:
     models = []
-
     for model_param_set in model_param_sets:
         params_dict = model_param_set.__dict__
         model_type = params_dict.pop("model_type")
@@ -176,7 +176,7 @@ def create_models(model_param_sets: list[ModelParams], logger: Logger) -> list[B
         else:
             raise ValueError(f"Model type {model_type} not recognized")
 
-    models.append(model)
+        models.append(model)
     return models
 
 
