@@ -4,12 +4,11 @@ import time
 
 import os
 import sys
-import uuid
 from pathlib import Path
-from typing import Any
 from copy import deepcopy
 
 import yaml
+import traceback
 from pydantic import BaseModel, ValidationError
 
 # For local imports in the module
@@ -51,8 +50,8 @@ def main() -> None:
     try:
         main_config = _load_yaml(CONFIG_YAML, MainConfig)
     except ValidationError as e:
-        print(f"Configuration validation error: {e}")
-        return
+        traceback.print_exc()
+        raise ValidationError(f"Configuration validation error: {e}") from e
 
     config_name = main_config.experiment_name  # type: ignore
     for experiment_name, experiment_config in main_config.experiments.items():  # type: ignore
@@ -62,26 +61,31 @@ def main() -> None:
         runner = Runner(pretrain, verbose)
         writer = Writer(results_dir=f"results/{config_name}", experiment_name=experiment_name)
         plotter = Plotter(results_dir=f"results/{config_name}", experiment_name=experiment_name)
-        logger = Logger(experiment_name=experiment_name, log_dir=f"logs/{config_name}")
+        logger = Logger(
+            experiment_name=experiment_name, log_dir=f"logs/{config_name}", verbose=verbose
+        )
 
+        # Dataset
         dataset_params = create_dataset_params(experiment_name, experiment_config)
         dataset = create_dataset(dataset_params, logger)
         runner.add_dataset(dataset)
         writer.write_train_test_indices(dataset.get_indices())
 
+        # Models
         model = experiment_config.model
         n_channels = len(experiment_config.general_configs.channels)
         model_param_sets = create_model_param_sets(model, n_channels)
-
         models = create_models(model_param_sets, logger)
         runner.add_models(models, logger)
 
+        # Run
         encoder_results = runner.run_encoder(experiment_name, logger)
         handle_encoder_results(encoder_results, runner, writer, plotter)
 
-        emulation_results = runner.run_emulator(config_name)
-        if emulation_results:
-            writer.write_emulation_results(emulation_results)
+    # Emulation
+    emulation_results = runner.run_emulator(config_name)
+    if emulation_results:
+        writer.write_emulation_results(emulation_results)
 
 
 def create_dataset_params(
@@ -121,12 +125,13 @@ def create_dataset(dataset_params: DatasetParams, logger: Logger) -> Loader:
     """Create the dataset object from the dataset parameters"""
     params_dict = dataset_params.__dict__
     loader = params_dict.pop("loader")
-    if loader == "ARCADE":
+    logger.log(f"Creating dataset with loader: {loader}")
+    if loader.lower() == "arcade":
         dataset = ARCADELoader(
             **params_dict,
             logger=logger,
         )
-    elif loader == "alphanumeric":
+    elif loader.lower() == "alphanumeric":
         del params_dict["label_dir"]
         del params_dict["labels"]
         dataset = AlphaNumericLoader(
@@ -166,9 +171,10 @@ def create_model_param_sets(model: ModelParamsConfig, n_channels: int) -> list[M
 
 def create_models(model_param_sets: list[ModelParams], logger: Logger) -> list[BaseCNN]:
     models = []
-    for model_param_set in model_param_sets:
+    for i, model_param_set in enumerate(model_param_sets):
         params_dict = model_param_set.__dict__
         model_type = params_dict.pop("model_type")
+        logger.log(f"{i+1}/{len(model_param_sets)}: Creating model with type: {model_type}")
         if model_type == "CAE":
             model = CAE(**deepcopy(model_param_set.__dict__), logger=logger)
         elif model_type == "VAE":
@@ -184,13 +190,9 @@ def handle_encoder_results(
     encoder_results: dict, runner: Runner, writer: Writer, plotter: Plotter
 ) -> None:
     """Handles writing and plotting of encoder results"""
-    best_model_id = encoder_results["best_model"]
-    best_losses = None
     dataset = runner.get_dataset()
 
     for model_id, data in encoder_results.items():
-        if model_id == "best_model":
-            continue
 
         writer.write_encoded_data(model_id, data["encoded_data"])
         writer.write_model_state(model_id, data["model_state"])
@@ -204,26 +206,18 @@ def handle_encoder_results(
         losses = data["losses"][model_id]
         writer.write_encoder_results(model_id, runner.get_model(model_id), dataset, losses)
 
-        if model_id == best_model_id:
-            best_losses = losses
-
-    writer.write_encoder_results(
-        "_best_model",
-        runner.get_model(best_model_id),
-        dataset,
-        best_losses,
-    )
-
 
 def _load_yaml(yaml_file: str, config_class: BaseModel) -> BaseModel:
-    # try:
-    with open(yaml_file, "r") as file:
-        config = yaml.safe_load(file)
-    return config_class(**config)  # type: ignore
-    # except FileNotFoundError as e:
-    #     raise FileNotFoundError(f"File {yaml_file} not found") from e
-    # except ValidationError as e:
-    #     raise ValidationError(f"Configuration validation error: {e}") from e
+    try:
+        with open(yaml_file, "r") as file:
+            config = yaml.safe_load(file)
+        return config_class(**config)  # type: ignore
+    except FileNotFoundError as e:
+        traceback.print_exc()
+        raise FileNotFoundError(f"File {yaml_file} not found") from e
+    except ValidationError as e:
+        traceback.print_exc()
+        raise ValidationError(f"Configuration validation error: {e}") from e
 
 
 def _load_hyperparams(yaml_name: str) -> HyperparameterConfig:
@@ -243,16 +237,14 @@ def _load_model_yaml(
 
 
 if __name__ == "__main__":
-    # with cProfile.Profile() as pr:
-    #     main()
-
-    # stats = pstats.Stats(pr)
-    # stats.sort_stats(pstats.SortKey.TIME)
-    # stats.dump_stats("profile_output.prof")
-
-    start_time = time.time()
-    main()
-    end_time = time.time()
+    with cProfile.Profile() as pr:
+        start_time = time.time()
+        main()
+        end_time = time.time()
 
     execution_time = end_time - start_time
     print(f"Execution time: {execution_time} seconds")
+
+    stats = pstats.Stats(pr)
+    stats.sort_stats(pstats.SortKey.TIME)
+    stats.dump_stats("profile_output.prof")

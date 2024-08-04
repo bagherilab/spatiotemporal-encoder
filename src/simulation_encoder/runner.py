@@ -55,7 +55,6 @@ class Runner:
         dataset : Loader
             Dataset to be used for training and evaluation
         """
-
         self.dataset = dataset
 
     def add_models(self, models: list[BaseCNN], logger: Logger) -> None:
@@ -107,14 +106,13 @@ class Runner:
             lambda: {
                 "encoded_data": None,
                 "model_state": None,
-                "best_model": None,
                 "losses": self.losses,
                 "plot_data": {"losses": None, "val_losses": None, "grad_norms": None},
             }
         )
 
-        for model_id, model in self.models.items():
-            logger.log(f"------------------- {model_id} -------------------")
+        for i, (model_id, model) in enumerate(self.models.items()):
+            logger.log(f"{i+1}/{len(self.models)}: Training model {model_id}")
             losses, val_losses, grad_norms = self._train_model(model_id, model)
             # self._eval_model(model_id, model)
 
@@ -127,9 +125,6 @@ class Runner:
                 "val_losses": val_losses,
                 "grad_norms": grad_norms,
             }
-
-        best_model = min(self.losses, key=lambda x: min(self.losses[x].losses_val["combined"]))
-        results["best_model"] = best_model
 
         return results
 
@@ -186,7 +181,7 @@ class Runner:
 
         return {"train": encoded_train, "val": encoded_val, "test": encoded_test}
 
-    def run_emulator(self, conf_name: str) -> Optional[EmulationResults]:
+    def run_emulator(self, conf_name: str, logger: Logger) -> Optional[EmulationResults]:
         """Runs emulation for the encoded datasets and returns the results"""
         labels = self.dataset.labels
 
@@ -199,8 +194,14 @@ class Runner:
         encoder_models = self._get_encoder_models(conf_name)
 
         emulation_results = EmulationResults()
+
         for experiment, encoder_model_names in encoder_models.items():
-            for encoder_model_name in encoder_model_names:
+            logger.log(f"Running emulation for experiment: {experiment}")
+            logger.log(f"{len(encoder_model_names)} encoder models")
+            for i, encoder_model_name in enumerate(encoder_model_names):
+                logger.log(
+                    f"Encoder model {i + 1}/{len(encoder_model_names)}: {encoder_model_name}"
+                )
                 encoded_dataset = CSVLoader(
                     conf_name=conf_name, exp_id=experiment, model=encoder_model_name, labels=labels
                 )

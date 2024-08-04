@@ -1,5 +1,5 @@
-experiment_name: cae-pretrain
-experiments:
+experiment_name: cae-emulation-32
+experiments:      
   ARCADE-CAE-PRETRAIN:
     data:
       image_dir: data/ARCADE/vascular_function_128/images
@@ -32,42 +32,6 @@ experiments:
       - C_Sav
       - C_Savav
     emulator_targets:
-      # - activity
-      # - growth
-      # - symmetry
-      
-  ARCADE-CAE:
-    data:
-      image_dir: data/ARCADE/vascular_function_128/images
-      label_dir: data/ARCADE/vascular_function_128/labels
-      image_size: 128
-      augmentations:
-        # rotate:
-        #   degree: 180
-    model:
-      architecture: cae_flat_big
-      params: grid
-    general_configs:
-      batch_size: 32
-      val_split: 0.2
-      test_split: 0.2
-      channels:
-        - cancer
-        - graph
-      pretrain: false
-      verbose: true
-    keys:
-      - CH_Lav
-      - CH_Lava
-      - CH_Lvav
-      - CH_Sav
-      - CH_Savav
-      - C_Lav
-      - C_Lava
-      - C_Lvav
-      - C_Sav
-      - C_Savav
-    emulator_targets:
-      # - activity
-      # - growth
-      # - symmetry
+      - activity
+      - growth
+      - symmetry
