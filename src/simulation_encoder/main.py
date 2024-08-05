@@ -176,9 +176,9 @@ def create_models(model_param_sets: list[ModelParams], logger: Logger) -> list[B
         model_type = params_dict.pop("model_type")
         logger.log(f"{i+1}/{len(model_param_sets)}: Creating model with architecture: {model_type}")
         if model_type == "CAE":
-            model = CAE(**deepcopy(model_param_set.__dict__), logger=logger)
+            model = CAE(**deepcopy(model_param_set.__dict__))
         elif model_type == "VAE":
-            model = VAE(**deepcopy(model_param_set.__dict__), logger=logger)
+            model = VAE(**deepcopy(model_param_set.__dict__))
         else:
             raise ValueError(f"Model type {model_type} not recognized")
 

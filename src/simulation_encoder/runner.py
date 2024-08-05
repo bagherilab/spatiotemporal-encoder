@@ -192,7 +192,7 @@ class Runner:
         if not labels:
             return None
 
-        emulator_models = ["linear_regression", "random_forest", "svm", "mlp"]
+        emulator_models = ["linear_regression", "random_forest", "mlp"]
         encoder_models = self._get_encoder_models(conf_name)
 
         emulation_results = EmulationResults()
@@ -201,7 +201,7 @@ class Runner:
             logger.log(f"Running emulation for experiment: {experiment}")
             for i, encoder_model_name in enumerate(encoder_model_names):
                 logger.log(
-                    f"Encoder model: {encoder_model_name}"
+                    f"[{experiment}]Encoder model: {encoder_model_name}"
                 )
                 encoded_dataset = CSVLoader(
                     conf_name=conf_name, exp_id=experiment, model=encoder_model_name, labels=labels
@@ -217,7 +217,7 @@ class Runner:
                 X = (X_train, X_val)
                 y = (y_train, y_val)
                 self._run_emulation_for_model(
-                    models, labels, X, y, encoder_model_name, encoder_model_result, logger
+                    models, labels, X, y, experiment_name, encoder_model_name, encoder_model_result, logger
                 )
 
         return emulation_results
@@ -228,6 +228,7 @@ class Runner:
         labels: list,
         X: tuple[pd.DataFrame, pd.DataFrame],
         y: tuple[pd.DataFrame, pd.DataFrame],
+        experiment_name: str,
         encoder_model_name: str,
         encoder_model_result: EncoderModelResult,
         logger: Logger
@@ -237,11 +238,11 @@ class Runner:
         y_train, y_val = y
 
         for label in labels:
-            logger.log(f"[{encoder_model_name}]Emulating target: {label}")
+            logger.log(f"[{experiment_name}][{encoder_model_name}]Emulating target: {label}")
             label_result = encoder_model_result.add_label_result(label)
 
             for j, (model_type, model) in enumerate(models.items()):
-                logger.log(f"[{encoder_model_name}]{j+1}/{len(models)}: Emulator model: {model_type}")
+                logger.log(f"[{experiment_name}][{encoder_model_name}]{j+1}/{len(models)}: Emulator model: {model_type}")
                 model_params = model.grid_search(X_train, y_train[label])
                 model = Emulator(model_type=model_type, params=model_params)
 
