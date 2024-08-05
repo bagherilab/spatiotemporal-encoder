@@ -58,12 +58,13 @@ def main() -> None:
         pretrain = experiment_config.general_configs.pretrain
         verbose = experiment_config.general_configs.verbose
 
-        runner = Runner(pretrain, verbose)
+        logger = Logger(
+            log_name=f"{config_name}",verbose=verbose
+        )
+
+        runner = Runner(pretrain, logger, verbose)
         writer = Writer(results_dir=f"results/{config_name}", experiment_name=experiment_name)
         plotter = Plotter(results_dir=f"results/{config_name}", experiment_name=experiment_name)
-        logger = Logger(
-            experiment_name=experiment_name, log_dir=f"logs/{config_name}", verbose=verbose
-        )
 
         # Dataset
         dataset_params = create_dataset_params(experiment_name, experiment_config)
@@ -76,14 +77,14 @@ def main() -> None:
         n_channels = len(experiment_config.general_configs.channels)
         model_param_sets = create_model_param_sets(model, n_channels)
         models = create_models(model_param_sets, logger)
-        runner.add_models(models, logger)
+        runner.add_models(models)
 
         # Run
-        encoder_results = runner.run_encoder(experiment_name, logger)
+        encoder_results = runner.run_encoder(experiment_name)
         handle_encoder_results(encoder_results, runner, writer, plotter)
 
     # Emulation
-    emulation_results = runner.run_emulator(config_name, logger)
+    emulation_results = runner.run_emulator(config_name)
     if emulation_results:
         writer.write_emulation_results(emulation_results)
 
@@ -92,7 +93,6 @@ def create_dataset_params(
     experiment_name: str, experiment_config: ExperimentConfig
 ) -> DatasetParams:
     """Create the dataset parameters from the experiment config file"""
-
     if "alphanumeric" in experiment_name.lower():
         dataset_params = DatasetParams(
             loader="alphanumeric",
@@ -106,7 +106,7 @@ def create_dataset_params(
         )
     elif "arcade" in experiment_name.lower():
         dataset_params = DatasetParams(
-            loader="ARCADE",
+            loader="arcade",
             channels=experiment_config.general_configs.channels,
             image_dir=experiment_config.data.image_dir,
             label_dir=experiment_config.data.label_dir,
@@ -125,7 +125,7 @@ def create_dataset(dataset_params: DatasetParams, logger: Logger) -> Loader:
     """Create the dataset object from the dataset parameters"""
     params_dict = dataset_params.__dict__
     loader = params_dict.pop("loader")
-    logger.log(f"Creating dataset with loader: {loader}")
+    logger.log(f"Creating dataset with loader - {loader}")
     if loader.lower() == "arcade":
         dataset = ARCADELoader(
             **params_dict,
@@ -174,11 +174,11 @@ def create_models(model_param_sets: list[ModelParams], logger: Logger) -> list[B
     for i, model_param_set in enumerate(model_param_sets):
         params_dict = model_param_set.__dict__
         model_type = params_dict.pop("model_type")
-        logger.log(f"{i+1}/{len(model_param_sets)}: Creating model with architecture: {model_type}")
+        logger.log(f"{i+1}/{len(model_param_sets)} - Creating model with architecture {model_type}")
         if model_type == "CAE":
-            model = CAE(**deepcopy(model_param_set.__dict__))
+            model = CAE(**deepcopy(model_param_set.__dict__), logger=logger)
         elif model_type == "VAE":
-            model = VAE(**deepcopy(model_param_set.__dict__))
+            model = VAE(**deepcopy(model_param_set.__dict__), logger=logger)
         else:
             raise ValueError(f"Model type {model_type} not recognized")
 

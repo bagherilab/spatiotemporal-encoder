@@ -36,6 +36,7 @@ class VAE(BaseCNN):
         num_channels: int = 1,
         num_epochs: int = 5,
         params: dict[str, Any] = {},
+        logger: Optional[Logger] = None,
     ):
         super().__init__()
 
@@ -46,6 +47,7 @@ class VAE(BaseCNN):
         self.num_channels = num_channels
         self.num_epochs = num_epochs
         self.params = params
+        self.logger = logger
         self.latent_dim = params.get("latent_dim", 32)
         self.image_size = image_size
         self.loss_weights = {
@@ -149,38 +151,33 @@ class VAE(BaseCNN):
 
         avg_loss: dict[str, float] = defaultdict(float)
 
-        with tqdm(train_loader, unit=" batch", ncols=100, desc=f"Epoch {epoch + 1}") as tepoch:
-            for inputs, labels in tepoch:
-                inputs, labels = inputs.to(self.device), labels.to(self.device)
-                optimizer_combined.zero_grad()
 
-                pred_image, pred_timepoint, mu, logvar = self(inputs)
+        for inputs, labels in train_loader:
+            inputs, labels = inputs.to(self.device), labels.to(self.device)
+            optimizer_combined.zero_grad()
 
-                batch_loss = {
-                    "image": image_criteria(pred_image, inputs) * self.image_loss_factor,
-                    "timepoint": timepoint_criteria(pred_timepoint, labels),
-                }
+            pred_image, pred_timepoint, mu, logvar = self(inputs)
 
-                reconstruction_loss, reconstruction_loss_weighted = self._calc_reconstruction_loss(
-                    batch_loss
-                )
-                kld_loss = self._calc_kld_loss(mu, logvar)
+            batch_loss = {
+                "image": image_criteria(pred_image, inputs) * self.image_loss_factor,
+                "timepoint": timepoint_criteria(pred_timepoint, labels),
+            }
 
-                vae_loss = self.reconstruction_loss_factor * reconstruction_loss_weighted + kld_loss
+            reconstruction_loss, reconstruction_loss_weighted = self._calc_reconstruction_loss(
+                batch_loss
+            )
+            kld_loss = self._calc_kld_loss(mu, logvar)
 
-                vae_loss.backward()  # type: ignore
-                optimizer_combined.step()
+            vae_loss = self.reconstruction_loss_factor * reconstruction_loss_weighted + kld_loss
 
-                for key in batch_loss:
-                    avg_loss[key] += batch_loss[key].item()
-                avg_loss["reconstruction"] += reconstruction_loss.item()
-                avg_loss["kld"] += kld_loss.item()
-                avg_loss["combined"] += vae_loss.item()
+            vae_loss.backward()  # type: ignore
+            optimizer_combined.step()
 
-                tepoch.set_postfix(
-                    image_loss=round(batch_loss["image"].item(), 3),
-                    timepoint_loss=round(batch_loss["timepoint"].item(), 3),
-                )
+            for key in batch_loss:
+                avg_loss[key] += batch_loss[key].item()
+            avg_loss["reconstruction"] += reconstruction_loss.item()
+            avg_loss["kld"] += kld_loss.item()
+            avg_loss["combined"] += vae_loss.item()
 
         avg_loss = {key: value / len(train_loader) for key, value in avg_loss.items()}
         return avg_loss

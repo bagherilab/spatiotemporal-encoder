@@ -2,11 +2,16 @@ from typing import Any, Optional
 
 import numpy as np
 import pandas as pd
+
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.svm import SVR
-from sklearn.model_selection import GridSearchCV
 from sklearn.neural_network import MLPRegressor
+from sklearn.model_selection import ParameterGrid, KFold
+from sklearn.base import clone
+
+from simulation_encoder.logger import Logger
+
 
 
 class Emulator:
@@ -14,10 +19,11 @@ class Emulator:
         self,
         model_type: str = "linear_regression",
         params: Optional[dict[str, Any]] = None,
+        logger: Optional[Logger] = None,
     ):
         self.model_type = model_type
+        self.logger = logger
 
-        # Define default parameter grids
         default_param_grids = {
             "linear_regression": {
                 "model": LinearRegression,
@@ -72,9 +78,28 @@ class Emulator:
 
     def grid_search(self, X: pd.DataFrame, y: pd.DataFrame) -> dict:
         """Perform a grid search to find the best hyperparameters."""
-        grid_search = GridSearchCV(
-            estimator=self.model, param_grid=self.param_grid, cv=5, scoring="r2"
-        )
-        grid_search.fit(X, y)
-        self.model = grid_search.best_estimator_
-        return grid_search.best_params_
+        param_grid = ParameterGrid(self.param_grid)
+        best_score = -np.inf
+        best_params = None
+        n_models = len(param_grid)
+
+        for i, params in enumerate(param_grid):
+            self._log(f"{i+1}/{n_models} - {self.model_type}")
+            model = clone(self.model).set_params(**params)
+            scores = []
+            for train_idx, val_idx in KFold(n_splits=5).split(X):
+                X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
+                y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
+                model.fit(X_train, y_train)
+                scores.append(model.score(X_val, y_val))
+            mean_score = np.mean(scores)
+
+            if mean_score > best_score:
+                best_score = mean_score
+                best_params = params
+
+        return best_params
+
+    def _log(self, msg: str) -> None:
+        if self.logger:
+            self.logger.log(msg)

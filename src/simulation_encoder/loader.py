@@ -155,7 +155,11 @@ class Loader(ABC, Dataset):
 
         tensors = []
         for channel in channels:
-            tensors.append(transformation(Image.open(group[channel])))
+            if group[channel] != "":
+                tensors.append(transformation(Image.open(group[channel])))
+            else:
+                zero_channel = Image.fromarray(np.zeros(self.image_shape, dtype=np.uint8))
+                tensors.append(transformation(zero_channel))
 
         full_tensor = torch.stack(tensors, dim=0)
 
@@ -394,16 +398,14 @@ class ARCADELoader(Loader):
                     label_upper, key, timepoint_float, seed
                 )
 
-        if self.logger:
-            missing_images = {
-                group_key: [
-                    key for key, value in group.items() if value == "" and key in self.channels
-                ]
-                for group_key, group in groups.items()
-                if any(value == "" and key in self.channels for key, value in group.items())
-            }
-            for group_key, missing_list in missing_images.items():
-                self.logger.warning(f"Missing images from {group_key}: {missing_list}")
+   
+        missing_images_count = {
+            group_key: sum(1 for key, value in group.items() if value == "" and key in self.channels)
+            for group_key, group in groups.items()
+            if any(value == "" and key in self.channels for key, value in group.items())
+        }
+        for group_key, count in missing_images_count.items():
+            self._log(f"Number of missing images from {group_key} - {count}", "warning")
 
         self.groups = list(groups.values())
 
@@ -467,6 +469,10 @@ class ARCADELoader(Loader):
         file_chunks = file_name.split("_")[0:2]
         prefix = "_".join(file_chunks)
         return prefix in self.keys
+    
+    def _log(self, msg: str) -> None:
+        if self.logger:
+            self.logger.log(msg)
 
 
 class AlphaNumericLoader(Loader):
@@ -498,6 +504,7 @@ class AlphaNumericLoader(Loader):
         )
         self.image_dir = image_dir
         self.keys = keys
+        self.labels = None
         self.logger = logger
 
         self._get_image_groups()
@@ -543,6 +550,10 @@ class AlphaNumericLoader(Loader):
         file_chunks = file_name.split("_")[0:3]
         prefix = file_chunks[0]
         return prefix in self.keys
+    
+    def _log(self, msg: str) -> None:
+        if self.logger:
+            self.logger.log(msg)
 
 
 class CSVLoader(Dataset):

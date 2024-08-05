@@ -1,6 +1,5 @@
 from typing import Optional, Any
 
-from tqdm import tqdm
 from collections import defaultdict
 
 import torch
@@ -25,8 +24,6 @@ class CAE(BaseCNN):
         Number of epochs to train the network
     params : dict{str: Any}
         Dictionary containing model hyperparameters
-    logger : Logger, optional
-        Logger object for logging, by default None
     """
 
     def __init__(
@@ -37,6 +34,7 @@ class CAE(BaseCNN):
         num_epochs: int = 5,
         image_size: int = 128,
         params: dict[str, Any] = {},
+        logger: Optional[Logger] = None,
     ):
         super().__init__()
 
@@ -48,6 +46,7 @@ class CAE(BaseCNN):
         self.num_epochs = num_epochs
         self.image_size = image_size
         self.params = params
+        self.logger = logger
         self.latent_dim = params.get("latent_dim", 32)
         self.loss_weights = {
             "image": params.get("image_loss_weight", 1.0),
@@ -131,33 +130,27 @@ class CAE(BaseCNN):
 
         avg_loss: dict[str, float] = defaultdict(float)
 
-        with tqdm(train_loader, unit=" batch", ncols=100, desc=f"Epoch {epoch + 1}") as tepoch:
-            for inputs, labels in tepoch:
-                inputs, labels = inputs.to(self.device), labels.to(self.device)
-                optimizer_combined.zero_grad()
+        for inputs, labels in train_loader:
+            inputs, labels = inputs.to(self.device), labels.to(self.device)
+            optimizer_combined.zero_grad()
 
-                pred_image, pred_timepoint = self(inputs)
+            pred_image, pred_timepoint = self(inputs)
 
-                batch_loss = {
-                    "image": image_criteria(pred_image, inputs) * self.image_loss_factor,
-                    "timepoint": timepoint_criteria(pred_timepoint, labels),
-                }
-                reconstruction_loss, reconstruction_loss_weighted = self._calc_reconstruction_loss(
-                    batch_loss
-                )
+            batch_loss = {
+                "image": image_criteria(pred_image, inputs) * self.image_loss_factor,
+                "timepoint": timepoint_criteria(pred_timepoint, labels),
+            }
+            reconstruction_loss, reconstruction_loss_weighted = self._calc_reconstruction_loss(
+                batch_loss
+            )
 
-                reconstruction_loss_weighted.backward()  # type: ignore
-                optimizer_combined.step()
+            reconstruction_loss_weighted.backward()  # type: ignore
+            optimizer_combined.step()
 
-                for key in batch_loss:
-                    avg_loss[key] += batch_loss[key].item()
-                avg_loss["reconstruction"] += reconstruction_loss.item()
-                avg_loss["combined"] += reconstruction_loss_weighted.item()
-
-                tepoch.set_postfix(
-                    image_loss=round(batch_loss["image"].item(), 3),
-                    timepoint_loss=round(batch_loss["timepoint"].item(), 3),
-                )
+            for key in batch_loss:
+                avg_loss[key] += batch_loss[key].item()
+            avg_loss["reconstruction"] += reconstruction_loss.item()
+            avg_loss["combined"] += reconstruction_loss_weighted.item()
 
         avg_loss = {key: value / len(train_loader) for key, value in avg_loss.items()}
         return avg_loss
