@@ -37,7 +37,6 @@ class CAE(BaseCNN):
         num_epochs: int = 5,
         image_size: int = 128,
         params: dict[str, Any] = {},
-        logger: Optional[Logger] = None,
     ):
         super().__init__()
 
@@ -49,7 +48,6 @@ class CAE(BaseCNN):
         self.num_epochs = num_epochs
         self.image_size = image_size
         self.params = params
-        self.logger = logger
         self.latent_dim = params.get("latent_dim", 32)
         self.loss_weights = {
             "image": params.get("image_loss_weight", 1.0),

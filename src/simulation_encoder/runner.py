@@ -77,7 +77,7 @@ class Runner:
             self.losses[model_id] = LossData()
 
         device = model.device
-        logger.log(f"{model.name} models added to runner. Device: {device}")
+        logger.log(f"Device: {device}")
 
     def get_losses(self) -> dict[str, LossData]:
         """Returns the loss data for all models"""
@@ -91,16 +91,15 @@ class Runner:
         """Returns the dataset"""
         return self.dataset
 
-    def run_encoder(self, experiemnt_name: str, logger: Logger) -> dict:
+    def run_encoder(self, experiment_name: str, logger: Logger) -> dict:
         """Runs the training and evaluation of models"""
         if not self.dataset:
             raise ValueError("No dataset has been added to runner.")
         if not self.models:
             raise ValueError("No models have been added to runner.")
 
-        logger.log(f"Experiment name: {experiemnt_name}")
-        logger.log(f"Training points: {self.dataset.n_train} (including any augmented images)")
-        logger.log(f"Testing points: {self.dataset.n_test}")
+        logger.log(f"Experiment name: {experiment_name}")
+        logger.log(f"[{experiment_name}]Training points: {self.dataset.n_train} (including any augmented images). Testing points: {self.dataset.n_test}")
 
         results: dict = defaultdict(
             lambda: {
@@ -112,8 +111,8 @@ class Runner:
         )
 
         for i, (model_id, model) in enumerate(self.models.items()):
-            logger.log(f"{i+1}/{len(self.models)}: Training model {model_id}")
-            losses, val_losses, grad_norms = self._train_model(model_id, model)
+            logger.log(f"[{experiment_name}]{i+1}/{len(self.models)}: Training model {model_id}")
+            losses, val_losses, grad_norms = self._train_model(model_id, model, experiment_name, logger)
             # self._eval_model(model_id, model)
 
             results[model_id]["model_state"] = model.state_dict()
@@ -128,7 +127,7 @@ class Runner:
 
         return results
 
-    def _train_model(self, model_name: str, model: CAE) -> tuple:
+    def _train_model(self, model_id: str, model: CAE, experiment_name: str, logger: Logger) -> tuple:
         """Trains a model on the dataset"""
         train_loader = self.dataset.get_dataloader(dataset_type="train")
         val_loader = self.dataset.get_dataloader(dataset_type="val")
@@ -137,10 +136,13 @@ class Runner:
             train_loader,
             val_loader=val_loader,
             pretrain=self.pretrain,
+            experiment_name=experiment_name,
+            model_id=model_id,
+            logger=logger,
         )
 
-        self.losses[model_name].add_train_loss(losses)
-        self.losses[model_name].add_val_loss(val_losses)
+        self.losses[model_id].add_train_loss(losses)
+        self.losses[model_id].add_val_loss(val_losses)
 
         return losses, val_losses, grad_norms
 
@@ -190,17 +192,16 @@ class Runner:
         if not labels:
             return None
 
-        emulator_models = ["linear_regression", "random_forest", "svm"]
+        emulator_models = ["linear_regression", "random_forest", "svm", "mlp"]
         encoder_models = self._get_encoder_models(conf_name)
 
         emulation_results = EmulationResults()
 
         for experiment, encoder_model_names in encoder_models.items():
             logger.log(f"Running emulation for experiment: {experiment}")
-            logger.log(f"{len(encoder_model_names)} encoder models")
             for i, encoder_model_name in enumerate(encoder_model_names):
                 logger.log(
-                    f"Encoder model {i + 1}/{len(encoder_model_names)}: {encoder_model_name}"
+                    f"Encoder model: {encoder_model_name}"
                 )
                 encoded_dataset = CSVLoader(
                     conf_name=conf_name, exp_id=experiment, model=encoder_model_name, labels=labels
@@ -213,8 +214,10 @@ class Runner:
                 encoder_model_result = emulation_results.add_encoder_model_result(
                     encoder_model_name
                 )
+                X = (X_train, X_val)
+                y = (y_train, y_val)
                 self._run_emulation_for_model(
-                    models, labels, X_train, y_train, X_val, y_val, encoder_model_result
+                    models, labels, X, y, encoder_model_name, encoder_model_result, logger
                 )
 
         return emulation_results
@@ -223,16 +226,22 @@ class Runner:
         self,
         models: dict,
         labels: list,
-        X_train: pd.DataFrame,
-        y_train: pd.DataFrame,
-        X_val: pd.DataFrame,
-        y_val: pd.DataFrame,
+        X: tuple[pd.DataFrame, pd.DataFrame],
+        y: tuple[pd.DataFrame, pd.DataFrame],
+        encoder_model_name: str,
         encoder_model_result: EncoderModelResult,
+        logger: Logger
     ) -> None:
         """Run emulation for a single encoder model"""
+        X_train, X_val = X
+        y_train, y_val = y
+
         for label in labels:
+            logger.log(f"[{encoder_model_name}]Emulating target: {label}")
             label_result = encoder_model_result.add_label_result(label)
-            for model_type, model in models.items():
+
+            for j, (model_type, model) in enumerate(models.items()):
+                logger.log(f"[{encoder_model_name}]{j+1}/{len(models)}: Emulator model: {model_type}")
                 model_params = model.grid_search(X_train, y_train[label])
                 model = Emulator(model_type=model_type, params=model_params)
 

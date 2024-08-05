@@ -83,7 +83,7 @@ def main() -> None:
         handle_encoder_results(encoder_results, runner, writer, plotter)
 
     # Emulation
-    emulation_results = runner.run_emulator(config_name)
+    emulation_results = runner.run_emulator(config_name, logger)
     if emulation_results:
         writer.write_emulation_results(emulation_results)
 
@@ -174,7 +174,7 @@ def create_models(model_param_sets: list[ModelParams], logger: Logger) -> list[B
     for i, model_param_set in enumerate(model_param_sets):
         params_dict = model_param_set.__dict__
         model_type = params_dict.pop("model_type")
-        logger.log(f"{i+1}/{len(model_param_sets)}: Creating model with type: {model_type}")
+        logger.log(f"{i+1}/{len(model_param_sets)}: Creating model with architecture: {model_type}")
         if model_type == "CAE":
             model = CAE(**deepcopy(model_param_set.__dict__), logger=logger)
         elif model_type == "VAE":

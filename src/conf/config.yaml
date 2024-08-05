@@ -1,6 +1,6 @@
-experiment_name: cae-emulation-32
+experiment_name: cae-emulation-test
 experiments:      
-  ARCADE-CAE-PRETRAIN:
+  ARCADE-CAE:
     data:
       image_dir: data/ARCADE/vascular_function_128/images
       label_dir: data/ARCADE/vascular_function_128/labels
@@ -9,7 +9,7 @@ experiments:
         # rotate:
         #   degree: 180
     model:
-      architecture: cae_flat_big
+      architecture: cae
       params: grid
     general_configs:
       batch_size: 32
@@ -17,8 +17,8 @@ experiments:
       test_split: 0.2
       channels:
         - cancer
-        - graph
-      pretrain: true
+        # - graph
+      pretrain: false
       verbose: true
     keys:
       - CH_Lav

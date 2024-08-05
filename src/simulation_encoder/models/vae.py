@@ -36,7 +36,6 @@ class VAE(BaseCNN):
         num_channels: int = 1,
         num_epochs: int = 5,
         params: dict[str, Any] = {},
-        logger: Optional[Logger] = None,
     ):
         super().__init__()
 
@@ -47,7 +46,6 @@ class VAE(BaseCNN):
         self.num_channels = num_channels
         self.num_epochs = num_epochs
         self.params = params
-        self.logger = logger
         self.latent_dim = params.get("latent_dim", 32)
         self.image_size = image_size
         self.loss_weights = {

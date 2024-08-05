@@ -24,7 +24,6 @@ class BaseCNN(ABC, nn.Module):
         image_size: int = 256,
         num_epochs: int = 10,
         params: dict[str, Any] = {},
-        logger: Optional[Any] = None,
     ) -> None:
         """
         Initializes the Convolutional Autoencoder.
@@ -43,6 +42,9 @@ class BaseCNN(ABC, nn.Module):
         train_loader: DataLoader,
         val_loader: Optional[DataLoader] = None,
         pretrain: bool = False,
+        experiment_name: str = "",
+        model_id: str = "",
+        logger: Optional[Any] = None,
     ) -> tuple[dict[str, list[float]], dict[str, list[float]], dict[str, list[float]]]:
         """
         Fits the network over the training data for a number of epochs.
@@ -64,7 +66,9 @@ class BaseCNN(ABC, nn.Module):
         self.to(self.device)
 
         if pretrain:
-            self.pretrain_encoder_rbm(train_loader)
+            if logger:
+                logger.log(f"[{experiment_name}][{model_id}]Pretraining encoder using RBM")
+                self.pretrain_encoder_rbm(train_loader)
 
         train_losses: dict[str, list[float]] = defaultdict(list)
         val_losses: dict[str, list[float]] = defaultdict(list)
@@ -88,14 +92,14 @@ class BaseCNN(ABC, nn.Module):
             grad_norms["decoder_image"].append(decoder_image_grad_norm.item())
             grad_norms["decoder_timepoint"].append(decoder_timepoint_grad_norm.item())
 
-            if self.logger:
-                if self.num_epochs > 10:
+            if logger:
+                if self.num_epochs > 20:
                     if (e + 1) % 10 == 0:
-                        msg = f"Epoch {e+1}/{self.num_epochs}- Train loss: {train_loss['combined']} Val loss: {val_loss['combined']}"
+                        msg = f"[{experiment_name}][{model_id}]Epoch {e+1}/{self.num_epochs}- Train loss: {train_loss['combined']} Val loss: {val_loss['combined']}"
                         self.logger.log(msg)
                 else:
-                    msg = f"Epoch {e+1}/{self.num_epochs}- Train loss: {train_loss['combined']} Val loss: {val_loss['combined']}"
-                self.logger.log(msg)
+                    msg = f"[{experiment_name}][{model_id}]Epoch {e+1}/{self.num_epochs}- Train loss: {train_loss['combined']} Val loss: {val_loss['combined']}"
+                logger.log(msg)
 
         return (train_losses, val_losses, grad_norms)
 

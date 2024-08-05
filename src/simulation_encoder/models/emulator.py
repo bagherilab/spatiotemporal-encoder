@@ -6,6 +6,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.svm import SVR
 from sklearn.model_selection import GridSearchCV
+from sklearn.neural_network import MLPRegressor
 
 
 class Emulator:
@@ -39,6 +40,15 @@ class Emulator:
                     "C": [0.1, 1, 10],
                     "kernel": ["rbf", "poly"],
                     "degree": [2, 3, 5],
+                },
+            },
+            "mlp": {
+                "model": MLPRegressor,
+                "param_grid": {
+                    "hidden_layer_sizes": [(10, 10), (10, 20), (25,), (25, 25)],
+                    "activation": ["relu", "tanh"],
+                    "solver": ["adam"],
+                    "alpha": [0.0001, 0.001],
                 },
             },
         }
