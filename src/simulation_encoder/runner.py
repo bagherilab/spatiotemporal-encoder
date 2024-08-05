@@ -294,7 +294,9 @@ class Runner:
 
         return True
     
-    def _log(self, msg: str) -> None:
-        """Logs the message at the specified level"""
+    def _log(self, msg: str, level: str = "info") -> None:
         if self.logger:
-            self.logger.log(msg)
+            if level == "warning":
+                self.logger.warning(msg)
+            else:
+                self.logger.log(msg)

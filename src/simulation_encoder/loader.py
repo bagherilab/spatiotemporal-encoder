@@ -212,6 +212,13 @@ class Loader(ABC, Dataset):
             groups[key].append(idx)
         return groups
 
+    def _log(self, msg: str, level: str = "info") -> None:
+        if self.logger:
+            if level == "warning":
+                self.logger.warning(msg)
+            else:
+                self.logger.log(msg)
+    
     @staticmethod
     def _subsample_loader(data_loader: DataLoader, frac: float) -> DataLoader:
         if frac >= 1.0:
@@ -397,17 +404,19 @@ class ARCADELoader(Loader):
                 groups[group_key]["labels"][label] = self.label_loader.get_labels(
                     label_upper, key, timepoint_float, seed
                 )
-
-   
-        missing_images_count = {
-            group_key: sum(1 for key, value in group.items() if value == "" and key in self.channels)
-            for group_key, group in groups.items()
-            if any(value == "" and key in self.channels for key, value in group.items())
-        }
-        for group_key, count in missing_images_count.items():
-            self._log(f"Number of missing images from {group_key} - {count}", "warning")
+        
+        missing_images_count = {channel: 0 for channel in self.channels}
+        for group_key, group in groups.items():
+            for key, value in group.items():
+                if value == "" and key in self.channels:
+                    missing_images_count[key] += 1
+        for channel, count in missing_images_count.items():
+            if count > 0:
+                self._log(f"Number of missing images in {channel} - {count}", "warning")
 
         self.groups = list(groups.values())
+
+
 
     def _get_augmentations(
         self, augmentations: Optional[dict[str, Any]]
@@ -470,10 +479,6 @@ class ARCADELoader(Loader):
         prefix = "_".join(file_chunks)
         return prefix in self.keys
     
-    def _log(self, msg: str) -> None:
-        if self.logger:
-            self.logger.log(msg)
-
 
 class AlphaNumericLoader(Loader):
     """
@@ -550,10 +555,6 @@ class AlphaNumericLoader(Loader):
         file_chunks = file_name.split("_")[0:3]
         prefix = file_chunks[0]
         return prefix in self.keys
-    
-    def _log(self, msg: str) -> None:
-        if self.logger:
-            self.logger.log(msg)
 
 
 class CSVLoader(Dataset):

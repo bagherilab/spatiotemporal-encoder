@@ -100,6 +100,9 @@ class Emulator:
 
         return best_params
 
-    def _log(self, msg: str) -> None:
+    def _log(self, msg: str, level: str = "info") -> None:
         if self.logger:
-            self.logger.log(msg)
+            if level == "warning":
+                self.logger.warning(msg)
+            else:
+                self.logger.log(msg)

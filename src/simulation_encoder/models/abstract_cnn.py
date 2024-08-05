@@ -267,9 +267,12 @@ class BaseCNN(ABC, nn.Module):
             if torch.cuda.is_available()
             else "mps" if torch.backends.mps.is_available() else "cpu"
         )
-        # device = "cpu"
+        device = "cpu"
         return device
     
-    def _log(self, msg: str) -> None:
+    def _log(self, msg: str, level: str = "info") -> None:
         if self.logger:
-            self.logger.log(msg)
+            if level == "warning":
+                self.logger.warning(msg)
+            else:
+                self.logger.log(msg)

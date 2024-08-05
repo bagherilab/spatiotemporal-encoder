@@ -1,4 +1,4 @@
-experiment_name: arcade-cae-logging
+experiment_name: arcade-cae-healthy
 experiments:    
   ARCADE-CAE:
       data:
@@ -17,8 +17,8 @@ experiments:
         test_split: 0.2
         channels:
           - cancer
-          # - vasculature
-          # - healthy
+          - graph
+          - healthy
         pretrain: false
         verbose: true
       keys:
@@ -27,15 +27,15 @@ experiments:
         - CH_Lvav
         - CH_Sav
         - CH_Savav
-        # - C_Lav
-        # - C_Lava
-        # - C_Lvav
-        # - C_Sav
-        # - C_Savav
+        - C_Lav
+        - C_Lava
+        - C_Lvav
+        - C_Sav
+        - C_Savav
       emulator_targets:
         - activity
         - growth
-        # - symmetry  
+        - symmetry  
 
   # ALPHANUMERIC-CAE:
   #   data:
