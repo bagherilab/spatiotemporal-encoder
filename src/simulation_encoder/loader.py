@@ -56,6 +56,7 @@ class Loader(ABC, Dataset):
         test_split: float = 0.2,
         batch_size: int = 10,
         indices_file: Optional[str] = None,
+        logger: Optional[Logger] = None,
         random_seed: int = 42,
     ):
         self.channels = channels
@@ -63,6 +64,7 @@ class Loader(ABC, Dataset):
         self.test_split = test_split
         self.batch_size = batch_size
         self.indices_file = indices_file
+        self.logger = logger
         self.random_seed = random_seed
 
         self._train_indices: list[int] = []
@@ -218,7 +220,7 @@ class Loader(ABC, Dataset):
                 self.logger.warning(msg)
             else:
                 self.logger.log(msg)
-    
+
     @staticmethod
     def _subsample_loader(data_loader: DataLoader, frac: float) -> DataLoader:
         if frac >= 1.0:
@@ -404,7 +406,7 @@ class ARCADELoader(Loader):
                 groups[group_key]["labels"][label] = self.label_loader.get_labels(
                     label_upper, key, timepoint_float, seed
                 )
-        
+
         missing_images_count = {channel: 0 for channel in self.channels}
         for group_key, group in groups.items():
             for key, value in group.items():
@@ -415,8 +417,6 @@ class ARCADELoader(Loader):
                 self._log(f"Number of missing images in {channel} - {count}", "warning")
 
         self.groups = list(groups.values())
-
-
 
     def _get_augmentations(
         self, augmentations: Optional[dict[str, Any]]
@@ -478,7 +478,7 @@ class ARCADELoader(Loader):
         file_chunks = file_name.split("_")[0:2]
         prefix = "_".join(file_chunks)
         return prefix in self.keys
-    
+
 
 class AlphaNumericLoader(Loader):
     """

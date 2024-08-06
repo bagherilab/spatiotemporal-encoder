@@ -207,33 +207,39 @@ class CRBM(nn.Module):
         delta_W_pos = F.conv2d(
             v0.reshape(groups, -1, v0.size(2), v0.size(3)),
             ph0.permute(1, 0, 2, 3).reshape(self.hidden_dim, -1, ph0.size(2), ph0.size(3)),
-            padding=self.kernel_size-1,
-            groups=groups
+            padding=self.kernel_size - 1,
+            groups=groups,
         )
 
         # Calculate negative phase
         delta_W_neg = F.conv2d(
             vk.reshape(groups, -1, vk.size(2), vk.size(3)),
             phk.permute(1, 0, 2, 3).reshape(self.hidden_dim, -1, phk.size(2), phk.size(3)),
-            padding=self.kernel_size-1,
-            groups=groups
+            padding=self.kernel_size - 1,
+            groups=groups,
         )
 
         # Ensure delta_W_pos and delta_W_neg have the same shape as self.W
-        delta_W_pos = delta_W_pos[:, :, :self.kernel_size, :self.kernel_size]
-        delta_W_neg = delta_W_neg[:, :, :self.kernel_size, :self.kernel_size]
+        delta_W_pos = delta_W_pos[:, :, : self.kernel_size, : self.kernel_size]
+        delta_W_neg = delta_W_neg[:, :, : self.kernel_size, : self.kernel_size]
 
         # Reshape delta_W to match self.W
-        delta_W_pos = delta_W_pos.reshape(self.hidden_dim, self.visible_dim, self.kernel_size, self.kernel_size)
-        delta_W_neg = delta_W_neg.reshape(self.hidden_dim, self.visible_dim, self.kernel_size, self.kernel_size)
+        delta_W_pos = delta_W_pos.reshape(
+            self.hidden_dim, self.visible_dim, self.kernel_size, self.kernel_size
+        )
+        delta_W_neg = delta_W_neg.reshape(
+            self.hidden_dim, self.visible_dim, self.kernel_size, self.kernel_size
+        )
 
         # Update weights and biases
         self.W.data += lr * (delta_W_pos - delta_W_neg) / batch_size
-        self.h_bias.data += lr * torch.sum((ph0 - phk).view(self.hidden_dim, -1), dim=1) / batch_size
+        self.h_bias.data += (
+            lr * torch.sum((ph0 - phk).view(self.hidden_dim, -1), dim=1) / batch_size
+        )
         self.v_bias.data += lr * torch.sum((v0 - vk).view(self.visible_dim, -1), dim=1) / batch_size
 
         # Apply weight decay
-        self.W.data *= (1 - weight_decay)
+        self.W.data *= 1 - weight_decay
 
     def train_machine(
         self, dataloader: DataLoader, num_epochs: int, lr: float = 0.01, k: int = 3

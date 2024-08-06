@@ -37,7 +37,9 @@ class Runner:
         Dictionary of model names and their corresponding loss data
     """
 
-    def __init__(self, pretrain: bool = False, logger: Logger = None, verbose: bool = False) -> None:
+    def __init__(
+        self, pretrain: bool = False, logger: Logger = None, verbose: bool = False
+    ) -> None:
         self.pretrain = pretrain
         self.logger = logger
         self.verbose = verbose
@@ -100,7 +102,9 @@ class Runner:
             raise ValueError("No models have been added to runner.")
 
         self.logger.set_experiment_name(experiment_name)
-        self._log(f"Training points - {self.dataset.n_train} Testing points - {self.dataset.n_test}")
+        self._log(
+            f"Training points - {self.dataset.n_train} Testing points - {self.dataset.n_test}"
+        )
 
         results: dict = defaultdict(
             lambda: {
@@ -215,9 +219,7 @@ class Runner:
                 )
                 X = (X_train, X_val)
                 y = (y_train, y_val)
-                self._run_emulation_for_model(
-                    models, labels, X, y, encoder_model_result
-                )
+                self._run_emulation_for_model(models, labels, X, y, encoder_model_result)
 
         return emulation_results
 
@@ -293,7 +295,7 @@ class Runner:
             return False
 
         return True
-    
+
     def _log(self, msg: str, level: str = "info") -> None:
         if self.logger:
             if level == "warning":

@@ -85,12 +85,11 @@ class Logger:
             log_msg = f"[{self.experiment_name}] {msg}"
         else:
             log_msg = msg
-        
+
         if level == "info":
             self.logger.info(log_msg)
         elif level == "warning":
             self.logger.warning(log_msg)
-        
 
     def _set_up_logger(self, format_str: str, level: int) -> None:
         if self.logger.hasHandlers():

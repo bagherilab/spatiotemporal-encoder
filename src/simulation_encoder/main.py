@@ -3,17 +3,20 @@ import pstats
 import time
 
 import os
-import sys
-from pathlib import Path
 from copy import deepcopy
 
 import yaml
 import traceback
 from pydantic import BaseModel, ValidationError
 
+
+import sys
+from pathlib import Path
+
 # For local imports in the module
 if str(Path(__file__).parent.parent) not in sys.path:
     sys.path.append(str(Path(__file__).parent.parent))
+
 
 from simulation_encoder.runner import Runner
 from simulation_encoder.writer import Writer
@@ -58,9 +61,7 @@ def main() -> None:
         pretrain = experiment_config.general_configs.pretrain
         verbose = experiment_config.general_configs.verbose
 
-        logger = Logger(
-            log_name=f"{config_name}",verbose=verbose
-        )
+        logger = Logger(log_name=f"{config_name}", verbose=verbose)
 
         runner = Runner(pretrain, logger, verbose)
         writer = Writer(results_dir=f"results/{config_name}", experiment_name=experiment_name)

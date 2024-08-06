@@ -13,7 +13,6 @@ from sklearn.base import clone
 from simulation_encoder.logger import Logger
 
 
-
 class Emulator:
     def __init__(
         self,
@@ -76,11 +75,11 @@ class Emulator:
     def predict(self, X: pd.DataFrame) -> np.ndarray:
         return self.model.predict(X)
 
-    def grid_search(self, X: pd.DataFrame, y: pd.DataFrame) -> dict:
+    def grid_search(self, X: pd.DataFrame, y: pd.DataFrame) -> Optional[dict]:
         """Perform a grid search to find the best hyperparameters."""
         param_grid = ParameterGrid(self.param_grid)
         best_score = -np.inf
-        best_params = None
+        best_params: Optional[dict] = None
         n_models = len(param_grid)
 
         for i, params in enumerate(param_grid):

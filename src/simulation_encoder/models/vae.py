@@ -151,7 +151,6 @@ class VAE(BaseCNN):
 
         avg_loss: dict[str, float] = defaultdict(float)
 
-
         for inputs, labels in train_loader:
             inputs, labels = inputs.to(self.device), labels.to(self.device)
             optimizer_combined.zero_grad()

@@ -269,7 +269,7 @@ class BaseCNN(ABC, nn.Module):
         )
         device = "cpu"
         return device
-    
+
     def _log(self, msg: str, level: str = "info") -> None:
         if self.logger:
             if level == "warning":

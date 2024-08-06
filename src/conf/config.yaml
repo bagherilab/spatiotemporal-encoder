@@ -1,6 +1,6 @@
-experiment_name: arcade-cae-healthy
+experiment_name: cae-flat-big
 experiments:    
-  ARCADE-CAE:
+  ARCADE-CAE-FLAT:
       data:
         image_dir: data/ARCADE/vascular_function_128/images
         label_dir: data/ARCADE/vascular_function_128/labels
@@ -9,7 +9,7 @@ experiments:
           # rotate:
           #   degree: 180
       model:
-        architecture: cae
+        architecture: cae-flat-big
         params: grid
       general_configs:
         batch_size: 32
@@ -18,8 +18,7 @@ experiments:
         channels:
           - cancer
           - graph
-          - healthy
-        pretrain: false
+        pretrain: true
         verbose: true
       keys:
         - CH_Lav
