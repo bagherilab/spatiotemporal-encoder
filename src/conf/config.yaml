@@ -1,6 +1,6 @@
-experiment_name: cae-flat-big
+experiment_name: vae-flat-no-pretrain
 experiments:    
-  ARCADE-CAE-FLAT:
+  ARCADE-CAE-SIG:
       data:
         image_dir: data/ARCADE/vascular_function_128/images
         label_dir: data/ARCADE/vascular_function_128/labels
@@ -9,7 +9,7 @@ experiments:
           # rotate:
           #   degree: 180
       model:
-        architecture: cae-flat-big
+        architecture: vae_flat_big
         params: grid
       general_configs:
         batch_size: 32
@@ -34,7 +34,14 @@ experiments:
       emulator_targets:
         - activity
         - growth
-        - symmetry  
+        - symmetry
+
+
+
+
+
+
+
 
   # ALPHANUMERIC-CAE:
   #   data:
