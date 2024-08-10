@@ -43,10 +43,4 @@ jobs:
     - name: Test with pytest
       run: |
         source .venv/bin/activate
-        pytest --cov-report xml --cov=src/ tests/
-
-    - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v4.0.1
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        slug: bagherilab/simulation-encoder
+        pytest
