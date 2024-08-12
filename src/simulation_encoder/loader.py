@@ -317,14 +317,11 @@ class ARCADELoader(Loader):
         keys: list[str],
         channels: list[str],
         name: Optional[str] = None,
-        
         batch_size: int = 10,
         val_split: float = 0.2,
         test_split: float = 0.2,
-        
         labels: list[str] = [],
         label_dir: Optional[str] = None,
-
         logger: Optional[Logger] = None,
         augmentations: Optional[dict[str, Any]] = None,
         indices_file: Optional[str] = None,

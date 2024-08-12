@@ -7,7 +7,7 @@ import pandas as pd
 from simulation_encoder.loader import CSVLoader, Loader
 from simulation_encoder.logger import Logger
 
-from simulation_encoder.models.abstract_cnn import BaseCNN
+from simulation_encoder.models.base_cnn import BaseCNN
 from simulation_encoder.models.cae import CAE
 from simulation_encoder.models.vae import VAE
 from simulation_encoder.models.emulator import Emulator
@@ -106,9 +106,7 @@ class Runner:
 
         for dataset_name, dataset in self.datasets.items():
             self._log(f"Training on - {dataset_name}")
-            self._log(
-                f"Training points - {dataset.n_train} Testing points - {dataset.n_test}"
-            )
+            self._log(f"Training points - {dataset.n_train} Testing points - {dataset.n_test}")
 
             for i, (model_id, model) in enumerate(self.models.items()):
                 self.logger.set_model_name(model_id)
@@ -130,7 +128,6 @@ class Runner:
                 }
 
                 results[dataset_name][model_id] = dataset_results
-
 
         return results
 
@@ -192,6 +189,13 @@ class Runner:
         if not self.datasets:
             raise ValueError("No dataset has been added to runner.")
 
+        any_labels = any(dataset.labels for dataset in self.datasets.values())
+        if not any_labels:
+            self._log("No datasets have labels; emulation will not be run.")
+            return None
+
+        emulation_results = EmulationResults()
+
         for dataset_name, dataset in self.datasets.items():
             labels = dataset.labels
             if not labels:
@@ -200,30 +204,35 @@ class Runner:
             emulator_models = ["linear_regression", "random_forest", "mlp"]
             encoder_models = self._get_encoder_models(conf_name)
 
-            emulation_results = EmulationResults()
+            self._log(f"Running emulation on {dataset_name} encoded datasets")
 
-            self._log(f"Running emulation on {dataset.name} encoded")
             for experiment, encoder_model_names in encoder_models.items():
                 self.logger.set_experiment_name(experiment)
-                for i, encoder_model_name in enumerate(encoder_model_names):
+                for encoder_model_name in encoder_model_names:
                     self.logger.set_model_name(encoder_model_name)
 
                     encoded_dataset = CSVLoader(
-                        conf_name=conf_name, exp_id=experiment, model=encoder_model_name, labels=labels
+                        conf_name=conf_name,
+                        exp_id=experiment,
+                        model=encoder_model_name,
+                        dataset_name=dataset_name,  # Added dataset_name to identify the dataset
+                        labels=labels,
                     )
                     models = self._initialize_models(emulator_models)
 
                     X_train, y_train = encoded_dataset.get_data("train")
                     X_val, y_val = encoded_dataset.get_data("val")
 
-                    encoder_model_result = emulation_results.add_encoder_model_result(
+                    dataset_result = emulation_results.add_dataset_result(dataset_name)
+                    encoder_model_result = dataset_result.add_encoder_model_result(
                         encoder_model_name
                     )
+
                     X = (X_train, X_val)
                     y = (y_train, y_val)
                     self._run_emulation_for_model(models, labels, X, y, encoder_model_result)
 
-            return emulation_results
+        return emulation_results
 
     def _run_emulation_for_model(
         self,

@@ -102,7 +102,7 @@ class BaseCNN(ABC, nn.Module):
     def pretrain_encoder_rbm(
         self,
         train_loader: DataLoader,
-        rbm_epochs: int = 5,
+        rbm_epochs: int = 1,
         rbm_lr: float = 0.01,
         data_fraction: float = 0.2,
     ) -> None:
@@ -132,13 +132,14 @@ class BaseCNN(ABC, nn.Module):
                 stride = layer_params["stride"]
                 padding = layer_params["padding"]
 
-                print(f"CRBM {in_channels} channels to {out_channels} channels")
+                self._log(f"CRBM {in_channels} channels to {out_channels} channels")
                 crbm = CRBM(
                     in_channels,
                     out_channels,
                     kernel_size,
                     stride,
                     padding,
+                    logger=self.logger,
                     device=self.device,
                 )
                 crbm.train_machine(train_loader, rbm_epochs, rbm_lr)
@@ -163,13 +164,9 @@ class BaseCNN(ABC, nn.Module):
                     train_loader = Loader._flatten_loader(train_loader)
                     is_flattened = True
 
-                print(f"RBM {in_features} nodes to {out_features} nodes")
-                if i == num_layers - 1:
-                    gaussian = True
-                    rbm = RBM(in_features, out_features, gaussian, self.device)
-                else:
-                    gaussian = False
-                    rbm = RBM(in_features, out_features, gaussian, self.device)
+                self._log(f"RBM {in_features} nodes to {out_features} nodes")
+                gaussian = True if i == num_layers - 1 else False
+                rbm = RBM(in_features, out_features, gaussian, logger=self.logger, device=self.device)
 
                 rbm.train_machine(train_loader, rbm_epochs, rbm_lr)
 
@@ -267,7 +264,6 @@ class BaseCNN(ABC, nn.Module):
             if torch.cuda.is_available()
             else "mps" if torch.backends.mps.is_available() else "cpu"
         )
-        device = "cpu"
         return device
 
     def _log(self, msg: str, level: str = "info") -> None:

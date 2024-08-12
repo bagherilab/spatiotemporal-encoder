@@ -3,8 +3,61 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
+from typing import Optional
+from ABC import ABC, abstractmethod
 
-class RBM(nn.Module):
+from simulation_encoder.logger import Logger
+
+class BaseRBM(ABC, nn.Module):
+    def __init__(self, logger: Optional[Logger] = None):
+        super(BaseRBM, self).__init__()
+        self.logger = logger
+
+    @abstractmethod
+    def sample_h(self, v: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        pass
+
+    @abstractmethod
+    def sample_hk(self, v: torch.Tensor) -> torch.Tensor:
+        pass
+
+    @abstractmethod
+    def sample_v(self, h: torch.Tensor) -> torch.Tensor:
+        pass
+
+    def train_machine(
+        self, dataloader: DataLoader, num_epochs: int, lr: float = 0.01, k: int = 3
+    ) -> None:
+        """Train the RBM"""
+        loss = nn.MSELoss()
+        for epoch in range(num_epochs):
+            train_loss = 0
+            for data, _ in dataloader:
+                v0 = data.to(self.device)
+                ph0, hk = self.sample_h(v0)
+
+                # Gibbs sampling
+                for _ in range(k):
+                    vk = self.sample_v(hk)
+                    phk, hk = self.sample_h(vk)
+
+                momentum_coef = 0.5 if epoch < 5 else 0.9
+                weight_decay = 2e-4
+                batch_size = v0.size(0)
+
+                self.update_weights(v0, vk, ph0, phk, lr, momentum_coef, weight_decay, batch_size)
+                train_loss += loss(v0, vk).item()
+
+            self._log(f"Epoch: {epoch+1}/{num_epochs} Loss: {train_loss/len(dataloader)}")
+
+        return
+    
+    def _log(self, message: str) -> None:
+        if self.logger is not None:
+            self.logger.log(message)
+
+
+class RBM(BaseRBM):
     """
     Restricted boltzmann machine
 
@@ -19,8 +72,8 @@ class RBM(nn.Module):
 
     """
 
-    def __init__(self, visible_dim: int, hidden_dim: int, gaussian: bool, device: str = "cpu"):
-        super(RBM, self).__init__()
+    def __init__(self, visible_dim: int, hidden_dim: int, gaussian: bool, logger: Optional[Logger] = None, device: str = "cpu"):
+        super(RBM, self).__init__(logger)
 
         self.visible_dim = visible_dim
         self.hidden_dim = hidden_dim
@@ -62,7 +115,7 @@ class RBM(nn.Module):
                 self.update_weights(v0, vk, ph0, phk, lr, momentum_coef, weight_decay, batch_size)
                 train_loss += loss(v0, vk).item()
 
-            print(f"Epoch: {epoch+1}/{num_epochs} Loss: {train_loss/len(dataloader)}")
+            self._log(f"Epoch: {epoch+1}/{num_epochs} Loss: {train_loss/len(dataloader)}")
 
         return
 
@@ -116,7 +169,7 @@ class RBM(nn.Module):
         self.W -= self.W * weight_decay
 
 
-class CRBM(nn.Module):
+class CRBM(BaseRBM):
     """
     Convolutional Restricted Boltzmann Machine
 
@@ -143,9 +196,10 @@ class CRBM(nn.Module):
         kernel_size: int = 3,
         stride: int = 1,
         padding: int = 1,
+        logger: Optional[Logger] = None,
         device: str = "cpu",
     ):
-        super(CRBM, self).__init__()
+        super(CRBM, self).__init__(logger)
 
         self.visible_dim = visible_dim
         self.hidden_dim = hidden_dim
@@ -203,7 +257,7 @@ class CRBM(nn.Module):
         """Update weights of the CRBM"""
         groups = min(self.visible_dim, self.hidden_dim)
 
-        # Calculate positive phase
+        # positive phase
         delta_W_pos = F.conv2d(
             v0.reshape(groups, -1, v0.size(2), v0.size(3)),
             ph0.permute(1, 0, 2, 3).reshape(self.hidden_dim, -1, ph0.size(2), ph0.size(3)),
@@ -211,7 +265,7 @@ class CRBM(nn.Module):
             groups=groups,
         )
 
-        # Calculate negative phase
+        # negative phase
         delta_W_neg = F.conv2d(
             vk.reshape(groups, -1, vk.size(2), vk.size(3)),
             phk.permute(1, 0, 2, 3).reshape(self.hidden_dim, -1, phk.size(2), phk.size(3)),
@@ -223,7 +277,6 @@ class CRBM(nn.Module):
         delta_W_pos = delta_W_pos[:, :, : self.kernel_size, : self.kernel_size]
         delta_W_neg = delta_W_neg[:, :, : self.kernel_size, : self.kernel_size]
 
-        # Reshape delta_W to match self.W
         delta_W_pos = delta_W_pos.reshape(
             self.hidden_dim, self.visible_dim, self.kernel_size, self.kernel_size
         )
@@ -231,36 +284,10 @@ class CRBM(nn.Module):
             self.hidden_dim, self.visible_dim, self.kernel_size, self.kernel_size
         )
 
-        # Update weights and biases
         self.W.data += lr * (delta_W_pos - delta_W_neg) / batch_size
         self.h_bias.data += (
             lr * torch.sum((ph0 - phk).view(self.hidden_dim, -1), dim=1) / batch_size
         )
         self.v_bias.data += lr * torch.sum((v0 - vk).view(self.visible_dim, -1), dim=1) / batch_size
 
-        # Apply weight decay
         self.W.data *= 1 - weight_decay
-
-    def train_machine(
-        self, dataloader: DataLoader, num_epochs: int, lr: float = 0.01, k: int = 3
-    ) -> None:
-        """Train the CRBM"""
-        loss = nn.MSELoss()
-        for epoch in range(num_epochs):
-            train_loss = 0
-            for data, _ in dataloader:
-                v0 = data.to(self.device)
-                ph0, hk = self.sample_h(v0)
-
-                # Gibbs sampling
-                for _ in range(k):
-                    vk = self.sample_v(hk)
-                    phk, hk = self.sample_h(vk)
-
-                weight_decay = 2e-4
-                batch_size = v0.size(0)
-
-                self.update_weights(v0, vk, ph0, phk, lr, weight_decay, batch_size)
-                train_loss += loss(v0, vk).item()
-
-            print(f"Epoch: {epoch+1}/{num_epochs} Loss: {train_loss/len(dataloader)}")

@@ -9,7 +9,9 @@ class DatasetConfig(BaseModel):
     image_dir: str = Field(..., description="Path to the directory with images")
     label_dir: str = Field(..., description="Path to the directory with labels")
     channels: list[str] = Field(..., description="List of channel names")
-    batch_size: int = Field(..., gt=0, description="Batch size for training, must be greater than 0")
+    batch_size: int = Field(
+        ..., gt=0, description="Batch size for training, must be greater than 0"
+    )
     val_split: float = Field(
         ..., ge=0.0, le=1.0, description="Validation split ratio, between 0 and 1"
     )
@@ -17,7 +19,7 @@ class DatasetConfig(BaseModel):
     keys: list[str] = Field(..., description="List of keys")
     augmentations: Optional[dict] = None
     labels: Optional[list[str]] = None
-    
+
     @model_validator(mode="before")
     def check_split_ratios(cls, values: dict) -> dict:
         val_split = values.get("val_split")
@@ -26,9 +28,12 @@ class DatasetConfig(BaseModel):
             raise ValueError("The sum of val_split and test_split must be less than 1")
         return values
 
+
 class ModelParamsConfig(BaseModel):
     architecture: str = Field(..., description="Model architecture name")
-    num_channels: int = Field(..., description="Number of channels (should be the same across datasets)")
+    num_channels: int = Field(
+        ..., description="Number of channels (should be the same across datasets)"
+    )
     image_size: int = Field(..., gt=0, description="Size of the images, must be greater than 0")
     params: str = Field(..., description="Path or name of the hyperparameter configuration")
 
@@ -37,12 +42,13 @@ class ModelParamsConfig(BaseModel):
         if value <= 0:
             raise ValueError("image_size must be greater than 0")
         return value
-    
+
     @field_validator("num_channels")
-    def check_num_channels(cls, value: list[int]) -> list[int]:
+    def check_num_channels(cls, value: int) -> int:
         if value <= 0:
             raise ValueError("num_channels must have at least one element")
         return value
+
 
 class GeneralConfig(BaseModel):
     pretrain: bool = Field(..., description="Whether to use pretraining")
@@ -53,6 +59,7 @@ class ExperimentConfig(BaseModel):
     datasets: list[str]
     model: ModelParamsConfig
     general_configs: GeneralConfig
+
 
 class MainConfig(BaseModel):
     experiment_name: str = Field(..., description="Name of the experiment")

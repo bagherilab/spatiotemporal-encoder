@@ -1,21 +1,21 @@
 experiment_name: transfer
 experiments:    
-  TRANSFER-CAE-FLAT:
+  CAE-PRETRAIN:
       datasets:
         - vascular_function_128 
-        - angiogenesis_128
+        # - angiogenesis_128
       model:
         architecture: cae_flat_big
         num_channels: 2
         image_size: 128
         params: grid
       general_configs:
-        pretrain: false
+        pretrain: true
         verbose: true
-  NOTRANSFER-CAE-FLAT:
+  CAE-NOPRETRAIN:
       datasets:
-        # - vascular_function_128 
-        - angiogenesis_128
+        - vascular_function_128 
+        # - angiogenesis_128
       model:
         architecture: cae_flat_big
         num_channels: 2

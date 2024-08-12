@@ -68,7 +68,9 @@ class Writer:
         with open(emulation_results_path, "w", encoding="utf-8") as r_file:
             json.dump(results, r_file, indent=4)
 
-    def write_train_test_indices(self, dataset_name: str, indices: tuple[list[int], list[int], list[int]]) -> None:
+    def write_train_test_indices(
+        self, dataset_name: str, indices: tuple[list[int], list[int], list[int]]
+    ) -> None:
         """Writes the train and test indices to disk"""
         indices_path = os.path.join(self.results_path, f"{dataset_name}_indices.json")
 
@@ -76,7 +78,9 @@ class Writer:
         with open(indices_path, "w", encoding="utf-8") as i_file:
             json.dump(indices_dict, i_file, indent=4)
 
-    def write_encoded_data(self, model_name: str, dataset_name: str, encoded_data: dict[str, pd.DataFrame]) -> None:
+    def write_encoded_data(
+        self, model_name: str, dataset_name: str, encoded_data: dict[str, pd.DataFrame]
+    ) -> None:
         """Saves encoded dataset and labels with dataset_name prefix"""
         model_path = os.path.join(self.results_path, model_name)
         dataset_path = os.path.join(model_path, dataset_name)

@@ -94,7 +94,7 @@ def create_datasets(experiment_config: ExperimentConfig, logger: Logger) -> dict
     datasets = {}
     dataset_configs = {}
     dataset_names = experiment_config.datasets
-    
+
     for dataset_name in dataset_names:
         dataset_configs[dataset_name] = _load_dataset_yaml(dataset_name)
 
@@ -104,6 +104,7 @@ def create_datasets(experiment_config: ExperimentConfig, logger: Logger) -> dict
         datasets[dataset_name] = dataset
 
     return datasets
+
 
 def create_dataset(dataset_name: str, dataset_params: DatasetParams, logger: Logger) -> Loader:
     """Create the dataset object from the dataset parameters"""
@@ -125,9 +126,8 @@ def create_dataset(dataset_name: str, dataset_params: DatasetParams, logger: Log
 
     return dataset
 
-def create_dataset_params(
-    dataset_name: str, dataset_config: DatasetConfig
-) -> DatasetParams:
+
+def create_dataset_params(dataset_name: str, dataset_config: DatasetConfig) -> DatasetParams:
     """Create the dataset parameters from the experiment config file"""
     dataset_params = DatasetParams(
         loader=dataset_config.loader,
@@ -140,10 +140,11 @@ def create_dataset_params(
         keys=dataset_config.keys,
         augmentations=dataset_config.augmentations,
         labels=dataset_config.labels,
-        name = dataset_name
+        name=dataset_name,
     )
 
     return dataset_params
+
 
 def create_models(experiment_config: ExperimentConfig, logger: Logger) -> list[BaseCNN]:
     """Creates a list of models based on the experiment configuration."""
@@ -153,7 +154,9 @@ def create_models(experiment_config: ExperimentConfig, logger: Logger) -> list[B
     for i, model_param_set in enumerate(model_param_sets):
         params_dict = model_param_set.__dict__
         model_type = params_dict.pop("model_type")
-        logger.log(f"Creating model with architecture - {model_type} params - {experiment_config.model.params}")
+        logger.log(
+            f"Creating model with architecture - {model_type} params - {experiment_config.model.params}"
+        )
 
         if model_type == "CAE":
             model = CAE(**deepcopy(model_param_set.__dict__), logger=logger)
@@ -166,13 +169,14 @@ def create_models(experiment_config: ExperimentConfig, logger: Logger) -> list[B
 
     return models
 
+
 def create_model_param_sets(model_config: ModelParamsConfig) -> list[ModelParams]:
     """Create the model parameters from model config files and hyperparameter yaml files."""
 
     model_name = model_config.architecture
     num_channels = model_config.num_channels
     model_yaml = _load_model_yaml(model_name)
-    
+
     model_params = _load_hyperparam_yaml(model_config.params)
     num_epochs = model_params.num_epochs
     continuous_params = model_params.continuous
@@ -193,6 +197,7 @@ def create_model_param_sets(model_config: ModelParamsConfig) -> list[ModelParams
 
     return model_param_sets
 
+
 def handle_encoder_results(
     encoder_results: dict, runner: Runner, writer: Writer, plotter: Plotter
 ) -> None:
@@ -201,7 +206,12 @@ def handle_encoder_results(
         for model_id, data in dataset_results.items():
             writer.write_encoded_data(model_id, dataset_name, data["encoded_data"])
             writer.write_model_state(model_id, dataset_name, data["model_state"])
-            writer.write_encoder_results(model_id, runner.get_dataset(dataset_name), runner.get_model(model_id), data["losses"])
+            writer.write_encoder_results(
+                model_id,
+                runner.get_dataset(dataset_name),
+                runner.get_model(model_id),
+                data["losses"],
+            )
 
             # Plot results
             plotter.line_plot(model_id, data["grad_norms"], "grad_norms", "Epoch", "Gradient Norm")
@@ -209,10 +219,11 @@ def handle_encoder_results(
             # Access LossData object for losses
             losses = data["losses"]
             plotter.loss_plot(
-                model_id, 
-                losses.losses_train.get("combined", []), 
-                losses.losses_val.get("combined", [])
+                model_id,
+                losses.losses_train.get("combined", []),
+                losses.losses_val.get("combined", []),
             )
+
 
 def _load_yaml(yaml_file: str, config_class: BaseModel) -> BaseModel:
     try:
@@ -226,15 +237,18 @@ def _load_yaml(yaml_file: str, config_class: BaseModel) -> BaseModel:
         traceback.print_exc()
         raise ValidationError(f"Configuration validation error: {e}") from e
 
+
 def _load_hyperparam_yaml(yaml_name: str) -> HyperparameterConfig:
     yaml_file = yaml_name if yaml_name.endswith(".yaml") else yaml_name + ".yaml"
     yaml_path = f"src/conf/hyperparams/{yaml_file}"
     return _load_yaml(yaml_path, HyperparameterConfig)
 
+
 def _load_dataset_yaml(yaml_name: str) -> DatasetParams:
     yaml_file = yaml_name if yaml_name.endswith(".yaml") else yaml_name + ".yaml"
     yaml_path = f"src/conf/datasets/{yaml_file}"
     return _load_yaml(yaml_path, DatasetParams)
+
 
 def _load_model_yaml(
     architecture_name: str, yaml_path: str = f"src/conf/models"
@@ -244,6 +258,7 @@ def _load_model_yaml(
     )
     yaml_path = os.path.join(yaml_path, yaml_file)
     return _load_yaml(yaml_path, ModelArchitectureConfig)
+
 
 if __name__ == "__main__":
     with cProfile.Profile() as pr:

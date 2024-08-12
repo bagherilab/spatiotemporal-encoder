@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from simulation_encoder.logger import Logger
-from simulation_encoder.models.abstract_cnn import BaseCNN
+from simulation_encoder.models.base_cnn import BaseCNN
 
 
 class VAE(BaseCNN):

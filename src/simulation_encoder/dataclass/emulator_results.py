@@ -30,7 +30,7 @@ class EncoderModelResult:
 
 
 @dataclass
-class EmulationResults:
+class DatasetResult:
     encoder_models: dict[str, EncoderModelResult] = field(default_factory=dict)
 
     def add_encoder_model_result(self, encoder_model: str) -> EncoderModelResult:
@@ -39,6 +39,17 @@ class EmulationResults:
             self.encoder_models[encoder_model] = EncoderModelResult()
         return self.encoder_models[encoder_model]
 
-    def get_results(self) -> dict[str, EncoderModelResult]:
+
+@dataclass
+class EmulationResults:
+    datasets: dict[str, DatasetResult] = field(default_factory=dict)
+
+    def add_dataset_result(self, dataset_name: str) -> DatasetResult:
+        """Add a new dataset result and return it"""
+        if dataset_name not in self.datasets:
+            self.datasets[dataset_name] = DatasetResult()
+        return self.datasets[dataset_name]
+
+    def get_results(self) -> dict[str, DatasetResult]:
         """Retrieve all emulation results"""
-        return self.encoder_models
+        return self.datasets
