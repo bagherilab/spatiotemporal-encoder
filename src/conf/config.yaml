@@ -1,17 +1,17 @@
-experiment_name: test
+experiment_name: cae-pretrain
 experiments:    
-  # CAE-PRETRAIN:
-  #     datasets:
-  #       - vascular_function_128 
-  #       # - angiogenesis_128
-  #     model:
-  #       architecture: cae_flat_big
-  #       num_channels: 2
-  #       image_size: 128
-  #       params: grid
-  #     general_configs:
-  #       pretrain: true
-  #       verbose: true
+  CAE-PRETRAIN:
+      datasets:
+        - vascular_function_128 
+        # - angiogenesis_128
+      model:
+        architecture: cae_flat_big
+        num_channels: 2
+        image_size: 128
+        params: grid
+      general_configs:
+        pretrain: true
+        verbose: true
   CAE-NOPRETRAIN:
       datasets:
         - vascular_function_128 

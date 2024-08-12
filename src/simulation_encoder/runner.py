@@ -186,18 +186,23 @@ class Runner:
 
     def run_emulator(self, conf_name: str) -> Optional[EmulationResults]:
         """Runs emulation for the encoded datasets and returns the results"""
+        datasets = self.datasets
         if not self.datasets:
-            raise ValueError("No dataset has been added to runner.")
-
-        any_labels = any(dataset.labels for dataset in self.datasets.values())
-        if not any_labels:
-            self._log("No datasets have labels; emulation will not be run.")
-            return None
+            datasets = self._get_encoder_datasets(conf_name)
+        else:
+            any_labels = any(dataset.labels for dataset in self.datasets.values())
+            if not any_labels:
+                self._log("No datasets have labels; emulation will not be run.")
+                return None
 
         emulation_results = EmulationResults()
 
-        for dataset_name, dataset in self.datasets.items():
-            labels = dataset.labels
+        for dataset_name, dataset in datasets.items():
+            if not self.datasets:
+                labels = ["activity", "growth", "symmetry"]
+            else:
+                labels = dataset.labels
+
             if not labels:
                 continue
 
@@ -274,6 +279,26 @@ class Runner:
             encoder_models[experiment].sort()
         return encoder_models
 
+    def _get_encoder_datasets(self, conf_name: str) -> dict[str, list[str]]:
+        """Get list of dataset folder names for each experiment."""
+        datasets: dict[str, None] = {}
+        
+        for experiment in os.listdir(f"results/{conf_name}"):
+
+            for model in os.listdir(f"results/{conf_name}/{experiment}"):
+                model_dir = f"results/{conf_name}/{experiment}/{model}"
+                if os.path.isdir(model_dir):
+                    for dataset in os.listdir(model_dir):
+                        if dataset == "figures":
+                            continue
+                        dataset_dir = f"{model_dir}/{dataset}"
+                        if os.path.isdir(dataset_dir):
+                            datasets[dataset] = None
+
+        datasets = dict(sorted(datasets.items(), key=lambda x: x[0]))
+        
+        return datasets
+    
     def _initialize_models(self, emulator_models: list[str]) -> dict:
         """Initialize emulator models"""
         models = {}

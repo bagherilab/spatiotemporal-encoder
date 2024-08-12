@@ -107,8 +107,7 @@ class Logger:
             self.logger.addHandler(stream_handler)
 
     def _create_log_file(self) -> None:
-        if not os.path.exists(self.log_dir):
-            os.makedirs(self.log_dir)
+        os.makedirs(self.log_dir, exist_ok=True)
 
         if not os.path.exists(self.log_path):
             with open(self.log_path, "w", encoding="utf-8") as f:

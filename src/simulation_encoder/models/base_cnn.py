@@ -102,7 +102,7 @@ class BaseCNN(ABC, nn.Module):
     def pretrain_encoder_rbm(
         self,
         train_loader: DataLoader,
-        rbm_epochs: int = 1,
+        rbm_epochs: int = 3,
         rbm_lr: float = 0.01,
         data_fraction: float = 0.2,
     ) -> None:

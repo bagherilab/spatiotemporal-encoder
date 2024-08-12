@@ -9,15 +9,15 @@ val_split: 0.2
 test_split: 0.2
 keys:
   - CH_Lav
-  # - CH_Lava
-  # - CH_Lvav
-  # - CH_Sav
-  # - CH_Savav
-  # - C_Lav
-  # - C_Lava
-  # - C_Lvav
-  # - C_Sav
-  # - C_Savav
+  - CH_Lava
+  - CH_Lvav
+  - CH_Sav
+  - CH_Savav
+  - C_Lav
+  - C_Lava
+  - C_Lvav
+  - C_Sav
+  - C_Savav
 augmentations:
   # rotate:
   #   degree: 180
