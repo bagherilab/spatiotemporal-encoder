@@ -215,7 +215,7 @@ class Runner:
                         conf_name=conf_name,
                         exp_id=experiment,
                         model=encoder_model_name,
-                        dataset_name=dataset_name,  # Added dataset_name to identify the dataset
+                        dataset_name=dataset_name,
                         labels=labels,
                     )
                     models = self._initialize_models(emulator_models)
