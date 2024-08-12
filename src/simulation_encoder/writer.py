@@ -22,20 +22,17 @@ class Writer:
         self._setup()
 
     def write_encoder_results(
-        self, model_name: str, model: CAE, dataset: Loader, losses: LossData
+        self, model_name: str, dataset: Loader, model: CAE, losses: LossData
     ) -> None:
-        """Writes the results of running the models to disk"""
+        """Writes the results of running the models to disk under the dataset_name prefix"""
+        dataset_name = dataset.name
         model_path = os.path.join(self.results_path, model_name)
-        loader = (
-            "ARCADE"
-            if isinstance(dataset, ARCADELoader)
-            else "AlphaNumeric" if isinstance(dataset, AlphaNumericLoader) else ""
-        )
-        self._create_dir(model_path)
+        dataset_path = os.path.join(model_path, dataset_name)
+        self._create_dir(dataset_path)
 
         results = {
             "model": model_name,
-            "loader": loader,
+            "dataset": dataset_name,
             "architecture": model.name,
             "channels": dataset.channels,
             "params": model.params,
@@ -48,7 +45,7 @@ class Writer:
             },
         }
 
-        with open(os.path.join(model_path, "results.json"), "w", encoding="utf-8") as r_file:
+        with open(os.path.join(dataset_path, "results.json"), "w", encoding="utf-8") as r_file:
             json.dump(results, r_file, indent=4)
 
     def write_emulation_results(self, emulation_results: EmulationResults) -> None:
@@ -71,26 +68,21 @@ class Writer:
         with open(emulation_results_path, "w", encoding="utf-8") as r_file:
             json.dump(results, r_file, indent=4)
 
-    def write_model_state(self, model_name: str, model_state: dict) -> None:
-        """Writes the model state to disk"""
-        model_path = os.path.join(self.results_path, model_name)
-        self._create_dir(model_path)
-
-        torch.save(model_state, os.path.join(model_path, "model_state.pth"))
-
-    def write_train_test_indices(self, indices: tuple[list[int], list[int], list[int]]) -> None:
+    def write_train_test_indices(self, dataset_name: str, indices: tuple[list[int], list[int], list[int]]) -> None:
         """Writes the train and test indices to disk"""
-        indices_path = os.path.join(self.results_path, "indices.json")
+        indices_path = os.path.join(self.results_path, f"{dataset_name}_indices.json")
 
         indices_dict = {"train": indices[0], "val": indices[1], "test": indices[2]}
         with open(indices_path, "w", encoding="utf-8") as i_file:
             json.dump(indices_dict, i_file, indent=4)
 
-    def write_encoded_data(self, model_name: str, encoded_data: dict[str, pd.DataFrame]) -> None:
-        """Saves encoded dataset and labels for downstream tasks"""
+    def write_encoded_data(self, model_name: str, dataset_name: str, encoded_data: dict[str, pd.DataFrame]) -> None:
+        """Saves encoded dataset and labels with dataset_name prefix"""
         model_path = os.path.join(self.results_path, model_name)
+        dataset_path = os.path.join(model_path, dataset_name)
+        encoded_data_path = os.path.join(dataset_path, "encoded_data")
         self._create_dir(model_path)
-        encoded_data_path = os.path.join(model_path, "encoded_data")
+        self._create_dir(dataset_path)
         self._create_dir(encoded_data_path)
 
         full_data = pd.DataFrame()
@@ -99,6 +91,15 @@ class Writer:
             full_data = pd.concat([full_data, data], axis=1)
 
         full_data.to_csv(os.path.join(encoded_data_path, "full_data.csv"), index=False)
+
+    def write_model_state(self, model_name: str, dataset_name: str, model_state: dict) -> None:
+        """Writes the model state to disk under the model_name directory"""
+        model_path = os.path.join(self.results_path, model_name)
+        dataset_path = os.path.join(model_path, dataset_name)
+        self._create_dir(model_path)
+        self._create_dir(dataset_path)
+
+        torch.save(model_state, os.path.join(dataset_path, "model_state.pth"))
 
     def _setup(self) -> None:
         self._create_dir(self.results_dir)

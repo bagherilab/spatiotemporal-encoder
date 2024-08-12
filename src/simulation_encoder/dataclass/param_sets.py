@@ -1,21 +1,21 @@
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Optional
 
 
 @dataclass
 class DatasetParams:
     loader: str
-    channels: list[str]
     image_dir: str
+    channels: list[str]
     batch_size: int
     val_split: float
     test_split: float
     keys: list[str]
-    augmentations: dict[str, dict[str, float]]
-    label_dir: str = field(default_factory=str)
-    labels: list[str] = field(default_factory=list)
-
-
+    name: Optional[str] = None
+    labels: Optional[list[str]] = None
+    label_dir: Optional[str] = None
+    augmentations: Optional[dict] = None
+    
 @dataclass
 class ModelParams:
     name: str

@@ -1,40 +1,30 @@
-experiment_name: cae-flat-big
+experiment_name: transfer
 experiments:    
-  ARCADE-CAE-FLAT:
-      data:
-        image_dir: data/ARCADE/vascular_function_128/images
-        label_dir: data/ARCADE/vascular_function_128/labels
-        image_size: 128
-        augmentations:
-          # rotate:
-          #   degree: 180
+  TRANSFER-CAE-FLAT:
+      datasets:
+        - vascular_function_128 
+        - angiogenesis_128
       model:
-        architecture: cae-flat-big
+        architecture: cae_flat_big
+        num_channels: 2
+        image_size: 128
         params: grid
       general_configs:
-        batch_size: 32
-        val_split: 0.2
-        test_split: 0.2
-        channels:
-          - cancer
-          - graph
-        pretrain: true
+        pretrain: false
         verbose: true
-      keys:
-        - CH_Lav
-        - CH_Lava
-        - CH_Lvav
-        - CH_Sav
-        - CH_Savav
-        - C_Lav
-        - C_Lava
-        - C_Lvav
-        - C_Sav
-        - C_Savav
-      emulator_targets:
-        - activity
-        - growth
-        - symmetry  
+  NOTRANSFER-CAE-FLAT:
+      datasets:
+        # - vascular_function_128 
+        - angiogenesis_128
+      model:
+        architecture: cae_flat_big
+        num_channels: 2
+        image_size: 128
+        params: grid
+      general_configs:
+        pretrain: false
+        verbose: true
+      
 
   # ALPHANUMERIC-CAE:
   #   data:
