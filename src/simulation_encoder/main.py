@@ -24,7 +24,7 @@ from simulation_encoder.plotter import Plotter
 from simulation_encoder.logger import Logger
 from simulation_encoder.loader import Loader, ARCADELoader, AlphaNumericLoader
 
-from simulation_encoder.models.abstract_cnn import BaseCNN
+from simulation_encoder.models.base_cnn import BaseCNN
 from simulation_encoder.models.cae import CAE
 from simulation_encoder.models.vae import VAE
 

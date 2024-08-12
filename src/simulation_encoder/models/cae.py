@@ -105,7 +105,6 @@ class CAE(BaseCNN):
     def train_one_epoch(
         self,
         train_loader: DataLoader,
-        epoch: int,
     ) -> dict[str, float]:
         """
         Trains the network for one epoch with batches of data.
@@ -130,13 +129,12 @@ class CAE(BaseCNN):
 
         avg_loss: dict[str, float] = defaultdict(float)
 
-        for inputs, labels in train_loader:
+        for i, (inputs, labels) in enumerate(train_loader):
             inputs, labels = inputs.to(self.device), labels.to(self.device)
             optimizer_combined.zero_grad()
 
             pred_image, pred_timepoint = self(inputs)
             pred_timepoint = pred_timepoint.squeeze().round()
-
             batch_loss = {
                 "image": image_criteria(pred_image, inputs) * self.image_loss_factor,
                 "timepoint": timepoint_criteria(pred_timepoint, labels.float()),
@@ -184,10 +182,9 @@ class CAE(BaseCNN):
 
                 batch_loss = {
                     "image": image_criteria(pred_image, inputs),
-                    "timepoint": timepoint_criteria(pred_timepoint, labels),
+                    "timepoint": timepoint_criteria(pred_timepoint, labels.float()),
                 }
                 reconstruciton_loss, _ = self._calc_reconstruction_loss(batch_loss)
-
                 for key in batch_loss:
                     avg_loss[key] += batch_loss[key].item()
                 avg_loss["reconstruction"] += reconstruciton_loss.item()

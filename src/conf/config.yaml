@@ -1,11 +1,11 @@
-experiment_name: transfer
+experiment_name: test
 experiments:    
   CAE-PRETRAIN:
       datasets:
         - vascular_function_128 
         # - angiogenesis_128
       model:
-        architecture: cae_flat_big
+        architecture: cae_flat
         num_channels: 2
         image_size: 128
         params: grid
@@ -17,7 +17,7 @@ experiments:
         - vascular_function_128 
         # - angiogenesis_128
       model:
-        architecture: cae_flat_big
+        architecture: cae_flat
         num_channels: 2
         image_size: 128
         params: grid
