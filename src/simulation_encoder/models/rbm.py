@@ -4,9 +4,10 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 from typing import Optional
-from ABC import ABC, abstractmethod
+from abc import ABC, abstractmethod
 
 from simulation_encoder.logger import Logger
+
 
 class BaseRBM(ABC, nn.Module):
     def __init__(self, logger: Optional[Logger] = None):
@@ -51,7 +52,7 @@ class BaseRBM(ABC, nn.Module):
             self._log(f"Epoch: {epoch+1}/{num_epochs} Loss: {train_loss/len(dataloader)}")
 
         return
-    
+
     def _log(self, message: str) -> None:
         if self.logger is not None:
             self.logger.log(message)
@@ -72,7 +73,14 @@ class RBM(BaseRBM):
 
     """
 
-    def __init__(self, visible_dim: int, hidden_dim: int, gaussian: bool, logger: Optional[Logger] = None, device: str = "cpu"):
+    def __init__(
+        self,
+        visible_dim: int,
+        hidden_dim: int,
+        gaussian: bool,
+        logger: Optional[Logger] = None,
+        device: str = "cpu",
+    ):
         super(RBM, self).__init__(logger)
 
         self.visible_dim = visible_dim
@@ -91,33 +99,6 @@ class RBM(BaseRBM):
         self.v_bias_momentum = torch.zeros(visible_dim).to(self.device)
 
         self.to(self.device)
-
-    def train_machine(
-        self, dataloader: DataLoader, num_epochs: int, lr: float = 0.01, k: int = 3
-    ) -> None:
-        """Train the RBM"""
-        loss = nn.MSELoss()
-        for epoch in range(num_epochs):
-            train_loss = 0
-            for data, _ in dataloader:
-                v0 = data.to(self.device)
-                ph0, hk = self.sample_h(v0)
-
-                # Gibbs sampling
-                for _ in range(k):
-                    vk = self.sample_v(hk)
-                    phk, hk = self.sample_h(vk)
-
-                momentum_coef = 0.5 if epoch < 5 else 0.9
-                weight_decay = 2e-4
-                batch_size = v0.size(0)
-
-                self.update_weights(v0, vk, ph0, phk, lr, momentum_coef, weight_decay, batch_size)
-                train_loss += loss(v0, vk).item()
-
-            self._log(f"Epoch: {epoch+1}/{num_epochs} Loss: {train_loss/len(dataloader)}")
-
-        return
 
     def sample_h(self, v: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """Sample hidden units given visible units"""

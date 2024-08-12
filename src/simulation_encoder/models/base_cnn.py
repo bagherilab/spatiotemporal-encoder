@@ -73,7 +73,7 @@ class BaseCNN(ABC, nn.Module):
         grad_norms: dict[str, list[float]] = defaultdict(list)
 
         for e in range(self.num_epochs):
-            train_loss = self.train_one_epoch(train_loader, e)
+            train_loss = self.train_one_epoch(train_loader)
             for loss_type, loss in train_loss.items():
                 train_losses[loss_type].append(loss)
 
@@ -147,6 +147,9 @@ class BaseCNN(ABC, nn.Module):
                     crbm.sample_hk, train_loader, self.device
                 )
 
+                crbm.W.data = nn.functional.normalize(crbm.W.data, p=2, dim=1)
+                crbm.h_bias.data = nn.functional.normalize(crbm.h_bias.data, p=2, dim=0)
+
                 layer.weight.data = crbm.W.data
                 layer.bias.data = crbm.h_bias.data
 
@@ -166,7 +169,9 @@ class BaseCNN(ABC, nn.Module):
 
                 self._log(f"RBM {in_features} nodes to {out_features} nodes")
                 gaussian = True if i == num_layers - 1 else False
-                rbm = RBM(in_features, out_features, gaussian, logger=self.logger, device=self.device)
+                rbm = RBM(
+                    in_features, out_features, gaussian, logger=self.logger, device=self.device
+                )
 
                 rbm.train_machine(train_loader, rbm_epochs, rbm_lr)
 
@@ -174,14 +179,16 @@ class BaseCNN(ABC, nn.Module):
                     rbm.sample_hk, train_loader, self.device
                 )
 
-                layer_params = self.architecture["encoder"][i]
-                layer = self.encoder[i]
+                rbm.W.data = nn.functional.normalize(rbm.W.data, p=2, dim=1)
+                rbm.h_bias.data = nn.functional.normalize(rbm.h_bias.data, p=2, dim=0)
+                rbm.v_bias.data = nn.functional.normalize(rbm.v_bias.data, p=2, dim=0)
+
                 layer.weight.data = rbm.W.t().data
                 layer.bias.data = rbm.h_bias.data
 
-                deoder_layer = self.decoder_image[num_layers - i - 1]
-                deoder_layer.weight.data = rbm.W.data
-                deoder_layer.bias.data = rbm.v_bias.data
+                decoder_layer = self.decoder_image[num_layers - i - 1]
+                decoder_layer.weight.data = rbm.W.data
+                decoder_layer.bias.data = rbm.v_bias.data
 
     @abstractmethod
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, ...]:
@@ -197,7 +204,6 @@ class BaseCNN(ABC, nn.Module):
     def train_one_epoch(
         self,
         train_loader: DataLoader,
-        epoch: int,
     ) -> dict[str, float]:
         """Trains the network for one epoch."""
         pass
