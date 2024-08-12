@@ -316,11 +316,15 @@ class ARCADELoader(Loader):
         image_dir: str,
         keys: list[str],
         channels: list[str],
-        labels: list[str] = [],
-        label_dir: Optional[str] = None,
+        name: Optional[str] = None,
+        
+        batch_size: int = 10,
         val_split: float = 0.2,
         test_split: float = 0.2,
-        batch_size: int = 10,
+        
+        labels: list[str] = [],
+        label_dir: Optional[str] = None,
+
         logger: Optional[Logger] = None,
         augmentations: Optional[dict[str, Any]] = None,
         indices_file: Optional[str] = None,
@@ -337,6 +341,7 @@ class ARCADELoader(Loader):
         )
 
         self.image_dir = image_dir
+        self.name = name
         self.keys = keys
         self.labels = labels
         self.logger = logger

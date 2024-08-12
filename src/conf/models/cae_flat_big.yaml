@@ -92,6 +92,12 @@ architecture:
     - type: ReLU
     - type: Linear
       in_features: 128
+      out_features: 128
+    - type: BatchNorm1d
+      num_features: 128
+    - type: ReLU
+    - type: Linear
+      in_features: 128
       out_features: 64
     - type: BatchNorm1d
       num_features: 64
@@ -104,10 +110,4 @@ architecture:
     - type: ReLU
     - type: Linear
       in_features: 32
-      out_features: 16
-    - type: BatchNorm1d
-      num_features: 16
-    - type: ReLU
-    - type: Linear
-      in_features: 16
-      out_features: 15
+      out_features: 1

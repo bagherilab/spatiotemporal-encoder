@@ -34,6 +34,7 @@ class Plotter:
         self._create_dir(figure_path)
 
         plt.savefig(os.path.join(figure_path, f"{title}.png"))
+        plt.close()
 
     def loss_plot(self, model_name: str, train_loss: list[float], val_loss: list[float]) -> None:
         """Creates a plot of the training and validation loss"""
@@ -50,6 +51,7 @@ class Plotter:
         self._create_dir(figure_path)
 
         plt.savefig(os.path.join(figure_path, "loss.png"))
+        plt.close()
 
     def _setup(self) -> None:
         self._create_dir(self.results_dir)
