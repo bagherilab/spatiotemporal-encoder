@@ -15,7 +15,8 @@ class DatasetParams:
     labels: Optional[list[str]] = None
     label_dir: Optional[str] = None
     augmentations: Optional[dict] = None
-    
+
+
 @dataclass
 class ModelParams:
     name: str
