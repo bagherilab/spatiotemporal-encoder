@@ -92,7 +92,7 @@ class Writer:
         full_data = pd.DataFrame()
         for key, data in encoded_data.items():
             data.to_csv(os.path.join(encoded_data_path, f"{key}.csv"), index=False)
-            full_data = pd.concat([full_data, data], axis=1)
+            full_data = pd.concat([full_data, data], axis=0)
 
         full_data.to_csv(os.path.join(encoded_data_path, "full_data.csv"), index=False)
 

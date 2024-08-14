@@ -27,7 +27,7 @@ class BaseRBM(ABC, nn.Module):
         pass
 
     def train_machine(
-        self, dataloader: DataLoader, num_epochs: int, lr: float = 0.01, k: int = 3
+        self, dataloader: DataLoader, num_epochs: int = 5, lr: float = 0.01, k: int = 1
     ) -> None:
         """Train the RBM"""
         loss = nn.MSELoss()

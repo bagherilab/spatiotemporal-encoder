@@ -3,7 +3,7 @@ continuous:
   image_loss_weight:
     range: [0.0, 1.0]
     search: linear
-    num_samples: 4
+    num_samples: 3
 discrete:
   latent_dim:
     values: [16]

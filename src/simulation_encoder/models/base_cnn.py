@@ -102,7 +102,7 @@ class BaseCNN(ABC, nn.Module):
     def pretrain_encoder_rbm(
         self,
         train_loader: DataLoader,
-        rbm_epochs: int = 3,
+        rbm_epochs: int = 5,
         rbm_lr: float = 0.01,
         data_fraction: float = 0.2,
     ) -> None:
@@ -270,6 +270,7 @@ class BaseCNN(ABC, nn.Module):
             if torch.cuda.is_available()
             else "mps" if torch.backends.mps.is_available() else "cpu"
         )
+        device = "cpu"
         return device
 
     def _log(self, msg: str, level: str = "info") -> None:

@@ -59,7 +59,7 @@ class CAE(BaseCNN):
             *self._create_layers(self.architecture["decoder_timepoint"])
         )
         self.optimizers = {
-            "combined": torch.optim.Adam(self.parameters(), lr=0.001),
+            "combined": torch.optim.Adam(self.parameters(), lr=0.0001),
         }
         self.criterion = {
             "image": nn.MSELoss(),
@@ -136,7 +136,7 @@ class CAE(BaseCNN):
             pred_image, pred_timepoint = self(inputs)
             pred_timepoint = pred_timepoint.squeeze().round()
             batch_loss = {
-                "image": image_criteria(pred_image, inputs) * self.image_loss_factor,
+                "image": image_criteria(pred_image, inputs),
                 "timepoint": timepoint_criteria(pred_timepoint, labels.float()),
             }
             reconstruction_loss, reconstruction_loss_weighted = self._calc_reconstruction_loss(
