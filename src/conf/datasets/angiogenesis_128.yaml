@@ -5,7 +5,7 @@ channels:
   - cancer
   - graph
 batch_size: 16
-val_split: 0.2
+val_split: 0.1
 test_split: 0.2
 keys:
   - ANGIO_Lav

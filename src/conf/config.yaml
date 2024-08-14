@@ -1,18 +1,5 @@
 experiment_name: cae-pretrain-emulation-graph
-experiments:    
-  # CAE-NOPRETRAIN:
-  #     datasets:
-  #       - vascular_function_128 
-  #       # - angiogenesis_128
-  #     model:
-  #       architecture: cae
-  #       num_channels: 1
-  #       image_size: 128
-  #       params: grid
-  #     general_configs:
-  #       pretrain: false
-  #       verbose: true
-  
+experiments:      
   CAE-FLAT-PRETRAIN:
       datasets:
         - vascular_function_128 

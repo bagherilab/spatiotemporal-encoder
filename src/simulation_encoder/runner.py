@@ -157,32 +157,35 @@ class Runner:
 
     def _encode_dataset(self, model: CAE, dataset: Loader) -> dict[str, pd.DataFrame]:
         """Encodes the dataset using the model. Final dataframe includes labels and seed keys"""
-        encoded_train = model.encode_loader(dataset.get_dataloader(dataset_type="train")).cpu()
-        encoded_val = model.encode_loader(dataset.get_dataloader(dataset_type="val")).cpu()
-        encoded_test = model.encode_loader(dataset.get_dataloader(dataset_type="test")).cpu()
-
+        data_loaders = {
+            "train": dataset.get_dataloader(dataset_type="train"),
+            "val": dataset.get_dataloader(dataset_type="val"),
+            "test": dataset.get_dataloader(dataset_type="test")
+        }
+        
+        encoded_data = {}
         num_dims = model.latent_dim
         column_names = [f"dim_{i}" for i in range(num_dims)]
-
-        encoded_train = pd.DataFrame(encoded_train, columns=column_names)
-        encoded_val = pd.DataFrame(encoded_val, columns=column_names)
-        encoded_test = pd.DataFrame(encoded_test, columns=column_names)
-
-        if dataset.labels:
-            for label in dataset.labels:
-                encoded_train[label] = dataset.get_labels(label=label, dataset_type="train")
-                encoded_val[label] = dataset.get_labels(label=label, dataset_type="val")
-                encoded_test[label] = dataset.get_labels(label=label, dataset_type="test")
-
-        encoded_train["timepoint"] = dataset.get_timepoints(dataset_type="train")
-        encoded_val["timepoint"] = dataset.get_timepoints(dataset_type="val")
-        encoded_test["timepoint"] = dataset.get_timepoints(dataset_type="test")
-
-        encoded_train["seed_key"] = dataset.get_seed_keys(dataset_type="train")
-        encoded_val["seed_key"] = dataset.get_seed_keys(dataset_type="val")
-        encoded_test["seed_key"] = dataset.get_seed_keys(dataset_type="test")
-
-        return {"train": encoded_train, "val": encoded_val, "test": encoded_test}
+        
+        for split, loader in data_loaders.items():
+            # Encode data and convert to DataFrame
+            encoded = model.encode_loader(loader).cpu() if loader else None
+            if encoded is not None:
+                encoded_df = pd.DataFrame(encoded, columns=column_names)
+                
+                # Add labels if they exist
+                if dataset.labels:
+                    for label in dataset.labels:
+                        encoded_df[label] = dataset.get_labels(label=label, dataset_type=split)
+                
+                # Add timepoint and seed_key
+                encoded_df["timepoint"] = dataset.get_timepoints(dataset_type=split)
+                encoded_df["seed_key"] = dataset.get_seed_keys(dataset_type=split)
+                
+                # Store the dataframe in the dictionary
+                encoded_data[split] = encoded_df
+        
+        return encoded_data
 
     def run_emulator(self, conf_name: str) -> Optional[EmulationResults]:
         """Runs emulation for the encoded datasets and returns the results"""
