@@ -3,7 +3,6 @@ import pstats
 import time
 
 import os
-from copy import deepcopy
 
 import yaml
 import traceback
@@ -63,7 +62,6 @@ def main() -> None:
         verbose = experiment_config.general_configs.verbose
 
         logger = Logger(log_name=f"{config_name}", verbose=verbose)
-
         runner = Runner(pretrain, logger, verbose)
         writer = Writer(results_dir=f"results/{config_name}", experiment_name=experiment_name)
         plotter = Plotter(results_dir=f"results/{config_name}", experiment_name=experiment_name)
@@ -76,8 +74,8 @@ def main() -> None:
             writer.write_train_test_indices(dataset_name, dataset.get_indices())
 
         # Models
-        models = create_models(experiment_config, logger)
-        runner.add_models(models)
+        model_param_sets = create_model_param_sets(experiment_config.model)
+        runner.add_models(model_param_sets)
 
         # Run
         encoder_results = runner.run_encoder(experiment_name)
@@ -144,30 +142,6 @@ def create_dataset_params(dataset_name: str, dataset_config: DatasetConfig) -> D
     )
 
     return dataset_params
-
-
-def create_models(experiment_config: ExperimentConfig, logger: Logger) -> list[BaseCNN]:
-    """Creates a list of models based on the experiment configuration."""
-    model_param_sets = create_model_param_sets(experiment_config.model)
-    models = []
-
-    for i, model_param_set in enumerate(model_param_sets):
-        params_dict = model_param_set.__dict__
-        model_type = params_dict.pop("model_type")
-        logger.log(
-            f"Creating model with architecture - {model_type} params - {experiment_config.model.params}"
-        )
-
-        if model_type == "CAE":
-            model = CAE(**deepcopy(model_param_set.__dict__), logger=logger)
-        elif model_type == "VAE":
-            model = VAE(**deepcopy(model_param_set.__dict__), logger=logger)
-        else:
-            raise ValueError(f"Model type {model_type} not recognized")
-
-        models.append(model)
-
-    return models
 
 
 def create_model_param_sets(model_config: ModelParamsConfig) -> list[ModelParams]:

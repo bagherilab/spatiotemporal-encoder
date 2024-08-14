@@ -129,7 +129,8 @@ class CAE(BaseCNN):
 
         avg_loss: dict[str, float] = defaultdict(float)
 
-        for i, (inputs, labels) in enumerate(train_loader):
+
+        for inputs, labels in train_loader:
             inputs, labels = inputs.to(self.device), labels.to(self.device)
             optimizer_combined.zero_grad()
 
@@ -139,6 +140,7 @@ class CAE(BaseCNN):
                 "image": image_criteria(pred_image, inputs),
                 "timepoint": timepoint_criteria(pred_timepoint, labels.float()),
             }
+            
             reconstruction_loss, reconstruction_loss_weighted = self._calc_reconstruction_loss(
                 batch_loss
             )

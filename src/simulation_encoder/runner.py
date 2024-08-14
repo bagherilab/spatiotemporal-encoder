@@ -1,6 +1,7 @@
 import os
 from collections import defaultdict
 from typing import Optional, Any
+from copy import deepcopy
 
 import pandas as pd
 
@@ -14,7 +15,7 @@ from simulation_encoder.models.emulator import Emulator
 
 from simulation_encoder.dataclass.loss_data import LossData
 from simulation_encoder.dataclass.emulator_results import EmulationResults, EncoderModelResult
-
+from simulation_encoder.dataclass.param_sets import ModelParams
 
 class Runner:
     """
@@ -44,7 +45,7 @@ class Runner:
         self.logger = logger
         self.verbose = verbose
 
-        self.models: dict[str, CAE | VAE] = {}
+        self.models: dict[str | ModelParams] = {}
         self.datasets: dict[str, Loader] = {}
 
         self.losses: dict[str, LossData] = {}
@@ -60,7 +61,7 @@ class Runner:
         """
         self.datasets = datasets
 
-    def add_models(self, models: list[BaseCNN]) -> None:
+    def add_models(self, model_param_sets: list[ModelParams]) -> None:
         """
         Add models to be trained by the runner
 
@@ -70,25 +71,34 @@ class Runner:
             List of models to be trained
         """
         model_num = 0
-        for model in models:
-            latent_dim = model.latent_dim
-            model_id = f"{model.name}_{latent_dim}d_{model_num}"
+        for model_param in model_param_sets:
+            latent_dim = model_param.params.get("latent_dim")
+            model_id = f"{model_param.name}_{latent_dim}d_{model_num}"
             while model_id in self.models:
                 model_num += 1
-                model_id = f"{model.name}_{latent_dim}d_{model_num}"
-            self.models[model_id] = model
+                model_id = f"{model_param.name}_{latent_dim}d_{model_num}"
+            self.models[model_id] = model_param
             self.losses[model_id] = LossData()
 
-        device = model.device
-        self._log(f"Device - {device}")
+    def get_model(self, model_id: str) -> BaseCNN:
+        """Returns the specified model"""
+        if model_id not in self.models:
+            raise ValueError(f"Model {model_id} not found")
+        
+        model_params: ModelParams = self.models[model_id]
+        params_dict = deepcopy(model_params.__dict__)
+        model_type = params_dict.pop("model_type")
+        
+        if model_type == "CAE":
+            return CAE(**params_dict, logger=self.logger)
+        elif model_type == "VAE":
+            return VAE(**params_dict, logger=self.logger)
+        else:
+            raise ValueError(f"Model type {model_type} not recognized")
 
     def get_losses(self) -> dict[str, LossData]:
         """Returns the loss data for all models"""
         return self.losses
-
-    def get_model(self, model_name: str) -> CAE | VAE:
-        """Returns the specified model"""
-        return self.models[model_name]
 
     def get_dataset(self, dataset_name: str) -> Loader:
         """Returns the dataset"""
@@ -104,13 +114,14 @@ class Runner:
 
         results: dict = defaultdict(dict)
 
-        for dataset_name, dataset in self.datasets.items():
-            self._log(f"Training on - {dataset_name}")
-            self._log(f"Training points - {dataset.n_train} Testing points - {dataset.n_test}")
+        for model_id, _ in self.models.items():
+            model = self.get_model(model_id)
+            self.logger.set_model_name(model_id)
+            self._log(f"Training model {model_id} on device {model.device}")
 
-            for i, (model_id, model) in enumerate(self.models.items()):
-                self.logger.set_model_name(model_id)
-                self._log(f"Training model {model_id}")
+            for dataset_name, dataset in self.datasets.items():
+                self._log(f"Training on - {dataset_name}")
+                self._log(f"Training points - {dataset.n_train} Testing points - {dataset.n_test}")
 
                 losses, val_losses, grad_norms = self._train_model(model_id, model, dataset)
 
