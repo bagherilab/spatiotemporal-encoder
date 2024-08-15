@@ -7,6 +7,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 from simulation_encoder.models.rbm import RBM, CRBM
+from simulation_encoder.models.residual_block import ResidualBlock, ResidualTransposeBlock
 from simulation_encoder.loader import Loader
 from simulation_encoder.logger import Logger
 
@@ -214,46 +215,55 @@ class BaseCNN(ABC, nn.Module):
         pass
 
     def _create_layers(
-        self,
-        layer_configs: list[dict[str, str | int | list[int]]],
-    ) -> list[nn.Module]:
+    self,
+    layer_configs: list[dict[str, str | int | list[int]]],
+) -> list[nn.Module]:
         layers = []
         for config in layer_configs:
             layer_type = config.get("type")
-            layer_class = getattr(nn, layer_type, None)  # type: ignore
-            if layer_class is None:
-                raise ValueError(f"Layer type {layer_type} not recognized")
-            # Dynamically set the number of channels and latent dimension size
-            if layer_type == "Conv2d" or layer_type == "ConvTranspose2d":
-                if config.get("in_channels") == "num_channels":
-                    config["in_channels"] = self.num_channels
-                if config.get("out_channels") == "num_channels":
-                    config["out_channels"] = self.num_channels
-
-            elif layer_type == "Linear":
-                if config.get("out_features") == "latent_dim":
-                    config["out_features"] = self.latent_dim
-                if config.get("in_features") == "latent_dim":
-                    config["in_features"] = self.latent_dim
-                if config.get("in_features") == "num_channels":
-                    config["in_features"] = self.image_size * self.image_size * self.num_channels
-                if config.get("out_features") == "num_channels":
-                    config["out_features"] = self.image_size * self.image_size * self.num_channels
-
-            elif layer_type == "BatchNorm1d":
-                if config.get("num_features") == "latent_dim":
-                    config["num_features"] = self.latent_dim
-                if config.get("num_features") == "num_channels":
-                    config["num_features"] = self.num_channels * self.image_size * self.image_size
-
-            if layer_type == "Unflatten":
-                shape = config.get("shape", [self.num_channels, self.image_size, self.image_size])
-                layer = layer_class(1, tuple(shape))  # type: ignore
+            
+            if layer_type in ["ResidualBlock", "ResidualTransposeBlock"]:
+                if layer_type == "ResidualBlock":
+                    layer = ResidualBlock(config["in_channels"], config["out_channels"])
+                else:
+                    layer = ResidualTransposeBlock(
+                        config["in_channels"], 
+                        config["out_channels"], 
+                        config.get("stride", 1)
+                    )
             else:
-                layer = layer_class(**{k: v for k, v in config.items() if k != "type"})
+                layer_class = getattr(nn, layer_type, None)  # type: ignore
+                if layer_class is None:
+                    raise ValueError(f"Layer type {layer_type} not recognized")
 
+                # Dynamically set the number of channels and latent dimension size
+                if layer_type in ["Conv2d", "ConvTranspose2d"]:
+                    if config.get("in_channels") == "num_channels":
+                        config["in_channels"] = self.num_channels
+                    if config.get("out_channels") == "num_channels":
+                        config["out_channels"] = self.num_channels
+                elif layer_type == "Linear":
+                    if config.get("out_features") == "latent_dim":
+                        config["out_features"] = self.latent_dim
+                    if config.get("in_features") == "latent_dim":
+                        config["in_features"] = self.latent_dim
+                    if config.get("in_features") == "num_channels":
+                        config["in_features"] = self.image_size * self.image_size * self.num_channels
+                    if config.get("out_features") == "num_channels":
+                        config["out_features"] = self.image_size * self.image_size * self.num_channels
+                elif layer_type == "BatchNorm1d":
+                    if config.get("num_features") == "latent_dim":
+                        config["num_features"] = self.latent_dim
+                    if config.get("num_features") == "num_channels":
+                        config["num_features"] = self.num_channels * self.image_size * self.image_size
+
+                if layer_type == "Unflatten":
+                    shape = config.get("shape", [self.num_channels, self.image_size, self.image_size])
+                    layer = layer_class(1, tuple(shape))  # type: ignore
+                else:
+                    layer = layer_class(**{k: v for k, v in config.items() if k != "type"})
+            
             layers.append(layer)
-
         return layers
 
     def _get_grad_norm(self, layer: nn.Sequential) -> torch.Tensor:

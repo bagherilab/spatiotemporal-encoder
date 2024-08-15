@@ -1,17 +1,17 @@
 experiment_name: cae-vs-flat
 experiments:      
-  CAE:
-    datasets:
-        - vascular_function_128 
-        # - angiogenesis_128
-    model:
-      architecture: cae
-      num_channels: 1
-      image_size: 128
-      params: grid
-    general_configs:
-      pretrain: false
-      verbose: true
+  # CAE:
+  #   datasets:
+  #       - vascular_function_128 
+  #       # - angiogenesis_128
+  #   model:
+  #     architecture: cae
+  #     num_channels: 1
+  #     image_size: 128
+  #     params: grid
+  #   general_configs:
+  #     pretrain: false
+  #     verbose: true
   CAE-FLAT:
     datasets:
         - vascular_function_128 
@@ -22,7 +22,7 @@ experiments:
       image_size: 128
       params: grid
     general_configs:
-      pretrain: false
+      pretrain: true
       verbose: true
 
       
