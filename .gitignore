@@ -1,8 +1,12 @@
-# Data
+# Project specific
 data/*
 logs/*
-figures/*
+results/*
+results_save/*
 archive/
+
+*.ipynb
+*.prof
 
 # Editors
 .vscode/
