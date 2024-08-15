@@ -109,6 +109,7 @@ class LayerConfig(BaseModel):
     stride: Optional[int] = None
     shape: Optional[list[int]] = None
     scale_factor: Optional[int] = None
+    p: Optional[float] = None
     padding: Optional[int] = None
     output_padding: Optional[int] = None
     activation: Optional[str] = None

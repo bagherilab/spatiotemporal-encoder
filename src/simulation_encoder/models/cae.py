@@ -137,7 +137,7 @@ class CAE(BaseCNN):
             pred_image, pred_timepoint = self(inputs)
             pred_timepoint = pred_timepoint.squeeze()
             batch_loss = {
-                "image": image_criteria(pred_image, inputs),
+                "image": image_criteria(pred_image, inputs) * self.image_loss_factor,
                 "timepoint": timepoint_criteria(pred_timepoint, labels.float()),
             }
             reconstruction_loss, reconstruction_loss_weighted = self._calc_reconstruction_loss(
@@ -182,7 +182,7 @@ class CAE(BaseCNN):
                 pred_timepoint = pred_timepoint.squeeze()
 
                 batch_loss = {
-                    "image": image_criteria(pred_image, inputs),
+                    "image": image_criteria(pred_image, inputs) * self.image_loss_factor,
                     "timepoint": timepoint_criteria(pred_timepoint, labels.float()),
                 }
                 reconstruciton_loss, _ = self._calc_reconstruction_loss(batch_loss)
