@@ -81,7 +81,7 @@ def main() -> None:
         encoder_results = runner.run_encoder(experiment_name)
         handle_encoder_results(encoder_results, runner, writer, plotter)
 
-    # Emulation (if needed)
+    # Emulation (optional)
     emulation_results = runner.run_emulator(config_name)
     if emulation_results:
         writer.write_emulation_results(emulation_results)
@@ -146,7 +146,6 @@ def create_dataset_params(dataset_name: str, dataset_config: DatasetConfig) -> D
 
 def create_model_param_sets(model_config: ModelParamsConfig) -> list[ModelParams]:
     """Create the model parameters from model config files and hyperparameter yaml files."""
-
     model_name = model_config.architecture
     num_channels = model_config.num_channels
     model_yaml = _load_model_yaml(model_name)

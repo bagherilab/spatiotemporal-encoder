@@ -10,6 +10,7 @@ from simulation_encoder.logger import Logger
 
 from simulation_encoder.models.base_cnn import BaseCNN
 from simulation_encoder.models.cae import CAE
+from simulation_encoder.models.pretrained_cae import PretrainedCAE
 from simulation_encoder.models.vae import VAE
 from simulation_encoder.models.emulator import Emulator
 
@@ -91,6 +92,8 @@ class Runner:
         
         if model_type == "CAE":
             return CAE(**params_dict, logger=self.logger)
+        elif model_type == "PretrainedCAE":
+            return PretrainedCAE(**params_dict, logger=self.logger)
         elif model_type == "VAE":
             return VAE(**params_dict, logger=self.logger)
         else:
