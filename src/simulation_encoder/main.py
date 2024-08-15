@@ -208,7 +208,7 @@ def _load_yaml(yaml_file: str, config_class: BaseModel) -> BaseModel:
         raise FileNotFoundError(f"File {yaml_file} not found") from e
     except ValidationError as e:
         traceback.print_exc()
-        raise ValidationError(f"Configuration validation error: {e}") from e
+        raise ValidationError(f"Error in loading yaml file: {e}, issue validation with {type(config_class).__name__} param set") from e
 
 
 def _load_hyperparam_yaml(yaml_name: str) -> HyperparameterConfig:

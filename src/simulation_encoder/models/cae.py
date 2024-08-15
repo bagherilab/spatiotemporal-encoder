@@ -185,11 +185,11 @@ class CAE(BaseCNN):
                     "image": image_criteria(pred_image, inputs) * self.image_loss_factor,
                     "timepoint": timepoint_criteria(pred_timepoint, labels.float()),
                 }
-                reconstruciton_loss, _ = self._calc_reconstruction_loss(batch_loss)
+                reconstruciton_loss, reconstruciton_loss_weighted = self._calc_reconstruction_loss(batch_loss)
                 for key in batch_loss:
                     avg_loss[key] += batch_loss[key].item()
                 avg_loss["reconstruction"] += reconstruciton_loss.item()
-                avg_loss["combined"] += reconstruciton_loss.item()
+                avg_loss["combined"] += reconstruciton_loss_weighted.item()
 
         avg_loss = {key: value / len(val_loader) for key, value in avg_loss.items()}
         return avg_loss
