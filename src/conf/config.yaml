@@ -1,17 +1,29 @@
-experiment_name: cae-pretrain-emulation-graph
+experiment_name: cae-hybrid
 experiments:      
-  CAE-FLAT-PRETRAIN:
+  CAE-HYBRID-PRETRAIN:
       datasets:
         - vascular_function_128 
         # - angiogenesis_128
       model:
-        architecture: cae_flat
+        architecture: cae_hybrid
         num_channels: 1
         image_size: 128
-        params: grid
+        params: grid_test
       general_configs:
         pretrain: true
         verbose: true
+  # CAE-FLAT-BIG:
+  #     datasets:
+  #       - vascular_function_128 
+  #       # - angiogenesis_128
+  #     model:
+  #       architecture: cae_flat
+  #       num_channels: 1
+  #       image_size: 128
+  #       params: grid_test
+  #     general_configs:
+  #       pretrain: false
+  #       verbose: true
       
   # ALPHANUMERIC-CAE:
   #   data:
