@@ -12,51 +12,45 @@ architecture:
     - type: ReLU
     - type: Dropout
       p: 0.25
-    - type: MaxPool2d
-      kernel_size: 2
-      stride: 2 # 64
     - type: Conv2d
       in_channels: 16
       out_channels: 32
       kernel_size: 3
       padding: 1
-      stride: 1 # 64
+      stride: 2 # 64
     - type: BatchNorm2d
       num_features: 32
     - type: ReLU
-    - type: MaxPool2d
-      kernel_size: 2
-      stride: 2 # 32
+    - type: Dropout
+      p: 0.25
     - type: Conv2d
       in_channels: 32
       out_channels: 32
       kernel_size: 3
       padding: 1
-      stride: 1 # 32
+      stride: 2 # 32
     - type: BatchNorm2d
       num_features: 32
     - type: ReLU
-    - type: MaxPool2d
-      kernel_size: 2
-      stride: 2 # 16
+    - type: Dropout
+      p: 0.25
     - type: Conv2d
       in_channels: 32
       out_channels: 64
       kernel_size: 3
       padding: 1
-      stride: 1 # 16
+      stride: 2 # 16
     - type: BatchNorm2d
       num_features: 64
     - type: ReLU
-    - type: MaxPool2d
-      kernel_size: 2
-      stride: 2 # 8
+    - type: Dropout
+      p: 0.25
     - type: Conv2d
       in_channels: 64
       out_channels: 64
       kernel_size: 3
       padding: 1
-      stride: 1 # 8
+      stride: 2 # 8
     - type: BatchNorm2d
       num_features: 64
     - type: ReLU
@@ -81,6 +75,8 @@ architecture:
     - type: BatchNorm2d
       num_features: 64
     - type: ReLU
+    - type: Dropout
+      p: 0.25
     - type: ConvTranspose2d
       in_channels: 64
       out_channels: 32
@@ -100,6 +96,8 @@ architecture:
     - type: BatchNorm2d
       num_features: 32
     - type: ReLU
+    - type: Dropout
+      p: 0.25
     - type: ConvTranspose2d
       in_channels: 32
       out_channels: 16
@@ -126,12 +124,16 @@ architecture:
     - type: BatchNorm1d
       num_features: 512
     - type: ReLU
+    - type: Dropout
+      p: 0.25
     - type: Linear
       in_features: 512
       out_features: 256
     - type: BatchNorm1d
       num_features: 256
     - type: ReLU
+    - type: Dropout
+      p: 0.25
     - type: Linear
       in_features: 256
       out_features: 128

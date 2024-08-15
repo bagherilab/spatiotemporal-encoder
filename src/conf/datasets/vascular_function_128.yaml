@@ -4,7 +4,7 @@ label_dir: data/ARCADE/vascular_function_128/labels
 channels:
   # - cancer
   - graph
-batch_size: 16
+batch_size: 32
 val_split: 0.1
 test_split: 0.2
 keys:

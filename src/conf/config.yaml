@@ -1,29 +1,30 @@
-experiment_name: cae-hybrid
+experiment_name: cae-vs-flat
 experiments:      
-  CAE-HYBRID-PRETRAIN:
-      datasets:
+  CAE:
+    datasets:
         - vascular_function_128 
         # - angiogenesis_128
-      model:
-        architecture: cae_hybrid
-        num_channels: 1
-        image_size: 128
-        params: grid_test
-      general_configs:
-        pretrain: true
-        verbose: true
-  # CAE-FLAT-BIG:
-  #     datasets:
-  #       - vascular_function_128 
-  #       # - angiogenesis_128
-  #     model:
-  #       architecture: cae_flat
-  #       num_channels: 1
-  #       image_size: 128
-  #       params: grid_test
-  #     general_configs:
-  #       pretrain: false
-  #       verbose: true
+    model:
+      architecture: cae
+      num_channels: 1
+      image_size: 128
+      params: grid
+    general_configs:
+      pretrain: false
+      verbose: true
+  CAE-FLAT:
+    datasets:
+        - vascular_function_128 
+        # - angiogenesis_128
+    model:
+      architecture: cae_flat_big
+      num_channels: 1
+      image_size: 128
+      params: grid
+    general_configs:
+      pretrain: false
+      verbose: true
+
       
   # ALPHANUMERIC-CAE:
   #   data:
