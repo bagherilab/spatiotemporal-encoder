@@ -1,4 +1,4 @@
-experiment_name: cae-vs-flat
+experiment_name: cae-residual
 experiments:      
   # CAE:
   #   datasets:
@@ -12,17 +12,30 @@ experiments:
   #   general_configs:
   #     pretrain: false
   #     verbose: true
-  CAE-FLAT:
+  CAE-RESIDUAL:
     datasets:
         - vascular_function_128 
         # - angiogenesis_128
     model:
-      architecture: cae_flat_big
+      architecture: cae_residual
       num_channels: 1
       image_size: 128
       params: grid
     general_configs:
-      pretrain: true
+      pretrain: false
+      verbose: true
+  
+  CAE:
+    datasets:
+        - vascular_function_128 
+        # - angiogenesis_128
+    model:
+      architecture: cae
+      num_channels: 1
+      image_size: 128
+      params: grid
+    general_configs:
+      pretrain: false
       verbose: true
 
       

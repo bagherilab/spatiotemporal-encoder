@@ -44,7 +44,7 @@ architecture:
       in_features: latent_dim
       out_features: 4096
     - type: Unflatten
-      shape: [32, 16, 16]
+      shape: [16, 16, 16]
     - type: ResidualTransposeBlock
       in_channels: 16
       out_channels: 32
