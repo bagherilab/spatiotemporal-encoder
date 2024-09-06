@@ -7,7 +7,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 from simulation_encoder.models.rbm import RBM, CRBM
-from simulation_encoder.models.residual_block import ResidualBlock, ResidualTransposeBlock
+from simulation_encoder.models.residual_block import ResidualBlock, ResidualTransposeBlock, ResidualLinearBlock
 from simulation_encoder.loader import Loader
 from simulation_encoder.logger import Logger
 
@@ -103,7 +103,7 @@ class BaseCNN(ABC, nn.Module):
     def pretrain_encoder_rbm(
         self,
         train_loader: DataLoader,
-        rbm_epochs: int = 5,
+        rbm_epochs: int = 10,
         rbm_lr: float = 0.01,
         data_fraction: float = 0.2,
     ) -> None:
@@ -222,15 +222,23 @@ class BaseCNN(ABC, nn.Module):
         for config in layer_configs:
             layer_type = config.get("type")
             
-            if layer_type in ["ResidualBlock", "ResidualTransposeBlock"]:
+            if layer_type in ["ResidualBlock", "ResidualTransposeBlock", "ResidualLinearBlock"]:
                 if layer_type == "ResidualBlock":
                     layer = ResidualBlock(config["in_channels"], config["out_channels"])
-                else:
+                elif layer_type == "ResidualTransposeBlock":
                     layer = ResidualTransposeBlock(
                         config["in_channels"], 
                         config["out_channels"], 
+                        
                         config.get("stride", 1)
                     )
+                else:
+                    layer = ResidualLinearBlock(
+                        config["in_features"], 
+                        config["out_features"], 
+                        config.get("dropout_p", 0.25)
+                    )
+                    
             else:
                 layer_class = getattr(nn, layer_type, None)  # type: ignore
                 if layer_class is None:

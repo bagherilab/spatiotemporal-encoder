@@ -2,7 +2,7 @@ loader: ARCADE
 image_dir: data/ARCADE/angiogenesis_128/images
 label_dir: 
 channels:
-  - cancer
+  # - cancer
   - graph
 batch_size: 32
 val_split: 0.1

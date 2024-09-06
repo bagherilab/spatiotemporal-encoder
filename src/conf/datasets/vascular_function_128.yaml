@@ -22,6 +22,6 @@ augmentations:
   # rotate:
   #   degree: 180
 labels:
-  # - activity
-  # - growth
-  # - symmetry  
+  - activity
+  - growth
+  - symmetry  

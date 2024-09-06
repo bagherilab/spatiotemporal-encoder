@@ -1,23 +1,11 @@
-experiment_name: cae-residual
+experiment_name: cae-flat-big
 experiments:      
-  # CAE:
-  #   datasets:
-  #       - vascular_function_128 
-  #       # - angiogenesis_128
-  #   model:
-  #     architecture: cae
-  #     num_channels: 1
-  #     image_size: 128
-  #     params: grid
-  #   general_configs:
-  #     pretrain: false
-  #     verbose: true
-  CAE-RESIDUAL:
+  CAE-FLAT:
     datasets:
         - vascular_function_128 
         # - angiogenesis_128
     model:
-      architecture: cae_residual
+      architecture: cae_flat_old
       num_channels: 1
       image_size: 128
       params: grid
@@ -25,20 +13,6 @@ experiments:
       pretrain: false
       verbose: true
   
-  CAE:
-    datasets:
-        - vascular_function_128 
-        # - angiogenesis_128
-    model:
-      architecture: cae
-      num_channels: 1
-      image_size: 128
-      params: grid
-    general_configs:
-      pretrain: false
-      verbose: true
-
-      
   # ALPHANUMERIC-CAE:
   #   data:
   #     image_dir: data/alphanumeric/images

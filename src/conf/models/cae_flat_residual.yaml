@@ -9,15 +9,7 @@ architecture:
       num_features: 4096
     - type: ReLU
     - type: Dropout
-      p: 0.5
-    - type: Linear
-      in_features: 4096
-      out_features: 4096
-    - type: BatchNorm1d
-      num_features: 4096
-    - type: ReLU
-    - type: Dropout
-      p: 0.5
+      p: 0.25
     - type: Linear
       in_features: 4096
       out_features: 2048
@@ -26,22 +18,24 @@ architecture:
     - type: ReLU
     - type: Dropout
       p: 0.25
+    - type: ResidualLinearBlock
+      in_features: 2048
+      out_features: 2048
     - type: Linear
       in_features: 2048
       out_features: 1024
     - type: BatchNorm1d
       num_features: 1024
     - type: ReLU
-    - type: Dropout
-      p: 0.25
     - type: Linear
       in_features: 1024
       out_features: 512
     - type: BatchNorm1d
       num_features: 512
     - type: ReLU
-    - type: Dropout
-      p: 0.25
+    - type: ResidualLinearBlock
+      in_features: 512
+      out_features: 512
     - type: Linear
       in_features: 512
       out_features: 256
@@ -80,16 +74,15 @@ architecture:
     - type: BatchNorm1d
       num_features: 512
     - type: ReLU
-    - type: Dropout
-      p: 0.25
+    - type: ResidualLinearBlock
+      in_features: 512
+      out_features: 512
     - type: Linear
       in_features: 512
       out_features: 1024
     - type: BatchNorm1d
       num_features: 1024
     - type: ReLU
-    - type: Dropout
-      p: 0.25
     - type: Linear
       in_features: 1024
       out_features: 2048
@@ -98,6 +91,9 @@ architecture:
     - type: ReLU
     - type: Dropout
       p: 0.25
+    - type: ResidualLinearBlock
+      in_features: 2048
+      out_features: 2048
     - type: Linear
       in_features: 2048
       out_features: 4096
@@ -105,15 +101,7 @@ architecture:
       num_features: 4096
     - type: ReLU
     - type: Dropout
-      p: 0.5
-    - type: Linear
-      in_features: 4096
-      out_features: 4096
-    - type: BatchNorm1d
-      num_features: 4096
-    - type: ReLU
-    - type: Dropout
-      p: 0.5
+      p: 0.25
     - type: Linear
       in_features: 4096
       out_features: num_channels
@@ -126,24 +114,18 @@ architecture:
     - type: BatchNorm1d
       num_features: 512
     - type: ReLU
-    - type: Dropout
-      p: 0.25
     - type: Linear
       in_features: 512
       out_features: 256
     - type: BatchNorm1d
       num_features: 256
     - type: ReLU
-    - type: Dropout
-      p: 0.25
     - type: Linear
       in_features: 256
       out_features: 128
     - type: BatchNorm1d
       num_features: 128
     - type: ReLU
-    - type: Dropout
-      p: 0.25
     - type: Linear
       in_features: 128
       out_features: 64
