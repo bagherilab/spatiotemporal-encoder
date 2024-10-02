@@ -63,7 +63,7 @@ class CAE(BaseCNN):
         }
         self.criterion = {
             "image": nn.MSELoss(),
-            "timepoint": nn.MSELoss(),
+            "timepoint": nn.CrossEntropyLoss(),
         }
 
         # Chosen arbitrarily
@@ -134,10 +134,10 @@ class CAE(BaseCNN):
             optimizer_combined.zero_grad()
 
             pred_image, pred_timepoint = self(inputs)
-            pred_timepoint = pred_timepoint.squeeze().round()
+
             batch_loss = {
                 "image": image_criteria(pred_image, inputs),
-                "timepoint": timepoint_criteria(pred_timepoint, labels.float()),
+                "timepoint": timepoint_criteria(pred_timepoint, labels),
             }
             reconstruction_loss, reconstruction_loss_weighted = self._calc_reconstruction_loss(
                 batch_loss
@@ -182,7 +182,7 @@ class CAE(BaseCNN):
 
                 batch_loss = {
                     "image": image_criteria(pred_image, inputs),
-                    "timepoint": timepoint_criteria(pred_timepoint, labels.float()),
+                    "timepoint": timepoint_criteria(pred_timepoint, labels),
                 }
                 reconstruciton_loss, _ = self._calc_reconstruction_loss(batch_loss)
                 for key in batch_loss:

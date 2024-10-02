@@ -18,6 +18,10 @@ scikit-learn = "^1.5.0"
 torchvision = "^0.18.1"
 pydantic = "^2.8.2"
 seaborn = "^0.13.2"
+ipykernel = "^6.29.5"
+llvmlite = "^0.43.0"
+umap-learn = "^0.5.6"
+numba = "^0.60.0"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^8.2.2"
@@ -30,12 +34,6 @@ snakeviz = "^2.2.0"
 
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.29.4"
-
-[tool.poetry.group.visualization]
-optional = true
-
-[tool.poetry.group.visualization.dependencies]
-umap-learn = "^0.5.6"
 
 [build-system]
 requires = ["poetry-core"]

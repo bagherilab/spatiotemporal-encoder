@@ -1,17 +1,29 @@
-experiment_name: cae-pretrain-emulation-graph
+experiment_name: cae-immortal
 experiments:      
-  CAE-FLAT-PRETRAIN:
-      datasets:
-        - vascular_function_128 
-        # - angiogenesis_128
-      model:
-        architecture: cae_flat
-        num_channels: 1
-        image_size: 128
-        params: grid
-      general_configs:
-        pretrain: true
-        verbose: true
+  CAE:
+    datasets:
+      - immortal_vf_128
+      # - vascular_function_128 
+      # - angiogenesis_128
+    model:
+      architecture: cae
+      num_channels: 1
+      image_size: 128
+      params: grid
+    general_configs:
+      pretrain: false
+      verbose: true
+  CAE-FLAT:
+    datasets:
+        - immortal_vf_128
+    model:
+      architecture: cae_flat
+      num_channels: 1
+      image_size: 128
+      params: grid
+    general_configs:
+      pretrain: true
+      verbose: true
       
   # ALPHANUMERIC-CAE:
   #   data:
