@@ -6,7 +6,7 @@ architecture:
       out_channels: 32
       kernel_size: 3
       padding: 1
-      stride: 2
+      stride: 1
     - type: BatchNorm2d
       num_features: 32
     - type: ReLU
@@ -30,7 +30,19 @@ architecture:
       out_channels: 32
       kernel_size: 3
       padding: 1
+      stride: 1
+    - type: BatchNorm2d
+      num_features: 32
+    - type: ReLU
+    - type: MaxPool2d
+      kernel_size: 2
       stride: 2
+    - type: Conv2d
+      in_channels: 32
+      out_channels: 32
+      kernel_size: 3
+      padding: 1
+      stride: 1
     - type: BatchNorm2d
       num_features: 32
     - type: ReLU
@@ -39,17 +51,21 @@ architecture:
       stride: 2
     - type: Flatten
     - type: Linear
-      in_features: 512 
+      in_features: 2048 
       out_features: 512
     - type: BatchNorm1d
       num_features: 512
     - type: ReLU
+    - type: Dropout
+      p: 0.2
     - type: Linear
       in_features: 512
       out_features: 256
     - type: BatchNorm1d
       num_features: 256
     - type: ReLU
+    - type: Dropout
+      p: 0.2
     - type: Linear
       in_features: 256
       out_features: latent_dim
@@ -66,47 +82,77 @@ architecture:
     - type: BatchNorm1d
       num_features: 512
     - type: ReLU
+    - type: Dropout
+      p: 0.2
+    - type: Linear
+      in_features: 512
+      out_features: 2048
+    - type: BatchNorm1d
+      num_features: 2048
+    - type: ReLU
+    - type: Dropout
+      p: 0.2
     - type: Unflatten
-      shape: [32, 4, 4]  # Adjust this according to the output size after the final pooling
+      shape: [32, 8, 8]  # Adjust this according to the output size after the final pooling
+    - type: ConvTranspose2d
+      in_channels: 32
+      out_channels: 32
+      kernel_size: 3
+      stride: 1
+      padding: 1
+    - type: BatchNorm2d
+      num_features: 32
+    - type: ReLU
+    - type: Upsample
+      scale_factor: 2
+      mode: nearest
+    
     - type: ConvTranspose2d
       in_channels: 32
       out_channels: 64
       kernel_size: 3
-      stride: 2
+      stride: 1
       padding: 1
-      output_padding: 1
-    - type: Upsample
-      scale_factor: 2
-      mode: nearest
     - type: BatchNorm2d
       num_features: 64
     - type: ReLU
+    - type: Upsample
+      scale_factor: 2
+      mode: nearest
+
     - type: ConvTranspose2d
       in_channels: 64
       out_channels: 32
       kernel_size: 3
-      stride: 2
+      stride: 1
       padding: 1
-      output_padding: 1
     - type: BatchNorm2d
       num_features: 32
+    - type: ReLU
+    - type: Upsample
+      scale_factor: 2
+      mode: nearest
+
     - type: ConvTranspose2d
       in_channels: 32
       out_channels: 32
       kernel_size: 3
-      stride: 2
+      stride: 1
       padding: 1
-      output_padding: 1
     - type: BatchNorm2d
       num_features: 32
     - type: ReLU
+    - type: Upsample
+      scale_factor: 2
+      mode: nearest
+
     - type: ConvTranspose2d
       in_channels: 32
       out_channels: num_channels
       kernel_size: 3
-      stride: 2
+      stride: 1
       padding: 1
-      output_padding: 1
+
     - type: Sigmoid
   decoder_timepoint:
     - type: Linear

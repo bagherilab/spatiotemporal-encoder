@@ -1,29 +1,43 @@
-experiment_name: cae-immortal
+experiment_name: vae-epochs
 experiments:      
-  CAE:
+  # CAE-RESIZE:
+  #   datasets:
+  #     - immortal_vf_128
+  #     # - vascular_function_128 
+  #     # - angiogenesis_128
+  #   model:
+  #     architecture: cae_resize_convolution
+  #     num_channels: 1
+  #     image_size: 128
+  #     params: grid
+  #   general_configs:
+  #     pretrain: false
+  #     verbose: true
+  VAE:
     datasets:
       - immortal_vf_128
       # - vascular_function_128 
       # - angiogenesis_128
     model:
-      architecture: cae
+      architecture: vae
       num_channels: 1
       image_size: 128
       params: grid
     general_configs:
       pretrain: false
       verbose: true
-  CAE-FLAT:
-    datasets:
-        - immortal_vf_128
-    model:
-      architecture: cae_flat
-      num_channels: 1
-      image_size: 128
-      params: grid
-    general_configs:
-      pretrain: true
-      verbose: true
+
+  # CAE-FLAT:
+  #   datasets:
+  #       - immortal_vf_128
+  #   model:
+  #     architecture: cae_flat
+  #     num_channels: 1
+  #     image_size: 128
+  #     params: grid
+  #   general_configs:
+  #     pretrain: true
+  #     verbose: true
       
   # ALPHANUMERIC-CAE:
   #   data:

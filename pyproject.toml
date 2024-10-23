@@ -21,7 +21,6 @@ seaborn = "^0.13.2"
 ipykernel = "^6.29.5"
 llvmlite = "^0.43.0"
 umap-learn = "^0.5.6"
-numba = "^0.60.0"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^8.2.2"

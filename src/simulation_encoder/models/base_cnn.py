@@ -22,7 +22,7 @@ class BaseCNN(ABC, nn.Module):
         name: str = "",
         architecture: dict[str, list[dict[str, Any]]] = {},
         num_channels: int = 1,
-        image_size: int = 256,
+        image_size: int = 128,
         num_epochs: int = 10,
         params: dict[str, Any] = {},
         logger: Optional[Logger] = None,
@@ -90,11 +90,7 @@ class BaseCNN(ABC, nn.Module):
             grad_norms["decoder_image"].append(decoder_image_grad_norm.item())
             grad_norms["decoder_timepoint"].append(decoder_timepoint_grad_norm.item())
 
-            if self.num_epochs > 20:
-                if (e + 1) % 10 == 0:
-                    msg = f"Epoch {e+1}/{self.num_epochs}- Train loss: {train_loss['combined']} Val loss: {val_loss['combined']}"
-            else:
-                msg = f"Epoch {e+1}/{self.num_epochs}- Train loss: {train_loss['combined']} Val loss: {val_loss['combined']}"
+            msg = f"Epoch {e+1}/{self.num_epochs}- Train loss: {train_loss['combined']} Val loss: {val_loss['combined']}"
             self._log(msg)
 
         return (train_losses, val_losses, grad_norms)

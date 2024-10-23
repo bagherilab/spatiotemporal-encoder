@@ -109,9 +109,10 @@ class LayerConfig(BaseModel):
     stride: Optional[int] = None
     shape: Optional[list[int]] = None
     scale_factor: Optional[int] = None
-    padding: Optional[int] = None
+    padding: Optional[int | str] = None
     output_padding: Optional[int] = None
     activation: Optional[str] = None
+    p: Optional[float] = None
 
     @model_validator(mode="before")
     def check_layers(cls, values: dict) -> dict:
