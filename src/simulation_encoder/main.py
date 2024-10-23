@@ -21,7 +21,7 @@ from simulation_encoder.runner import Runner
 from simulation_encoder.writer import Writer
 from simulation_encoder.plotter import Plotter
 from simulation_encoder.logger import Logger
-from simulation_encoder.loader import Loader, ARCADELoader, AlphaNumericLoader
+from simulation_encoder.loader import Loader, ARCADELoader, AlphaNumericLoader, GastruloidLoader
 
 from simulation_encoder.models.base_cnn import BaseCNN
 from simulation_encoder.models.cae import CAE
@@ -118,6 +118,13 @@ def create_dataset(dataset_name: str, dataset_params: DatasetParams, logger: Log
         del params_dict["label_dir"]
         del params_dict["labels"]
         dataset = AlphaNumericLoader(
+            **params_dict,
+            logger=logger,
+        )
+    elif loader.lower() == "gastruloid":
+        del params_dict["label_dir"]
+        del params_dict["labels"]
+        dataset = GastruloidLoader(
             **params_dict,
             logger=logger,
         )
