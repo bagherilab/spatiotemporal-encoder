@@ -11,49 +11,15 @@ experiments:
     general_configs:
       pretrain: false
       verbose: true
-  CAE-FLAT:
-    datasets:
-      - gastruloid
-    model:
-      architecture: cae_gastruloid_flat
-      num_channels: 1
-      image_size: 128
-      params: grid
-    general_configs:
-      pretrain: true
-      verbose: true
-
       
-  # ALPHANUMERIC-CAE:
-  #   data:
-  #     image_dir: data/alphanumeric/images
-  #     label_dir: data/alphanumeric/labels
-  #     image_size: 128
-  #     augmentations:
-  #       # rotate:
-  #       #   degree: 180
+  # CAE-FLAT:
+  #   datasets:
+  #     - gastruloid
   #   model:
-  #     architecture: cae
+  #     architecture: cae_gastruloid_flat
+  #     num_channels: 1
+  #     image_size: 128
   #     params: grid
   #   general_configs:
-  #     batch_size: 32
-  #     val_split: 0.2
-  #     test_split: 0.2
-  #     channels:
-  #       - image
-  #     pretrain: false
+  #     pretrain: true
   #     verbose: true
-  #   keys:
-  #     - "2"
-  #     - "a"
-  #     - "b"
-  #     - "d"
-  #     - "e"
-  #     - "i"
-  #     - "j"
-  #     - "k"
-  #     - "p"
-  #     - "u"
-  #     - "x"
-  #     - "z"
-  #   emulator_targets:

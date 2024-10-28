@@ -90,11 +90,7 @@ class BaseCNN(ABC, nn.Module):
             grad_norms["decoder_image"].append(decoder_image_grad_norm.item())
             grad_norms["decoder_timepoint"].append(decoder_timepoint_grad_norm.item())
 
-            if self.num_epochs > 20:
-                if (e + 1) % 10 == 0:
-                    msg = f"Epoch {e+1}/{self.num_epochs}- Train loss: {train_loss['combined']} Val loss: {val_loss['combined']}"
-            else:
-                msg = f"Epoch {e+1}/{self.num_epochs}- Train loss: {train_loss['combined']} Val loss: {val_loss['combined']}"
+            msg = f"Epoch {e+1}/{self.num_epochs}- Train loss: {train_loss['combined']} Val loss: {val_loss['combined']}"
             self._log(msg)
 
         return (train_losses, val_losses, grad_norms)
@@ -215,7 +211,7 @@ class BaseCNN(ABC, nn.Module):
 
     def _create_layers(
         self,
-        layer_configs: list[dict[str, str | int | list[int]]],
+        layer_configs: list[dict],
     ) -> list[nn.Module]:
         layers = []
         for config in layer_configs:
