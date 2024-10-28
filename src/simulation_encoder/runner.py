@@ -1,6 +1,6 @@
 import os
 from collections import defaultdict
-from typing import Optional, Any
+from typing import Optional, Any, Union
 
 import pandas as pd
 
@@ -44,7 +44,7 @@ class Runner:
         self.logger = logger
         self.verbose = verbose
 
-        self.models: dict[str, CAE | VAE] = {}
+        self.models: dict[str, Union[CAE, VAE]] = {}
         self.datasets: dict[str, Loader] = {}
 
         self.losses: dict[str, LossData] = {}
@@ -86,7 +86,7 @@ class Runner:
         """Returns the loss data for all models"""
         return self.losses
 
-    def get_model(self, model_name: str) -> CAE | VAE:
+    def get_model(self, model_name: str) -> Union[CAE, VAE]:
         """Returns the specified model"""
         return self.models[model_name]
 
