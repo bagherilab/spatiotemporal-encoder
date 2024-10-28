@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 """ Pydantic models for the configuration files """
@@ -109,7 +109,7 @@ class LayerConfig(BaseModel):
     stride: Optional[int] = None
     shape: Optional[list[int]] = None
     scale_factor: Optional[int] = None
-    padding: Optional[int | str] = None
+    padding: Optional[Union[int, str]] = None
     output_padding: Optional[int] = None
     activation: Optional[str] = None
     p: Optional[float] = None
