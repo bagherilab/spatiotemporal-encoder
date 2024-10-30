@@ -1,12 +1,13 @@
 import os
 from collections import defaultdict
-from typing import Optional, Any
+from typing import Optional
 from copy import deepcopy
 
 import pandas as pd
 
-from simulation_encoder.loader import CSVLoader, Loader
 from simulation_encoder.logger import Logger
+from simulation_encoder.loaders.loader import Loader
+from simulation_encoder.loaders.util_loaders import CSVLoader
 
 from simulation_encoder.models.base_cnn import BaseCNN
 from simulation_encoder.models.cae import CAE

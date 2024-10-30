@@ -4,7 +4,7 @@ import json
 import pandas as pd
 import torch
 
-from simulation_encoder.loader import ARCADELoader, AlphaNumericLoader, Loader
+from simulation_encoder.loaders.loader import Loader
 from simulation_encoder.models.cae import CAE
 
 from simulation_encoder.dataclass.loss_data import LossData

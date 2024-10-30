@@ -2,8 +2,8 @@ import os
 from typing import Optional, Any
 from collections import defaultdict
 
-from src.simulation_encoder.loaders.loader import Loader
-from src.simulation_encoder.logger import Logger
+from simulation_encoder.logger import Logger
+from simulation_encoder.loaders.loader import Loader, Augmentation
 
 class GastruloidLoader(Loader):
     """

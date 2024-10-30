@@ -2,8 +2,8 @@ import os
 from typing import Optional, Any
 from collections import defaultdict
 
-from src.simulation_encoder.logger import Logger
-from src.simulation_encoder.loaders.loader import Loader
+from simulation_encoder.logger import Logger
+from simulation_encoder.loaders.loader import Loader, Augmentation
 
 class AlphaNumericLoader(Loader):
     """
@@ -37,8 +37,11 @@ class AlphaNumericLoader(Loader):
         self.labels = None
         self.logger = logger
 
+        self.augmentations: dict[str, Augmentation] = self._get_augmentations(augmentations) or {}
+
         self._get_image_groups()
         self._split_data()
+        self._augment_training_data()
 
     def _get_image_groups(self) -> None:
         """Returns groups of images based on the filename format."""
