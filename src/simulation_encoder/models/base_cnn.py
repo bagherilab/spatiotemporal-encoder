@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional, Any
+from typing import Optional, Any, Union
 from collections import defaultdict
 
 import torch
@@ -215,7 +215,7 @@ class BaseCNN(ABC, nn.Module):
 
     def _create_layers(
         self,
-        layer_configs: list[dict[str, str | int | list[int]]],
+        layer_configs: list[dict],
     ) -> list[nn.Module]:
         layers = []
         for config in layer_configs:

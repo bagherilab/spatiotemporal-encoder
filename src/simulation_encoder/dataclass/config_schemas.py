@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 """ Pydantic models for the configuration files """
@@ -100,11 +100,11 @@ class HyperparameterConfig(BaseModel):
 
 class LayerConfig(BaseModel):
     type: str = Field(..., description="Name of layer in PyTorch")
-    in_features: Optional[int | str] = None
-    out_features: Optional[int | str] = None
-    num_features: Optional[int | str] = None
-    in_channels: Optional[int | str] = None
-    out_channels: Optional[int | str] = None
+    in_features: Optional[Union[int, str]] = None
+    out_features: Optional[Union[int, str]] = None
+    num_features: Optional[Union[int, str]] = None
+    in_channels: Optional[Union[int, str]] = None
+    out_channels: Optional[Union[int, str]] = None
     kernel_size: Optional[int] = None
     stride: Optional[int] = None
     shape: Optional[list[int]] = None
