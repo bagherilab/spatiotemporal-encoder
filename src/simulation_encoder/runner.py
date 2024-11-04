@@ -124,7 +124,7 @@ class Runner:
             self._log(f"Training model {model_id} on device {model.device}")
 
             for dataset_name, dataset in self.datasets.items():
-                self._log(f"Training on - {dataset_name}")
+                self._log(f"Training on dataset {dataset_name}")
                 self._log(f"Training points - {dataset.n_train} Testing points - {dataset.n_test}")
 
                 losses, val_losses, grad_norms = self._train_model(model_id, model, dataset)

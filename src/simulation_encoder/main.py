@@ -8,7 +8,6 @@ import yaml
 import traceback
 from pydantic import BaseModel, ValidationError
 
-
 import sys
 from pathlib import Path
 
@@ -16,16 +15,14 @@ from pathlib import Path
 if str(Path(__file__).parent.parent) not in sys.path:
     sys.path.append(str(Path(__file__).parent.parent))
 
-
 from simulation_encoder.runner import Runner
 from simulation_encoder.writer import Writer
 from simulation_encoder.plotter import Plotter
 from simulation_encoder.logger import Logger
-from simulation_encoder.loader import Loader, ARCADELoader, AlphaNumericLoader, GastruloidLoader
-
-from simulation_encoder.models.base_cnn import BaseCNN
-from simulation_encoder.models.cae import CAE
-from simulation_encoder.models.vae import VAE
+from simulation_encoder.loaders.loader import Loader
+from simulation_encoder.loaders.arcade_loader import ARCADELoader
+from simulation_encoder.loaders.alphanumeric_loader import AlphaNumericLoader
+from simulation_encoder.loaders.gastruloid_loader import GastruloidLoader
 
 from simulation_encoder.dataclass.param_sets import DatasetParams, ModelParams
 from simulation_encoder.dataclass.config_schemas import (

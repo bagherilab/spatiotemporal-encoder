@@ -36,7 +36,7 @@ class Writer:
             "architecture": model.name,
             "channels": dataset.channels,
             "params": model.params,
-            "data_augmentations": [aug for aug in dataset.augmentations],
+            "data_augmentations": dataset.augmentations,
             "keys": dataset.keys,
             "losses": {
                 "train": losses.losses_train,

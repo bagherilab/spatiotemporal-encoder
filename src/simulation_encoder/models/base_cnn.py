@@ -7,7 +7,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 from simulation_encoder.models.rbm import RBM, CRBM
-from simulation_encoder.loader import Loader
+from simulation_encoder.loaders.loader import Loader
 from simulation_encoder.logger import Logger
 
 

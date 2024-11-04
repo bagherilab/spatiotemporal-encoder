@@ -51,14 +51,19 @@ class Loader(ABC, Dataset):
 
     def __init__(
         self,
+        image_dir: str,
+        keys: list[str],
         channels: list[str],
         val_split: float = 0.2,
         test_split: float = 0.2,
         batch_size: int = 10,
+        augmentations: Optional[list[dict[str, Any]]] = None,
         indices_file: Optional[str] = None,
         logger: Optional[Logger] = None,
         random_seed: int = 42,
     ):
+        self.image_dir = image_dir
+        self.keys = keys
         self.channels = channels
         self.val_split = val_split
         self.test_split = test_split
@@ -72,7 +77,24 @@ class Loader(ABC, Dataset):
         self._test_indices: list[int] = []
 
         self.groups: list[dict[str, Any]] = []
-        self.augmentations: dict[str, Augmentation] = {}
+        self.transforms: list[dict[str, Augmentation]] = []
+
+        self._get_image_groups()
+
+        if augmentations is None:
+            self.augmentations = []
+        else:
+            self.augmentations = augmentations
+        self.augmentations.append({"original": None})
+        
+        self.transforms: dict[str, Augmentation] = self._get_augmentations()
+
+        if self.indices_file:
+            self._load_from_indices(self.indices_file)
+            self._reconstruct_augmented_groups()
+        else:
+            self._split_data()
+            self._augment_training_data()
 
     def __len__(self) -> int:
         return len(self.groups)
@@ -81,6 +103,7 @@ class Loader(ABC, Dataset):
         group = self.groups[idx]
         timepoint = int(group["timepoint"])
         image_tensor = self._get_image_tensors(group, self.channels)
+        
 
         return image_tensor, timepoint
 
@@ -104,12 +127,17 @@ class Loader(ABC, Dataset):
         """Shape of the images"""
         return Image.open(self.groups[0][self.channels[0]]).size
 
+    @abstractmethod
+    def _get_image_groups(self) -> None:
+        """Returns groups of images based on the filename format."""
+        pass
+
     def get_dataloader(self, dataset_type: str) -> DataLoader:
         """Returns DataLoader for the specified dataset type (train, val, test)"""
         indices_attr = f"_{dataset_type}_indices"
         if not hasattr(self, indices_attr):
             raise ValueError(f"Invalid dataset type: {dataset_type}")
-
+        
         indices = getattr(self, indices_attr)
         dataset = Subset(self, indices)
         return DataLoader(
@@ -149,7 +177,7 @@ class Loader(ABC, Dataset):
         transformation = transforms.Compose(
             [
                 transforms.ToTensor(),
-                # transforms.Lambda(lambda x: x[:3]),
+                transforms.Lambda(lambda x: x[:3]),
                 transforms.Grayscale(num_output_channels=1),
                 transforms.Lambda(lambda x: x.squeeze()),
                 transforms.Lambda(lambda x: x / x.max())
@@ -166,18 +194,14 @@ class Loader(ABC, Dataset):
 
         full_tensor = torch.stack(tensors, dim=0)
 
-        augmentation_name = group["augmentation"]
-        if augmentation_name == "original":
-            return full_tensor
-
-        augmentation = self.augmentations[augmentation_name]
+        augmentation_name = group.get("augmentation", "original")
+        augmentation = next(
+            (aug_dict[augmentation_name] for aug_dict in self.transforms if augmentation_name in list(aug_dict.keys())),
+            Augmentation(transforms.Lambda(lambda x: x), "original")
+        )
         return augmentation(full_tensor)
 
     def _split_data(self, shuffle: bool = True) -> None:
-        if self.indices_file:
-            self._load_from_indices(self.indices_file)
-            return
-
         all_indices = list(range(len(self)))
         groups = self._get_indices_of_groups(all_indices)
 
@@ -216,43 +240,77 @@ class Loader(ABC, Dataset):
         return groups
     
     def _get_augmentations(
-        self, augmentations: Optional[dict[str, Any]]
+        self
     ) -> Optional[dict[str, Augmentation]]:
-        if not augmentations:
-            return None
-
-        augmentation_map: dict[str, Callable[..., Any]] = {
+        augmentation_map: list[dict[str, Callable[..., Any]]] = {
+            "original": lambda _: transforms.Lambda(lambda x: x),
             "rotate": lambda degree: transforms.RandomRotation(degrees=degree),
         }
 
-        augmentations_dict = {}
-        for augmentation in augmentations:
-            aug_name, arg = augmentation.popitem()
+        augmentations_list = []
+
+        if not self.augmentations:
+            return augmentations_list
+        
+        for augmentation in self.augmentations:
+            (aug_name, arg), = augmentation.items()
             if aug_name not in augmentation_map:
                 raise ValueError(f"Invalid augmentation name: {aug_name}")
 
-            transform = augmentation_map[aug_name](int(arg))
+            transform = augmentation_map[aug_name](int(arg) if arg is not None else arg)
 
             full_aug_name = f"{aug_name}_{arg}"
-            augmentations_dict[full_aug_name] = Augmentation(transform, aug_name)
+            augmentations_list.append({full_aug_name: Augmentation(transform, aug_name)})
 
-        return augmentations_dict
+        return augmentations_list
     
     def _augment_training_data(self) -> None:
-        if not self.augmentations:
-            return
+        augmented_groups = []
+        for augment in self.transforms:
+            if not augment:
+                continue
+            (aug_name, aug), = augment.items()
+
+            
+            for index in self._train_indices:
+                original_group = self.groups[index]
+                
+                original_group["augmentation"] = {"original": ""}
+
+                if "original" in aug_name:
+                    continue
+
+                aug_group = dict(original_group.items())
+                aug_group["augmentation"] = {aug_name: aug}
+                aug_group["original_index"] = index
+                augmented_groups.append(aug_group)
+
+        start_idx = len(self.groups)
+        self.groups.extend(augmented_groups)
+
+        new_indices = list(range(start_idx, len(self.groups)))
+        self._train_indices.extend(new_indices)
+
+    def _reconstruct_augmented_groups(self) -> None:
+        original_length = len(self.groups)
+        original_train_indices = [idx for idx in self._train_indices if idx < original_length]
+
 
         augmented_groups = []
-        for index in self._train_indices:
-            original_group = self.groups[index]
-            for aug_name, _ in self.augmentations.items():
+        for augment in self.transforms:
+            if not augment:
+                continue
+            (aug_name, aug), = augment.items()
+            
+            if "original" in aug_name:
+                continue
+                
+            for index in original_train_indices:
+                original_group = self.groups[index]
                 aug_group = dict(original_group.items())
-                aug_group["augmentation"] = aug_name
+                aug_group["augmentation"] = {aug_name: aug}
                 augmented_groups.append(aug_group)
         self.groups.extend(augmented_groups)
-        self._train_indices.extend(
-            range(len(self.groups) - len(augmented_groups), len(self.groups))
-        )
 
     def _log(self, msg: str, level: str = "info") -> None:
         if self.logger:

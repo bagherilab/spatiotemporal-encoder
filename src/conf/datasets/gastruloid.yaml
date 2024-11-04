@@ -2,12 +2,13 @@ loader: gastruloid
 image_dir: data/gastruloid/images
 label_dir: data/gastruloid/labels
 channels:
-  - image
+  # - bf
+  - stain
 batch_size: 32
 val_split: 0.1
 test_split: 0.2
 keys:
   - array1
 augmentations:
-  # rotate:
-  #   degree: 180
+  # - rotate: 90
+  # - rotate: 180

@@ -49,32 +49,33 @@ class ARCADELoader(Loader):
         labels: list[str] = [],
         label_dir: Optional[str] = None,
         logger: Optional[Logger] = None,
-        augmentations: Optional[dict[str, Any]] = None,
+        augmentations: Optional[list[dict[str, Any]]] = [],
         indices_file: Optional[str] = None,
         random_seed: int = 42,
     ):
-
+        self.name = name
+        self.labels = labels
+        self.logger = logger
         super().__init__(
+            image_dir=image_dir,
+            keys=keys,
             channels=channels,
             val_split=val_split,
             test_split=test_split,
             batch_size=batch_size,
+            augmentations=augmentations,
             indices_file=indices_file,
             random_seed=random_seed,
         )
 
-        self.image_dir = image_dir
-        self.name = name
-        self.keys = keys
-        self.labels = labels
-        self.logger = logger
+        
+        if augmentations is None:
+            self.augmentations = []
+        else:
+            self.augmentations = augmentations
 
         self.label_loader = LabelLoader(label_dir) if label_dir else None
-        self.augmentations: dict[str, Augmentation] = self._get_augmentations(augmentations) or {}
-
-        self._get_image_groups()
-        self._split_data()
-        self._augment_training_data()
+        self.transforms: dict[str, Augmentation] = self._get_augmentations()
 
     def get_labels(self, label: str, dataset_type: str) -> torch.Tensor:
         """Returns labels for the specified dataset type (train, val, test)"""
@@ -103,7 +104,7 @@ class ARCADELoader(Loader):
                 **{channel: "" for channel in self.channels},
                 "timepoint": "",
                 "seed_key": "",
-                "augmentation": "original",
+                "augmentation": {"original": ""},
                 "labels": defaultdict(float),
             }
         )

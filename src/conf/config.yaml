@@ -1,4 +1,4 @@
-experiment_name: cae-gastruloid
+experiment_name: gastruloid-noaug
 experiments:      
   CAE:
     datasets:

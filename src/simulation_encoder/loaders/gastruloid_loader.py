@@ -22,27 +22,23 @@ class GastruloidLoader(Loader):
         batch_size: int = 10,
         logger: Optional[Logger] = None,
         indices_file: Optional[str] = None,
-        augmentations: Optional[dict[str, Any]] = None,
+        augmentations: Optional[list[dict[str, Any]]] = None,
         random_seed: int = 42,
     ):
+        self.name = name
+        self.labels = None
+        self.logger = logger
         super().__init__(
+            image_dir=image_dir,
+            keys=keys,
             channels=channels,
             val_split=val_split,
             test_split=test_split,
             batch_size=batch_size,
+            augmentations=augmentations,
             indices_file=indices_file,
             random_seed=random_seed,
         )
-        self.image_dir = image_dir
-        self.name = name
-        self.keys = keys
-        self.labels = None
-        self.logger = logger
-
-        self.augmentations: dict[str, Augmentation] = self._get_augmentations(augmentations) or {}
-        self._get_image_groups()
-        self._split_data()
-        self._augment_training_data()
 
     def _get_image_groups(self) -> None:
         """Returns groups of images based on the filename format."""
@@ -51,7 +47,7 @@ class GastruloidLoader(Loader):
                 **{channel: "" for channel in self.channels},
                 "timepoint": "",
                 "seed_key": "",
-                "augmentation": "original",
+                "augmentation": {"original": ""},
             }
         )
 
