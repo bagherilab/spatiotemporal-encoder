@@ -1,4 +1,5 @@
-experiment_name: vae-epochs
+# experiment_name: cae-stem-and-cancer-data
+experiment_name: TEST
 experiments:      
   # CAE-RESIZE:
   #   datasets:
@@ -13,13 +14,13 @@ experiments:
   #   general_configs:
   #     pretrain: false
   #     verbose: true
-  VAE:
+  CAE:
     datasets:
-      - immortal_vf_128
-      # - vascular_function_128 
+      - vascular_function_128 
+      # - immortal_vf_128
       # - angiogenesis_128
     model:
-      architecture: vae
+      architecture: cae
       num_channels: 1
       image_size: 128
       params: grid

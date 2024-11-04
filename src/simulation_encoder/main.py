@@ -220,8 +220,8 @@ def handle_encoder_results(
             losses = data["losses"]
             plotter.loss_plot(
                 model_id,
-                losses.losses_train.get("combined", []),
-                losses.losses_val.get("combined", []),
+                losses.losses_train.get("weighted_loss", []),
+                losses.losses_val.get("weighted_loss", []),
             )
 
 

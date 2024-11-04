@@ -148,8 +148,7 @@ class CAE(BaseCNN):
 
             for key in batch_loss:
                 avg_loss[key] += batch_loss[key].item()
-            avg_loss["reconstruction"] += reconstruction_loss.item()
-            avg_loss["combined"] += reconstruction_loss_weighted.item()
+            avg_loss["weighted_loss"] += reconstruction_loss_weighted.item()
 
         avg_loss = {key: value / len(train_loader) for key, value in avg_loss.items()}
         return avg_loss
@@ -187,8 +186,7 @@ class CAE(BaseCNN):
                 reconstruciton_loss, _ = self._calc_reconstruction_loss(batch_loss)
                 for key in batch_loss:
                     avg_loss[key] += batch_loss[key].item()
-                avg_loss["reconstruction"] += reconstruciton_loss.item()
-                avg_loss["combined"] += reconstruciton_loss.item()
+                avg_loss["weighted_loss"] += reconstruciton_loss.item()
 
         avg_loss = {key: value / len(val_loader) for key, value in avg_loss.items()}
         return avg_loss

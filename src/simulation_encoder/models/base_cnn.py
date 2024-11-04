@@ -90,7 +90,7 @@ class BaseCNN(ABC, nn.Module):
             grad_norms["decoder_image"].append(decoder_image_grad_norm.item())
             grad_norms["decoder_timepoint"].append(decoder_timepoint_grad_norm.item())
 
-            msg = f"Epoch {e+1}/{self.num_epochs}- Train loss: {train_loss['combined']} Val loss: {val_loss['combined']}"
+            msg = f"Epoch {e+1}/{self.num_epochs}- Train loss: {train_loss['weighted_loss']} Val loss: {val_loss['weighted_loss']}"
             self._log(msg)
 
         return (train_losses, val_losses, grad_norms)
