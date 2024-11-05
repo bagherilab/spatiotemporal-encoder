@@ -58,11 +58,11 @@ class GastruloidLoader(Loader):
             if not any(channel in file_name for channel in self.channels):
                 continue
 
-            modality, array, raft, timepoint = self._parse_gastruloid_filename(file_name)
-            group_key = f"{modality}_{array}_{raft}_{timepoint}"
+            channel, array, raft, timepoint = self._parse_gastruloid_filename(file_name)
+            group_key = f"{array}_{raft}_{timepoint}"
             groups[group_key]["timepoint"] = timepoint
-            groups[group_key][modality] = os.path.join(self.image_dir, file_name)
-            groups[group_key]["seed_key"] = f"{modality}_{array}_{raft}"
+            groups[group_key][channel] = os.path.join(self.image_dir, file_name)
+            groups[group_key]["seed_key"] = f"{array}_{raft}"
 
         self.groups = list(groups.values())
 

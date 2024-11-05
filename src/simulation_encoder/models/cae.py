@@ -131,6 +131,7 @@ class CAE(BaseCNN):
 
 
         for inputs, labels in train_loader:
+
             inputs, labels = inputs.to(self.device), labels.to(self.device)
             optimizer_combined.zero_grad()
             pred_image, pred_timepoint = self(inputs)

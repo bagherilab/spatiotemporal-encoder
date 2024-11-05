@@ -1,11 +1,11 @@
-experiment_name: gastruloid-noaug
+experiment_name: gastruloid-2channel
 experiments:      
   CAE:
     datasets:
       - gastruloid
     model:
       architecture: cae_gastruloid
-      num_channels: 1
+      num_channels: 2
       image_size: 128
       params: grid
     general_configs:

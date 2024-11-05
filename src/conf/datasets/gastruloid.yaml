@@ -2,7 +2,7 @@ loader: gastruloid
 image_dir: data/gastruloid/images
 label_dir: data/gastruloid/labels
 channels:
-  # - bf
+  - bf
   - stain
 batch_size: 32
 val_split: 0.1

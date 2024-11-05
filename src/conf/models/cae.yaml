@@ -10,8 +10,6 @@ architecture:
     - type: BatchNorm2d
       num_features: 16
     - type: ReLU
-    - type: Dropout
-      p: 0.25
     - type: MaxPool2d
       kernel_size: 2
       stride: 2 # 64
@@ -126,18 +124,24 @@ architecture:
     - type: BatchNorm1d
       num_features: 512
     - type: ReLU
+    - type: Dropout
+      p: 0.25
     - type: Linear
       in_features: 512
       out_features: 256
     - type: BatchNorm1d
       num_features: 256
     - type: ReLU
+    - type: Dropout
+      p: 0.25
     - type: Linear
       in_features: 256
       out_features: 128
     - type: BatchNorm1d
       num_features: 128
     - type: ReLU
+    - type: Dropout
+      p: 0.25
     - type: Linear
       in_features: 128
       out_features: 64
