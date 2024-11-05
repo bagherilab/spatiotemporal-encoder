@@ -1,5 +1,4 @@
-# experiment_name: cae-stem-and-cancer-data
-experiment_name: TEST
+experiment_name: cae-stem-and-cancer-data
 experiments:      
   # CAE-RESIZE:
   #   datasets:
@@ -17,7 +16,7 @@ experiments:
   CAE:
     datasets:
       - vascular_function_128 
-      # - immortal_vf_128
+      - immortal_vf_128
       # - angiogenesis_128
     model:
       architecture: cae

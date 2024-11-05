@@ -13,10 +13,10 @@ keys:
   # - CH_Lvav
   # - CH_Sav
   # - CH_Savav
-  # - C_Lav
-  # - C_Lava
-  # - C_Lvav
-  # - C_Sav
+  - C_Lav
+  - C_Lava
+  - C_Lvav
+  - C_Sav
   - C_Savav
 augmentations:
   # rotate:
