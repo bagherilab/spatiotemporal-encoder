@@ -1,23 +1,9 @@
-experiment_name: cae-stem-and-cancer-data
+experiment_name: cae-radiation
 experiments:      
-  # CAE-RESIZE:
-  #   datasets:
-  #     - immortal_vf_128
-  #     # - vascular_function_128 
-  #     # - angiogenesis_128
-  #   model:
-  #     architecture: cae_resize_convolution
-  #     num_channels: 1
-  #     image_size: 128
-  #     params: grid
-  #   general_configs:
-  #     pretrain: false
-  #     verbose: true
   CAE:
     datasets:
-      - vascular_function_128 
-      - immortal_vf_128
-      # - angiogenesis_128
+      # - vascular_function_128 
+      - radiation_128
     model:
       architecture: cae
       num_channels: 1
@@ -27,18 +13,6 @@ experiments:
       pretrain: false
       verbose: true
 
-  # CAE-FLAT:
-  #   datasets:
-  #       - immortal_vf_128
-  #   model:
-  #     architecture: cae_flat
-  #     num_channels: 1
-  #     image_size: 128
-  #     params: grid
-  #   general_configs:
-  #     pretrain: true
-  #     verbose: true
-      
   # ALPHANUMERIC-CAE:
   #   data:
   #     image_dir: data/alphanumeric/images
