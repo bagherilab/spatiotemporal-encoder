@@ -1,4 +1,4 @@
-num_epochs: 15
+num_epochs: 25
 continuous:
   image_loss_weight:
     range: [0.9, 1.0]

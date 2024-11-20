@@ -6,10 +6,10 @@ channels:
   # - graph
 batch_size: 16
 val_split: 0.1
-test_split: 0.5
+test_split: 0.7
 keys:
-  - basic_4-8_radiation
-  - basic_4-8_noradiation
+  - basic-4-8_radiation
+  - basic-4-8_noradiation
 augmentations:
   # rotate:
   #   degree: 180

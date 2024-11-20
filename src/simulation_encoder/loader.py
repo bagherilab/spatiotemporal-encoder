@@ -388,7 +388,7 @@ class ARCADELoader(Loader):
             # Skip images that are not in the specified channels
             if not any(channel in file_name for channel in self.channels):
                 continue
-
+            
             context, vasc_type, seed, timepoint, image_type = self._parse_ARCADE_filename(file_name)
             group_key = f"{context}_{vasc_type}_{seed}_{timepoint}"
             timepoint_short = str((timepoint // 10) - 1)
@@ -477,9 +477,10 @@ class ARCADELoader(Loader):
         )
 
     def _in_keys(self, file_name: str) -> bool:
-        file_chunks = file_name.split("_")[0:2]
-        prefix = "_".join(file_chunks)
-        return prefix in self.keys
+        for key in self.keys:
+            if key in file_name:
+                return True
+        return False
 
 
 class AlphaNumericLoader(Loader):

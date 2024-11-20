@@ -1,6 +1,7 @@
 import os
+import copy
 from collections import defaultdict
-from typing import Optional, Any, Union
+from typing import Optional, Union
 
 import pandas as pd
 
@@ -119,10 +120,11 @@ class Runner:
                 loss_data.add_val_loss(val_losses)
 
                 encoded_dataset = self._encode_dataset(model, dataset)
+                model_snapshot = copy.deepcopy(model.state_dict())
 
                 dataset_results = {
                     "encoded_data": encoded_dataset,
-                    "model_state": model.state_dict(),
+                    "model_state": model_snapshot,
                     "losses": loss_data,
                     "grad_norms": grad_norms,
                 }

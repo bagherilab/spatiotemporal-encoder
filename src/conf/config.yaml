@@ -2,7 +2,7 @@ experiment_name: cae-radiation
 experiments:      
   CAE:
     datasets:
-      # - vascular_function_128 
+      - vascular_function_128 
       - radiation_128
     model:
       architecture: cae
