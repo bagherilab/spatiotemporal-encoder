@@ -5,6 +5,7 @@ from collections import defaultdict
 from simulation_encoder.logger import Logger
 from simulation_encoder.loaders.loader import Loader, Augmentation
 
+
 class AlphaNumericLoader(Loader):
     """
     Loader class for loading
@@ -37,7 +38,7 @@ class AlphaNumericLoader(Loader):
             indices_file=indices_file,
             random_seed=random_seed,
         )
-        
+
         self.augmentations: dict[str, Augmentation] = self._get_augmentations(augmentations) or {}
 
     def _get_image_groups(self) -> None:
@@ -80,5 +81,3 @@ class AlphaNumericLoader(Loader):
         file_chunks = file_name.split("_")[0:3]
         prefix = file_chunks[0]
         return prefix in self.keys
-
-

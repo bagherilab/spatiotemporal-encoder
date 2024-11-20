@@ -5,6 +5,7 @@ from collections import defaultdict
 from simulation_encoder.logger import Logger
 from simulation_encoder.loaders.loader import Loader, Augmentation
 
+
 class GastruloidLoader(Loader):
     """
     Loader class for loading

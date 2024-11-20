@@ -8,6 +8,7 @@ from simulation_encoder.logger import Logger
 from simulation_encoder.loaders.loader import Loader, Augmentation
 from simulation_encoder.loaders.util_loaders import LabelLoader
 
+
 class ARCADELoader(Loader):
     """
     Loader class for loading unlabeled images from a directory.
@@ -68,7 +69,6 @@ class ARCADELoader(Loader):
             random_seed=random_seed,
         )
 
-        
         if augmentations is None:
             self.augmentations = []
         else:

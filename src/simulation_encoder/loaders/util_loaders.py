@@ -19,7 +19,9 @@ class CSVLoader(Dataset):
         List of target labels.
     """
 
-    def __init__(self, conf_name: str, exp_id: str, model: str, dataset_name: str, labels: list[str]) -> None:
+    def __init__(
+        self, conf_name: str, exp_id: str, model: str, dataset_name: str, labels: list[str]
+    ) -> None:
         self.exp_id = exp_id
         self.dataset_name = dataset_name
         self.data_path = f"results/{conf_name}/{exp_id}/{model}/{dataset_name}"

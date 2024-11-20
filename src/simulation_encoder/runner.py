@@ -19,6 +19,7 @@ from simulation_encoder.dataclass.loss_data import LossData
 from simulation_encoder.dataclass.emulator_results import EmulationResults, EncoderModelResult
 from simulation_encoder.dataclass.param_sets import ModelParams
 
+
 class Runner:
     """
     Class for managing the training and saving of models
@@ -86,11 +87,11 @@ class Runner:
         """Returns the specified model"""
         if model_id not in self.models:
             raise ValueError(f"Model {model_id} not found")
-        
+
         model_params: ModelParams = self.models[model_id]
         params_dict = deepcopy(model_params.__dict__)
         model_type = params_dict.pop("model_type")
-        
+
         if model_type == "CAE":
             return CAE(**params_dict, logger=self.logger)
         elif model_type == "PretrainedCAE":
@@ -175,31 +176,31 @@ class Runner:
         data_loaders = {
             "train": dataset.get_dataloader(dataset_type="train"),
             "val": dataset.get_dataloader(dataset_type="val"),
-            "test": dataset.get_dataloader(dataset_type="test")
+            "test": dataset.get_dataloader(dataset_type="test"),
         }
-        
+
         encoded_data = {}
         num_dims = model.latent_dim
         column_names = [f"dim_{i}" for i in range(num_dims)]
-        
+
         for split, loader in data_loaders.items():
             # Encode data and convert to DataFrame
             encoded = model.encode_loader(loader).cpu() if loader else None
             if encoded is not None:
                 encoded_df = pd.DataFrame(encoded, columns=column_names)
-                
+
                 # Add labels if they exist
                 if dataset.labels:
                     for label in dataset.labels:
                         encoded_df[label] = dataset.get_labels(label=label, dataset_type=split)
-                
+
                 # Add timepoint and seed_key
                 encoded_df["timepoint"] = dataset.get_timepoints(dataset_type=split)
                 encoded_df["seed_key"] = dataset.get_seed_keys(dataset_type=split)
-                
+
                 # Store the dataframe in the dictionary
                 encoded_data[split] = encoded_df
-        
+
         return encoded_data
 
     def run_emulator(self, conf_name: str) -> Optional[EmulationResults]:
@@ -300,7 +301,7 @@ class Runner:
     def _get_encoder_datasets(self, conf_name: str) -> dict[str, list[str]]:
         """Get list of dataset folder names for each experiment."""
         datasets: dict[str, None] = {}
-        
+
         for experiment in os.listdir(f"results/{conf_name}"):
 
             for model in os.listdir(f"results/{conf_name}/{experiment}"):
@@ -314,9 +315,9 @@ class Runner:
                             datasets[dataset] = None
 
         datasets = dict(sorted(datasets.items(), key=lambda x: x[0]))
-        
+
         return datasets
-    
+
     def _initialize_models(self, emulator_models: list[str]) -> dict:
         """Initialize emulator models"""
         models = {}

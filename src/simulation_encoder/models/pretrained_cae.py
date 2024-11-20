@@ -48,10 +48,10 @@ class PretrainedCAE(BaseCNN):
             bias=False,
         )
         # self.encoder.maxpool = nn.Identity()
-        
-        self.encoder = nn.Sequential(*list(self.encoder.children())[:-2],
-                                     nn.Flatten(),
-                                     nn.Linear(8192, self.latent_dim))
+
+        self.encoder = nn.Sequential(
+            *list(self.encoder.children())[:-2], nn.Flatten(), nn.Linear(8192, self.latent_dim)
+        )
 
         self.decoder_image = nn.Sequential(*self._create_layers(self.architecture["decoder_image"]))
         self.decoder_timepoint = nn.Sequential(
@@ -82,7 +82,7 @@ class PretrainedCAE(BaseCNN):
 
     def decode_timepoint(self, x: torch.Tensor) -> torch.Tensor:
         return self.decoder_timepoint(x)
-    
+
     def encode_loader(self, dataloader: DataLoader) -> torch.Tensor:
         """Encodes a loader of data"""
         self.eval()
@@ -122,7 +122,6 @@ class PretrainedCAE(BaseCNN):
         timepoint_criteria: torch.nn.Module = self.criterion["timepoint"]
 
         avg_loss: dict[str, float] = defaultdict(float)
-
 
         for inputs, labels in train_loader:
             inputs, labels = inputs.to(self.device), labels.to(self.device)

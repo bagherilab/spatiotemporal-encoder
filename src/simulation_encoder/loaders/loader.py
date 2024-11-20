@@ -86,7 +86,7 @@ class Loader(ABC, Dataset):
         else:
             self.augmentations = augmentations
         self.augmentations.append({"original": None})
-        
+
         self.transforms: dict[str, Augmentation] = self._get_augmentations()
 
         if self.indices_file:
@@ -103,7 +103,6 @@ class Loader(ABC, Dataset):
         group = self.groups[idx]
         timepoint = int(group["timepoint"])
         image_tensor = self._get_image_tensors(group, self.channels)
-        
 
         return image_tensor, timepoint
 
@@ -137,7 +136,7 @@ class Loader(ABC, Dataset):
         indices_attr = f"_{dataset_type}_indices"
         if not hasattr(self, indices_attr):
             raise ValueError(f"Invalid dataset type: {dataset_type}")
-        
+
         indices = getattr(self, indices_attr)
         dataset = Subset(self, indices)
         return DataLoader(
@@ -180,7 +179,7 @@ class Loader(ABC, Dataset):
                 transforms.Lambda(lambda x: x[:3]),
                 transforms.Grayscale(num_output_channels=1),
                 transforms.Lambda(lambda x: x.squeeze()),
-                transforms.Lambda(lambda x: x / x.max())
+                transforms.Lambda(lambda x: x / x.max()),
             ]
         )
 
@@ -196,8 +195,12 @@ class Loader(ABC, Dataset):
 
         augmentation_name = group.get("augmentation", "original")
         augmentation = next(
-            (aug_dict[augmentation_name] for aug_dict in self.transforms if augmentation_name in list(aug_dict.keys())),
-            Augmentation(transforms.Lambda(lambda x: x), "original")
+            (
+                aug_dict[augmentation_name]
+                for aug_dict in self.transforms
+                if augmentation_name in list(aug_dict.keys())
+            ),
+            Augmentation(transforms.Lambda(lambda x: x), "original"),
         )
         return augmentation(full_tensor)
 
@@ -238,10 +241,8 @@ class Loader(ABC, Dataset):
             key = group["seed_key"]
             groups[key].append(idx)
         return groups
-    
-    def _get_augmentations(
-        self
-    ) -> Optional[dict[str, Augmentation]]:
+
+    def _get_augmentations(self) -> Optional[dict[str, Augmentation]]:
         augmentation_map: list[dict[str, Callable[..., Any]]] = {
             "original": lambda _: transforms.Lambda(lambda x: x),
             "rotate": lambda degree: transforms.RandomRotation(degrees=degree),
@@ -251,9 +252,9 @@ class Loader(ABC, Dataset):
 
         if not self.augmentations:
             return augmentations_list
-        
+
         for augmentation in self.augmentations:
-            (aug_name, arg), = augmentation.items()
+            ((aug_name, arg),) = augmentation.items()
             if aug_name not in augmentation_map:
                 raise ValueError(f"Invalid augmentation name: {aug_name}")
 
@@ -263,18 +264,17 @@ class Loader(ABC, Dataset):
             augmentations_list.append({full_aug_name: Augmentation(transform, aug_name)})
 
         return augmentations_list
-    
+
     def _augment_training_data(self) -> None:
         augmented_groups = []
         for augment in self.transforms:
             if not augment:
                 continue
-            (aug_name, aug), = augment.items()
+            ((aug_name, aug),) = augment.items()
 
-            
             for index in self._train_indices:
                 original_group = self.groups[index]
-                
+
                 original_group["augmentation"] = {"original": ""}
 
                 if "original" in aug_name:
@@ -295,16 +295,15 @@ class Loader(ABC, Dataset):
         original_length = len(self.groups)
         original_train_indices = [idx for idx in self._train_indices if idx < original_length]
 
-
         augmented_groups = []
         for augment in self.transforms:
             if not augment:
                 continue
-            (aug_name, aug), = augment.items()
-            
+            ((aug_name, aug),) = augment.items()
+
             if "original" in aug_name:
                 continue
-                
+
             for index in original_train_indices:
                 original_group = self.groups[index]
                 aug_group = dict(original_group.items())

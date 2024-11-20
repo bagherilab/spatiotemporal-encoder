@@ -195,7 +195,9 @@ class CRBM(BaseRBM):
         self.h_bias = nn.Parameter(torch.zeros(hidden_dim).to(self.device))
         self.v_bias = nn.Parameter(torch.zeros(visible_dim).to(self.device))
 
-        self.W_momentum = torch.zeros(hidden_dim, visible_dim, kernel_size, kernel_size).to(self.device)
+        self.W_momentum = torch.zeros(hidden_dim, visible_dim, kernel_size, kernel_size).to(
+            self.device
+        )
         self.h_bias_momentum = torch.zeros(hidden_dim).to(self.device)
         self.v_bias_momentum = torch.zeros(visible_dim).to(self.device)
 
@@ -241,20 +243,25 @@ class CRBM(BaseRBM):
         batch_size: int,
     ) -> None:
         """Update weights of the CRBM"""
-        pos_phase = F.conv2d(v0.transpose(0, 1), ph0.transpose(0, 1), 
-                            padding=self.padding, stride=self.stride)
-        neg_phase = F.conv2d(vk.transpose(0, 1), phk.transpose(0, 1), 
-                            padding=self.padding, stride=self.stride)
-        
+        pos_phase = F.conv2d(
+            v0.transpose(0, 1), ph0.transpose(0, 1), padding=self.padding, stride=self.stride
+        )
+        neg_phase = F.conv2d(
+            vk.transpose(0, 1), phk.transpose(0, 1), padding=self.padding, stride=self.stride
+        )
+
         grad_W = (pos_phase - neg_phase) / batch_size
         grad_W = grad_W.transpose(0, 1)
 
-        grad_W = grad_W[:, :, :self.kernel_size, :self.kernel_size]
+        grad_W = grad_W[:, :, : self.kernel_size, : self.kernel_size]
 
         grad_h_bias = torch.sum(ph0 - phk, dim=[0, 2, 3]) / batch_size
         grad_v_bias = torch.sum(v0 - vk, dim=[0, 2, 3]) / batch_size
 
-        grad_W = grad_W[:, :, ]
+        grad_W = grad_W[
+            :,
+            :,
+        ]
         self.W_momentum = momentum_coef * self.W_momentum + grad_W
         self.h_bias_momentum = momentum_coef * self.h_bias_momentum + grad_h_bias
         self.v_bias_momentum = momentum_coef * self.v_bias_momentum + grad_v_bias
