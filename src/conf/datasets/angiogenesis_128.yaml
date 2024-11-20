@@ -4,7 +4,7 @@ label_dir:
 channels:
   - cancer
   - graph
-batch_size: 16
+batch_size: 32
 val_split: 0.1
 test_split: 0.2
 keys:
@@ -19,6 +19,6 @@ keys:
   - NOANGIO_Sav
   - NOANGIO_Savav
 augmentations:
-  # rotate:
-  #   degree: 180
+  # - rotate: 90
+  # - rotate: 180
 labels:

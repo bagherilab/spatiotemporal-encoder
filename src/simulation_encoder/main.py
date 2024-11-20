@@ -3,12 +3,10 @@ import pstats
 import time
 
 import os
-from copy import deepcopy
 
 import yaml
 import traceback
 from pydantic import BaseModel, ValidationError
-
 
 import sys
 from pathlib import Path
@@ -17,16 +15,14 @@ from pathlib import Path
 if str(Path(__file__).parent.parent) not in sys.path:
     sys.path.append(str(Path(__file__).parent.parent))
 
-
 from simulation_encoder.runner import Runner
 from simulation_encoder.writer import Writer
 from simulation_encoder.plotter import Plotter
 from simulation_encoder.logger import Logger
-from simulation_encoder.loader import Loader, ARCADELoader, AlphaNumericLoader
-
-from simulation_encoder.models.base_cnn import BaseCNN
-from simulation_encoder.models.cae import CAE
-from simulation_encoder.models.vae import VAE
+from simulation_encoder.loaders.loader import Loader
+from simulation_encoder.loaders.arcade_loader import ARCADELoader
+from simulation_encoder.loaders.alphanumeric_loader import AlphaNumericLoader
+from simulation_encoder.loaders.gastruloid_loader import GastruloidLoader
 
 from simulation_encoder.dataclass.param_sets import DatasetParams, ModelParams
 from simulation_encoder.dataclass.config_schemas import (
@@ -63,7 +59,6 @@ def main() -> None:
         verbose = experiment_config.general_configs.verbose
 
         logger = Logger(log_name=f"{config_name}", verbose=verbose)
-
         runner = Runner(pretrain, logger, verbose)
         writer = Writer(results_dir=f"results/{config_name}", experiment_name=experiment_name)
         plotter = Plotter(results_dir=f"results/{config_name}", experiment_name=experiment_name)
@@ -76,14 +71,14 @@ def main() -> None:
             writer.write_train_test_indices(dataset_name, dataset.get_indices())
 
         # Models
-        models = create_models(experiment_config, logger)
-        runner.add_models(models)
+        model_param_sets = create_model_param_sets(experiment_config.model)
+        runner.add_models(model_param_sets)
 
         # Run
         encoder_results = runner.run_encoder(experiment_name)
         handle_encoder_results(encoder_results, runner, writer, plotter)
 
-    # Emulation (if needed)
+    # Emulation (optional)
     emulation_results = runner.run_emulator(config_name)
     if emulation_results:
         writer.write_emulation_results(emulation_results)
@@ -123,6 +118,13 @@ def create_dataset(dataset_name: str, dataset_params: DatasetParams, logger: Log
             **params_dict,
             logger=logger,
         )
+    elif loader.lower() == "gastruloid":
+        del params_dict["label_dir"]
+        del params_dict["labels"]
+        dataset = GastruloidLoader(
+            **params_dict,
+            logger=logger,
+        )
 
     return dataset
 
@@ -146,33 +148,8 @@ def create_dataset_params(dataset_name: str, dataset_config: DatasetConfig) -> D
     return dataset_params
 
 
-def create_models(experiment_config: ExperimentConfig, logger: Logger) -> list[BaseCNN]:
-    """Creates a list of models based on the experiment configuration."""
-    model_param_sets = create_model_param_sets(experiment_config.model)
-    models = []
-
-    for i, model_param_set in enumerate(model_param_sets):
-        params_dict = model_param_set.__dict__
-        model_type = params_dict.pop("model_type")
-        logger.log(
-            f"Creating model with architecture - {model_type} params - {experiment_config.model.params}"
-        )
-
-        if model_type == "CAE":
-            model = CAE(**deepcopy(model_param_set.__dict__), logger=logger)
-        elif model_type == "VAE":
-            model = VAE(**deepcopy(model_param_set.__dict__), logger=logger)
-        else:
-            raise ValueError(f"Model type {model_type} not recognized")
-
-        models.append(model)
-
-    return models
-
-
 def create_model_param_sets(model_config: ModelParamsConfig) -> list[ModelParams]:
     """Create the model parameters from model config files and hyperparameter yaml files."""
-
     model_name = model_config.architecture
     num_channels = model_config.num_channels
     model_yaml = _load_model_yaml(model_name)
@@ -235,7 +212,9 @@ def _load_yaml(yaml_file: str, config_class: BaseModel) -> BaseModel:
         raise FileNotFoundError(f"File {yaml_file} not found") from e
     except ValidationError as e:
         traceback.print_exc()
-        raise ValidationError(f"Configuration validation error: {e}") from e
+        raise ValidationError(
+            f"Error in loading yaml file: {e}, issue validation with {type(config_class).__name__} param set"
+        ) from e
 
 
 def _load_hyperparam_yaml(yaml_name: str) -> HyperparameterConfig:

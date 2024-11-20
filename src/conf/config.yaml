@@ -21,28 +21,3 @@ experiments:
   #     augmentations:
   #       # rotate:
   #       #   degree: 180
-  #   model:
-  #     architecture: cae
-  #     params: grid
-  #   general_configs:
-  #     batch_size: 32
-  #     val_split: 0.2
-  #     test_split: 0.2
-  #     channels:
-  #       - image
-  #     pretrain: false
-  #     verbose: true
-  #   keys:
-  #     - "2"
-  #     - "a"
-  #     - "b"
-  #     - "d"
-  #     - "e"
-  #     - "i"
-  #     - "j"
-  #     - "k"
-  #     - "p"
-  #     - "u"
-  #     - "x"
-  #     - "z"
-  #   emulator_targets:

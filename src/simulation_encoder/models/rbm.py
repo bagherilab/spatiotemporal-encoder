@@ -195,6 +195,12 @@ class CRBM(BaseRBM):
         self.h_bias = nn.Parameter(torch.zeros(hidden_dim).to(self.device))
         self.v_bias = nn.Parameter(torch.zeros(visible_dim).to(self.device))
 
+        self.W_momentum = torch.zeros(hidden_dim, visible_dim, kernel_size, kernel_size).to(
+            self.device
+        )
+        self.h_bias_momentum = torch.zeros(hidden_dim).to(self.device)
+        self.v_bias_momentum = torch.zeros(visible_dim).to(self.device)
+
         if self.stride > 1:
             self.output_padding = 1
         else:
@@ -232,43 +238,38 @@ class CRBM(BaseRBM):
         ph0: torch.Tensor,
         phk: torch.Tensor,
         lr: float,
+        momentum_coef: float,
         weight_decay: float,
         batch_size: int,
     ) -> None:
         """Update weights of the CRBM"""
-        groups = min(self.visible_dim, self.hidden_dim)
-
-        # positive phase
-        delta_W_pos = F.conv2d(
-            v0.reshape(groups, -1, v0.size(2), v0.size(3)),
-            ph0.permute(1, 0, 2, 3).reshape(self.hidden_dim, -1, ph0.size(2), ph0.size(3)),
-            padding=self.kernel_size - 1,
-            groups=groups,
+        pos_phase = F.conv2d(
+            v0.transpose(0, 1), ph0.transpose(0, 1), padding=self.padding, stride=self.stride
+        )
+        neg_phase = F.conv2d(
+            vk.transpose(0, 1), phk.transpose(0, 1), padding=self.padding, stride=self.stride
         )
 
-        # negative phase
-        delta_W_neg = F.conv2d(
-            vk.reshape(groups, -1, vk.size(2), vk.size(3)),
-            phk.permute(1, 0, 2, 3).reshape(self.hidden_dim, -1, phk.size(2), phk.size(3)),
-            padding=self.kernel_size - 1,
-            groups=groups,
-        )
+        grad_W = (pos_phase - neg_phase) / batch_size
+        grad_W = grad_W.transpose(0, 1)
 
-        # Ensure delta_W_pos and delta_W_neg have the same shape as self.W
-        delta_W_pos = delta_W_pos[:, :, : self.kernel_size, : self.kernel_size]
-        delta_W_neg = delta_W_neg[:, :, : self.kernel_size, : self.kernel_size]
+        grad_W = grad_W[:, :, : self.kernel_size, : self.kernel_size]
 
-        delta_W_pos = delta_W_pos.reshape(
-            self.hidden_dim, self.visible_dim, self.kernel_size, self.kernel_size
-        )
-        delta_W_neg = delta_W_neg.reshape(
-            self.hidden_dim, self.visible_dim, self.kernel_size, self.kernel_size
-        )
+        grad_h_bias = torch.sum(ph0 - phk, dim=[0, 2, 3]) / batch_size
+        grad_v_bias = torch.sum(v0 - vk, dim=[0, 2, 3]) / batch_size
 
-        self.W.data += lr * (delta_W_pos - delta_W_neg) / batch_size
-        self.h_bias.data += (
-            lr * torch.sum((ph0 - phk).view(self.hidden_dim, -1), dim=1) / batch_size
-        )
-        self.v_bias.data += lr * torch.sum((v0 - vk).view(self.visible_dim, -1), dim=1) / batch_size
+        grad_W = grad_W[
+            :,
+            :,
+        ]
+        self.W_momentum = momentum_coef * self.W_momentum + grad_W
+        self.h_bias_momentum = momentum_coef * self.h_bias_momentum + grad_h_bias
+        self.v_bias_momentum = momentum_coef * self.v_bias_momentum + grad_v_bias
 
-        self.W.data *= 1 - weight_decay
+        # Update weights and biases
+        self.W.data += lr * self.W_momentum
+        self.h_bias.data += lr * self.h_bias_momentum
+        self.v_bias.data += lr * self.v_bias_momentum
+
+        # Apply weight decay
+        self.W.data -= weight_decay * self.W

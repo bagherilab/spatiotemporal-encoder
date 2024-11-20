@@ -7,7 +7,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 from simulation_encoder.models.rbm import RBM, CRBM
-from simulation_encoder.loader import Loader
+from simulation_encoder.loaders.loader import Loader
 from simulation_encoder.logger import Logger
 
 
@@ -266,7 +266,6 @@ class BaseCNN(ABC, nn.Module):
             if torch.cuda.is_available()
             else "mps" if torch.backends.mps.is_available() else "cpu"
         )
-        # device = "cpu"
         return device
 
     def _log(self, msg: str, level: str = "info") -> None:

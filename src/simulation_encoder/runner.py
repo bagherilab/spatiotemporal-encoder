@@ -2,19 +2,24 @@ import os
 import copy
 from collections import defaultdict
 from typing import Optional, Union
+from copy import deepcopy
+
 
 import pandas as pd
 
-from simulation_encoder.loader import CSVLoader, Loader
 from simulation_encoder.logger import Logger
+from simulation_encoder.loaders.loader import Loader
+from simulation_encoder.loaders.util_loaders import CSVLoader
 
 from simulation_encoder.models.base_cnn import BaseCNN
 from simulation_encoder.models.cae import CAE
+from simulation_encoder.models.pretrained_cae import PretrainedCAE
 from simulation_encoder.models.vae import VAE
 from simulation_encoder.models.emulator import Emulator
 
 from simulation_encoder.dataclass.loss_data import LossData
 from simulation_encoder.dataclass.emulator_results import EmulationResults, EncoderModelResult
+from simulation_encoder.dataclass.param_sets import ModelParams
 
 
 class Runner:
@@ -45,7 +50,7 @@ class Runner:
         self.logger = logger
         self.verbose = verbose
 
-        self.models: dict[str, Union[CAE, VAE]] = {}
+        self.models: dict[Union[str, ModelParams]] = {}
         self.datasets: dict[str, Loader] = {}
 
         self.losses: dict[str, LossData] = {}
@@ -61,7 +66,7 @@ class Runner:
         """
         self.datasets = datasets
 
-    def add_models(self, models: list[BaseCNN]) -> None:
+    def add_models(self, model_param_sets: list[ModelParams]) -> None:
         """
         Add models to be trained by the runner
 
@@ -71,17 +76,32 @@ class Runner:
             List of models to be trained
         """
         model_num = 0
-        for model in models:
-            latent_dim = model.latent_dim
-            model_id = f"{model.name}_{latent_dim}d_{model_num}"
+        for model_param in model_param_sets:
+            latent_dim = model_param.params.get("latent_dim")
+            model_id = f"{model_param.name}_{latent_dim}d_{model_num}"
             while model_id in self.models:
                 model_num += 1
-                model_id = f"{model.name}_{latent_dim}d_{model_num}"
-            self.models[model_id] = model
+                model_id = f"{model_param.name}_{latent_dim}d_{model_num}"
+            self.models[model_id] = model_param
             self.losses[model_id] = LossData()
 
-        device = model.device
-        self._log(f"Device - {device}")
+    def get_model(self, model_id: str) -> BaseCNN:
+        """Returns the specified model"""
+        if model_id not in self.models:
+            raise ValueError(f"Model {model_id} not found")
+
+        model_params: ModelParams = self.models[model_id]
+        params_dict = deepcopy(model_params.__dict__)
+        model_type = params_dict.pop("model_type")
+
+        if model_type == "CAE":
+            return CAE(**params_dict, logger=self.logger)
+        elif model_type == "PretrainedCAE":
+            return PretrainedCAE(**params_dict, logger=self.logger)
+        elif model_type == "VAE":
+            return VAE(**params_dict, logger=self.logger)
+        else:
+            raise ValueError(f"Model type {model_type} not recognized")
 
     def get_losses(self) -> dict[str, LossData]:
         """Returns the loss data for all models"""
@@ -105,13 +125,14 @@ class Runner:
 
         results: dict = defaultdict(dict)
 
-        for dataset_name, dataset in self.datasets.items():
-            self._log(f"Training on - {dataset_name}")
-            self._log(f"Training points - {dataset.n_train} Testing points - {dataset.n_test}")
+        for model_id, _ in self.models.items():
+            model = self.get_model(model_id)
+            self.logger.set_model_name(model_id)
+            self._log(f"Training model {model_id} on device {model.device}")
 
-            for i, (model_id, model) in enumerate(self.models.items()):
-                self.logger.set_model_name(model_id)
-                self._log(f"Training model {model_id}")
+            for dataset_name, dataset in self.datasets.items():
+                self._log(f"Training on dataset {dataset_name}")
+                self._log(f"Training points - {dataset.n_train} Testing points - {dataset.n_test}")
 
                 losses, val_losses, grad_norms = self._train_model(model_id, model, dataset)
 
@@ -162,31 +183,31 @@ class Runner:
         data_loaders = {
             "train": dataset.get_dataloader(dataset_type="train"),
             "val": dataset.get_dataloader(dataset_type="val"),
-            "test": dataset.get_dataloader(dataset_type="test")
+            "test": dataset.get_dataloader(dataset_type="test"),
         }
-        
+
         encoded_data = {}
         num_dims = model.latent_dim
         column_names = [f"dim_{i}" for i in range(num_dims)]
-        
+
         for split, loader in data_loaders.items():
             # Encode data and convert to DataFrame
             encoded = model.encode_loader(loader).cpu() if loader else None
             if encoded is not None:
                 encoded_df = pd.DataFrame(encoded, columns=column_names)
-                
+
                 # Add labels if they exist
                 if dataset.labels:
                     for label in dataset.labels:
                         encoded_df[label] = dataset.get_labels(label=label, dataset_type=split)
-                
+
                 # Add timepoint and seed_key
                 encoded_df["timepoint"] = dataset.get_timepoints(dataset_type=split)
                 encoded_df["seed_key"] = dataset.get_seed_keys(dataset_type=split)
-                
+
                 # Store the dataframe in the dictionary
                 encoded_data[split] = encoded_df
-        
+
         return encoded_data
 
     def run_emulator(self, conf_name: str) -> Optional[EmulationResults]:
@@ -287,7 +308,7 @@ class Runner:
     def _get_encoder_datasets(self, conf_name: str) -> dict[str, list[str]]:
         """Get list of dataset folder names for each experiment."""
         datasets: dict[str, None] = {}
-        
+
         for experiment in os.listdir(f"results/{conf_name}"):
 
             for model in os.listdir(f"results/{conf_name}/{experiment}"):
@@ -301,9 +322,9 @@ class Runner:
                             datasets[dataset] = None
 
         datasets = dict(sorted(datasets.items(), key=lambda x: x[0]))
-        
+
         return datasets
-    
+
     def _initialize_models(self, emulator_models: list[str]) -> dict:
         """Initialize emulator models"""
         models = {}

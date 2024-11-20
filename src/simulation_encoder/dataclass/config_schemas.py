@@ -110,6 +110,7 @@ class LayerConfig(BaseModel):
     shape: Optional[list[int]] = None
     scale_factor: Optional[int] = None
     padding: Optional[Union[int, str]] = None
+    p: Optional[float] = None
     output_padding: Optional[int] = None
     activation: Optional[str] = None
     p: Optional[float] = None
@@ -134,14 +135,12 @@ class LayerConfig(BaseModel):
 
 
 class EncoderDecoderConfig(BaseModel):
-    encoder: list[LayerConfig]
+    encoder: Optional[list[LayerConfig]] = None
     decoder_image: list[LayerConfig]
     decoder_timepoint: list[LayerConfig]
 
     @model_validator(mode="before")
     def check_encoders_decoders(cls, values: dict) -> dict:
-        if "encoder" not in values:
-            raise ValueError("Missing encoder configuration")
         if "decoder_image" not in values:
             raise ValueError("Missing image decoder configuration")
         if "decoder_timepoint" not in values:

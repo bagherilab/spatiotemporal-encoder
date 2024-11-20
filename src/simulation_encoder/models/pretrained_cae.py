@@ -1,31 +1,16 @@
-from typing import Optional, Any
-
+from typing import Any, Optional
 from collections import defaultdict
 
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
+from torchvision.models import resnet18, ResNet18_Weights
 
-from simulation_encoder.logger import Logger
 from simulation_encoder.models.base_cnn import BaseCNN
+from simulation_encoder.logger import Logger
 
 
-class CAE(BaseCNN):
-    """
-    Convolutional autoencoder class for encoding image data.
-
-    Parameters
-    ----------
-    name : str
-        Name of the model
-    architecture: dict{str: list[dict{str: Any}]}
-        Dictionary containing the architecture of the network
-    num_epochs : int
-        Number of epochs to train the network
-    params : dict{str: Any}
-        Dictionary containing model hyperparameters
-    """
-
+class PretrainedCAE(BaseCNN):
     def __init__(
         self,
         name: str,
@@ -53,40 +38,49 @@ class CAE(BaseCNN):
             "timepoint": params.get("timepoint_loss_weight", 1.0),
         }
 
-        self.encoder = nn.Sequential(*self._create_layers(self.architecture["encoder"].copy()))
+        self.encoder = resnet18(weights=ResNet18_Weights.DEFAULT, progress=False)
+        self.encoder.conv1 = nn.Conv2d(
+            in_channels=num_channels,
+            out_channels=64,
+            kernel_size=(7, 7),
+            stride=(2, 2),
+            padding=(3, 3),
+            bias=False,
+        )
+        # self.encoder.maxpool = nn.Identity()
+
+        self.encoder = nn.Sequential(
+            *list(self.encoder.children())[:-2], nn.Flatten(), nn.Linear(8192, self.latent_dim)
+        )
+
         self.decoder_image = nn.Sequential(*self._create_layers(self.architecture["decoder_image"]))
         self.decoder_timepoint = nn.Sequential(
             *self._create_layers(self.architecture["decoder_timepoint"])
         )
+
         self.optimizers = {
             "combined": torch.optim.Adam(self.parameters(), lr=0.001),
         }
         self.criterion = {
             "image": nn.MSELoss(),
-            "timepoint": nn.CrossEntropyLoss(),
+            "timepoint": nn.MSELoss(),
         }
 
-        # Chosen arbitrarily
-        # Factor to balance image and timepoint loss
         self.image_loss_factor = 10
 
-    def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, ...]:
-        """Performs encoding and several decoding heads"""
+    def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         z = self.encode(x)
         pred_image = self.decode_image(z)
         pred_timepoint = self.decode_timepoint(z)
         return pred_image, pred_timepoint
 
     def encode(self, x: torch.Tensor) -> torch.Tensor:
-        """Encodes input tensor"""
         return self.encoder(x)
 
     def decode_image(self, x: torch.Tensor) -> torch.Tensor:
-        """Decodes latent tensor to reconstruct image"""
         return self.decoder_image(x)
 
     def decode_timepoint(self, x: torch.Tensor) -> torch.Tensor:
-        """Decodes latent tensor to predict sample timepoint"""
         return self.decoder_timepoint(x)
 
     def encode_loader(self, dataloader: DataLoader) -> torch.Tensor:
@@ -130,16 +124,16 @@ class CAE(BaseCNN):
         avg_loss: dict[str, float] = defaultdict(float)
 
         for inputs, labels in train_loader:
-
             inputs, labels = inputs.to(self.device), labels.to(self.device)
             optimizer_combined.zero_grad()
-            pred_image, pred_timepoint = self(inputs)
 
+            pred_image, pred_timepoint = self(inputs)
+            pred_timepoint = pred_timepoint.squeeze()
             batch_loss = {
-                "image": image_criteria(pred_image, inputs),
-                "timepoint": timepoint_criteria(pred_timepoint, labels),
+                "image": image_criteria(pred_image, inputs) * self.image_loss_factor,
+                "timepoint": timepoint_criteria(pred_timepoint, labels.float()),
             }
-            _, reconstruction_loss_weighted = self._calc_reconstruction_loss(
+            reconstruction_loss, reconstruction_loss_weighted = self._calc_reconstruction_loss(
                 batch_loss
             )
 
@@ -148,7 +142,8 @@ class CAE(BaseCNN):
 
             for key in batch_loss:
                 avg_loss[key] += batch_loss[key].item()
-            avg_loss["weighted_loss"] += reconstruction_loss_weighted.item()
+            avg_loss["reconstruction"] += reconstruction_loss.item()
+            avg_loss["combined"] += reconstruction_loss_weighted.item()
 
         avg_loss = {key: value / len(train_loader) for key, value in avg_loss.items()}
         return avg_loss
@@ -177,17 +172,17 @@ class CAE(BaseCNN):
             for inputs, labels in val_loader:
                 inputs, labels = inputs.to(self.device), labels.to(self.device)
                 pred_image, pred_timepoint = self(inputs)
+                pred_timepoint = pred_timepoint.squeeze()
 
                 batch_loss = {
-                    "image": image_criteria(pred_image, inputs),
-                    "timepoint": timepoint_criteria(pred_timepoint, labels),
+                    "image": image_criteria(pred_image, inputs) * self.image_loss_factor,
+                    "timepoint": timepoint_criteria(pred_timepoint, labels.float()),
                 }
-                reconstruciton_loss, reconstruciton_loss_weighted = self._calc_reconstruction_loss(
-                    batch_loss
-                )
+                reconstruciton_loss, _ = self._calc_reconstruction_loss(batch_loss)
                 for key in batch_loss:
                     avg_loss[key] += batch_loss[key].item()
-                avg_loss["weighted_loss"] += reconstruciton_loss_weighted.item()
+                avg_loss["reconstruction"] += reconstruciton_loss.item()
+                avg_loss["combined"] += reconstruciton_loss.item()
 
         avg_loss = {key: value / len(val_loader) for key, value in avg_loss.items()}
         return avg_loss
