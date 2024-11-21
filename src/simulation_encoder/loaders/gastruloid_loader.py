@@ -67,7 +67,7 @@ class GastruloidLoader(Loader):
 
         self.groups = list(groups.values())
 
-    def _parse_gastruloid_filename(self, filename: str) -> tuple[str, int, int]:
+    def _parse_gastruloid_filename(self, filename: str) -> tuple[str, str, int, int]:
         parts = filename.split("_")
         modality = parts[0]
         array = parts[1]

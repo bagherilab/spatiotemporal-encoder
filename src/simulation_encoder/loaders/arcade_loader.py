@@ -56,7 +56,7 @@ class ARCADELoader(Loader):
     ):
         self.name = name
         self.labels = labels
-        self.logger = logger
+
         super().__init__(
             image_dir=image_dir,
             keys=keys,
@@ -66,6 +66,7 @@ class ARCADELoader(Loader):
             batch_size=batch_size,
             augmentations=augmentations,
             indices_file=indices_file,
+            logger = logger,
             random_seed=random_seed,
         )
 
@@ -139,7 +140,7 @@ class ARCADELoader(Loader):
         missing_images_count = {channel: 0 for channel in self.channels}
         for group_key, group in groups.items():
             for key, value in group.items():
-                if value == "" and key in self.channels:
+                if (not value) and (key in self.channels):
                     missing_images_count[key] += 1
         for channel, count in missing_images_count.items():
             if count > 0:

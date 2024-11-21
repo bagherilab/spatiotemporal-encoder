@@ -50,7 +50,7 @@ class Runner:
         self.logger = logger
         self.verbose = verbose
 
-        self.models: dict[Union[str, ModelParams]] = {}
+        self.models: dict[str, ModelParams] = {}
         self.datasets: dict[str, Loader] = {}
 
         self.losses: dict[str, LossData] = {}
@@ -106,10 +106,6 @@ class Runner:
     def get_losses(self) -> dict[str, LossData]:
         """Returns the loss data for all models"""
         return self.losses
-
-    def get_model(self, model_name: str) -> Union[CAE, VAE]:
-        """Returns the specified model"""
-        return self.models[model_name]
 
     def get_dataset(self, dataset_name: str) -> Loader:
         """Returns the dataset"""
@@ -305,9 +301,9 @@ class Runner:
             encoder_models[experiment].sort()
         return encoder_models
 
-    def _get_encoder_datasets(self, conf_name: str) -> dict[str, list[str]]:
+    def _get_encoder_datasets(self, conf_name: str) -> dict[str, Optional[list[str]]]:
         """Get list of dataset folder names for each experiment."""
-        datasets: dict[str, None] = {}
+        datasets: dict[str, Optional[list[str]]] = {}
 
         for experiment in os.listdir(f"results/{conf_name}"):
 
@@ -325,7 +321,7 @@ class Runner:
 
         return datasets
 
-    def _initialize_models(self, emulator_models: list[str]) -> dict:
+    def _initialize_models(self, emulator_models: list[str]) -> dict[str, Emulator]:
         """Initialize emulator models"""
         models = {}
         for model_type in emulator_models:

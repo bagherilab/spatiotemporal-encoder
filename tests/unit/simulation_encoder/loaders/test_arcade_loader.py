@@ -7,7 +7,7 @@ from PIL import Image
 
 import numpy as np
 
-from simulation_encoder.loader import ARCADELoader
+from simulation_encoder.loaders.arcade_loader import ARCADELoader
 
 
 class TestARCADELoader(unittest.TestCase):
@@ -127,18 +127,17 @@ class TestARCADELoader(unittest.TestCase):
 
         self.assertEqual(actual_keys, expected_keys)
 
-    @patch("simulation_encoder.logger.ExperimentLogger")
+    @patch("simulation_encoder.logger.Logger")
     def test_missing_image_logging(self, mock_logger):
+        print(mock_logger)
         _ = ARCADELoader(
             self.temp_dir.name, channels=["cancer", "graph"], keys=["CH_typeAB"], logger=mock_logger
         )
 
-        missing_key = ("CH", "typeAB", 1, 2)
-        missing_key = "CH_typeAB_1_2"
-        missing_images = [
-            "cancer",
-        ]
-        expected_message = f"Missing images from {missing_key}: {missing_images}"
+        missing_channel = "cancer"
+        missing_count = 1
+
+        expected_message = f"Number of missing images in {missing_channel} - {missing_count}"
         mock_logger.warning.assert_called_once_with(expected_message)
 
 

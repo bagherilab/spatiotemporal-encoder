@@ -113,7 +113,6 @@ class LayerConfig(BaseModel):
     p: Optional[float] = None
     output_padding: Optional[int] = None
     activation: Optional[str] = None
-    p: Optional[float] = None
 
     @model_validator(mode="before")
     def check_layers(cls, values: dict) -> dict:

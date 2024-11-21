@@ -76,7 +76,6 @@ class Loader(ABC, Dataset):
         self._test_indices: list[int] = []
 
         self.groups: list[dict[str, Any]] = []
-        self.transforms: list[dict[str, Augmentation]] = []
 
         self._get_image_groups()
 
@@ -86,7 +85,7 @@ class Loader(ABC, Dataset):
             self.augmentations = augmentations
         self.augmentations.append({"original": None})
 
-        self.transforms: dict[str, Augmentation] = self._get_augmentations()
+        self.transforms: list[dict[str, Augmentation]] = self._get_augmentations()
 
         if self.indices_file:
             self._load_from_indices(self.indices_file)
@@ -241,13 +240,13 @@ class Loader(ABC, Dataset):
             groups[key].append(idx)
         return groups
 
-    def _get_augmentations(self) -> Optional[dict[str, Augmentation]]:
-        augmentation_map: list[dict[str, Callable[..., Any]]] = {
+    def _get_augmentations(self) -> list[dict[str, Augmentation]]:
+        augmentation_map: dict[str, Callable[..., Any]] = {
             "original": lambda _: transforms.Lambda(lambda x: x),
             "rotate": lambda degree: transforms.RandomRotation(degrees=degree),
         }
 
-        augmentations_list = []
+        augmentations_list: list[dict[str, Augmentation]] = []
 
         if not self.augmentations:
             return augmentations_list

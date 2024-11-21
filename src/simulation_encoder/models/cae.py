@@ -139,9 +139,7 @@ class CAE(BaseCNN):
                 "image": image_criteria(pred_image, inputs),
                 "timepoint": timepoint_criteria(pred_timepoint, labels),
             }
-            _, reconstruction_loss_weighted = self._calc_reconstruction_loss(
-                batch_loss
-            )
+            _, reconstruction_loss_weighted = self._calc_reconstruction_loss(batch_loss)
 
             reconstruction_loss_weighted.backward()  # type: ignore
             optimizer_combined.step()
