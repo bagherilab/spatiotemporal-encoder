@@ -1,0 +1,16 @@
+loader: ARCADE
+image_dir: data/ARCADE/radiation_128/images
+label_dir: 
+channels:
+  - cancer
+  # - graph
+batch_size: 16
+val_split: 0.1
+test_split: 0.7
+keys:
+  - basic-4-8_radiation
+  - basic-4-8_noradiation
+augmentations:
+  # rotate:
+  #   degree: 180
+labels:

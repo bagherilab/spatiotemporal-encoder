@@ -1,0 +1,9 @@
+num_epochs: 3
+continuous:
+  image_loss_weight:
+    range: [0.0, 1.0]
+    search: linear
+    num_samples: 1
+discrete:
+  latent_dim:
+    values: [16]

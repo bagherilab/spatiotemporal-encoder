@@ -1,0 +1,23 @@
+experiment_name: cae-radiation
+experiments:      
+  CAE:
+    datasets:
+      - vascular_function_128 
+      - radiation_128
+    model:
+      architecture: cae
+      num_channels: 1
+      image_size: 128
+      params: grid
+    general_configs:
+      pretrain: false
+      verbose: true
+
+  # ALPHANUMERIC-CAE:
+  #   data:
+  #     image_dir: data/alphanumeric/images
+  #     label_dir: data/alphanumeric/labels
+  #     image_size: 128
+  #     augmentations:
+  #       # rotate:
+  #       #   degree: 180

@@ -10,29 +10,20 @@
 ## Getting started
 
 1. Clone the repo.
-2. Initialize the repository (if you already have a `pyproject.toml` file, you can skip this step):
 
-```bash
-$ poetry init
-```
 
-3. Install dependencies.
+2. Install dependencies.
 
 ```bash
 $ 
 ```
 
-4. Activate the environment (this is all you need for day-to-day development):
+3. Activate the environment (this is all you need for day-to-day development):
 
 ```bash
 $ 
 ```
 
-5. Run the CLI.
-
-```bash
-$ 
-```
 
 ## General commands
 
