@@ -1,7 +1,0 @@
-simulation\_encoder.main module
-===============================
-
-.. automodule:: simulation_encoder.main
-   :members:
-   :undoc-members:
-   :show-inheritance:
