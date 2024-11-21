@@ -66,7 +66,7 @@ class ARCADELoader(Loader):
             batch_size=batch_size,
             augmentations=augmentations,
             indices_file=indices_file,
-            logger = logger,
+            logger=logger,
             random_seed=random_seed,
         )
 
