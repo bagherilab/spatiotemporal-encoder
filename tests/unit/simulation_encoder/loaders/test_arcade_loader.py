@@ -129,7 +129,6 @@ class TestARCADELoader(unittest.TestCase):
 
     @patch("simulation_encoder.logger.Logger")
     def test_missing_image_logging(self, mock_logger):
-        print(mock_logger)
         _ = ARCADELoader(
             self.temp_dir.name, channels=["cancer", "graph"], keys=["CH_typeAB"], logger=mock_logger
         )
