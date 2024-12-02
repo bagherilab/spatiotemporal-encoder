@@ -150,7 +150,7 @@ class Runner:
 
         return results
 
-    def _train_model(self, model_id: str, model: AE, dataset: Loader) -> tuple:
+    def _train_model(self, model_id: str, model: BaseNN, dataset: Loader) -> tuple:
         """Trains a model on the dataset"""
         train_loader = dataset.get_dataloader(dataset_type="train")
         val_loader = dataset.get_dataloader(dataset_type="val")
@@ -166,7 +166,7 @@ class Runner:
 
         return losses, val_losses, grad_norms
 
-    def _eval_model(self, model_name: str, model: AE, dataset: Loader) -> float:
+    def _eval_model(self, model_name: str, model: BaseNN, dataset: Loader) -> float:
         """Evaluates all models currently in runner"""
         test_loader = dataset.get_dataloader(dataset_type="test")
         test_loss = model.eval_one_epoch(test_loader)
@@ -174,7 +174,7 @@ class Runner:
 
         return test_loss
 
-    def _encode_dataset(self, model: AE, dataset: Loader) -> dict[str, pd.DataFrame]:
+    def _encode_dataset(self, model: BaseNN, dataset: Loader) -> dict[str, pd.DataFrame]:
         """Encodes the dataset using the model. Final dataframe includes labels and seed keys"""
         data_loaders = {
             "train": dataset.get_dataloader(dataset_type="train"),
