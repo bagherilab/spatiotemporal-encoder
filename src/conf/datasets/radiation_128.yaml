@@ -9,7 +9,6 @@ val_split: 0.1
 test_split: 0.7
 keys:
   - basic-4-8_radiation
-  - basic-4-8_noradiation
 augmentations:
   # rotate:
   #   degree: 180

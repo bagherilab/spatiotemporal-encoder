@@ -1,4 +1,4 @@
-experiment_name: cae-radiation
+experiment_name: cae-radiation-16d
 experiments:      
   CAE:
     datasets:
@@ -12,12 +12,3 @@ experiments:
     general_configs:
       pretrain: false
       verbose: true
-
-  # ALPHANUMERIC-CAE:
-  #   data:
-  #     image_dir: data/alphanumeric/images
-  #     label_dir: data/alphanumeric/labels
-  #     image_size: 128
-  #     augmentations:
-  #       # rotate:
-  #       #   degree: 180

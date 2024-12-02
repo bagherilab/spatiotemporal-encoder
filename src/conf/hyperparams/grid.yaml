@@ -6,4 +6,4 @@ continuous:
     num_samples: 1
 discrete:
   latent_dim:
-    values: [2]
+    values: [16]
