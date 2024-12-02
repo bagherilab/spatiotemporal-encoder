@@ -6,10 +6,10 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 from simulation_encoder.logger import Logger
-from simulation_encoder.models.base_cnn import BaseCNN
+from src.simulation_encoder.models.base_nn import BaseNN
 
 
-class VAE(BaseCNN):
+class VAE(BaseNN):
     """
     Variational Autoencoder class for encoding image data.
 

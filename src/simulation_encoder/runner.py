@@ -11,9 +11,9 @@ from simulation_encoder.logger import Logger
 from simulation_encoder.loaders.loader import Loader
 from simulation_encoder.loaders.util_loaders import CSVLoader
 
-from simulation_encoder.models.base_cnn import BaseCNN
-from simulation_encoder.models.cae import CAE
-from simulation_encoder.models.pretrained_cae import PretrainedCAE
+from src.simulation_encoder.models.base_nn import BaseNN
+from src.simulation_encoder.models.ae import AE
+from simulation_encoder.models.pretrained_ae import PretrainedAE
 from simulation_encoder.models.vae import VAE
 from simulation_encoder.models.emulator import Emulator
 
@@ -35,8 +35,8 @@ class Runner:
     ----------
     UUID : uuid.UUID
         Unique identifier for the run
-    models : dict[str, CAE]
-        Dictionary of model names and their corresponding CAE models
+    models : dict[str, AE]
+        Dictionary of model names and their corresponding autoencoder models
     dataset : Loader
         Dataset to be used for training and evaluation
     losses : dict[str, LossData]
@@ -72,7 +72,7 @@ class Runner:
 
         Parameters
         ----------
-        model_param_sets : list[BaseCNN]
+        model_param_sets : list[BaseNN]
             List of models to be trained
         """
         model_num = 0
@@ -85,7 +85,7 @@ class Runner:
             self.models[model_id] = model_param
             self.losses[model_id] = LossData()
 
-    def get_model(self, model_id: str) -> BaseCNN:
+    def get_model(self, model_id: str) -> BaseNN:
         """Returns the specified model"""
         if model_id not in self.models:
             raise ValueError(f"Model {model_id} not found")
@@ -94,10 +94,10 @@ class Runner:
         params_dict = deepcopy(model_params.__dict__)
         model_type = params_dict.pop("model_type")
 
-        if model_type == "CAE":
-            return CAE(**params_dict, logger=self.logger)
-        elif model_type == "PretrainedCAE":
-            return PretrainedCAE(**params_dict, logger=self.logger)
+        if model_type == "AE":
+            return AE(**params_dict, logger=self.logger)
+        elif model_type == "PretrainedAE":
+            return PretrainedAE(**params_dict, logger=self.logger)
         elif model_type == "VAE":
             return VAE(**params_dict, logger=self.logger)
         else:
@@ -150,7 +150,7 @@ class Runner:
 
         return results
 
-    def _train_model(self, model_id: str, model: CAE, dataset: Loader) -> tuple:
+    def _train_model(self, model_id: str, model: AE, dataset: Loader) -> tuple:
         """Trains a model on the dataset"""
         train_loader = dataset.get_dataloader(dataset_type="train")
         val_loader = dataset.get_dataloader(dataset_type="val")
@@ -166,7 +166,7 @@ class Runner:
 
         return losses, val_losses, grad_norms
 
-    def _eval_model(self, model_name: str, model: CAE, dataset: Loader) -> float:
+    def _eval_model(self, model_name: str, model: AE, dataset: Loader) -> float:
         """Evaluates all models currently in runner"""
         test_loader = dataset.get_dataloader(dataset_type="test")
         test_loss = model.eval_one_epoch(test_loader)
@@ -174,7 +174,7 @@ class Runner:
 
         return test_loss
 
-    def _encode_dataset(self, model: CAE, dataset: Loader) -> dict[str, pd.DataFrame]:
+    def _encode_dataset(self, model: AE, dataset: Loader) -> dict[str, pd.DataFrame]:
         """Encodes the dataset using the model. Final dataframe includes labels and seed keys"""
         data_loaders = {
             "train": dataset.get_dataloader(dataset_type="train"),

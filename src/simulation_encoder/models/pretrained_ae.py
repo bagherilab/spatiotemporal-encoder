@@ -6,11 +6,11 @@ from torch import nn
 from torch.utils.data import DataLoader
 from torchvision.models import resnet18, ResNet18_Weights
 
-from simulation_encoder.models.base_cnn import BaseCNN
+from src.simulation_encoder.models.base_nn import BaseNN
 from simulation_encoder.logger import Logger
 
 
-class PretrainedCAE(BaseCNN):
+class PretrainedAE(BaseNN):
     def __init__(
         self,
         name: str,

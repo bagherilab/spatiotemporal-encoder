@@ -7,10 +7,10 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 from simulation_encoder.logger import Logger
-from simulation_encoder.models.base_cnn import BaseCNN
+from src.simulation_encoder.models.base_nn import BaseNN
 
 
-class CAE(BaseCNN):
+class AE(BaseNN):
     """
     Convolutional autoencoder class for encoding image data.
 

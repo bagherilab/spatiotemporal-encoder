@@ -11,9 +11,9 @@ from simulation_encoder.loaders.loader import Loader
 from simulation_encoder.logger import Logger
 
 
-class BaseCNN(ABC, nn.Module):
+class BaseNN(ABC, nn.Module):
     """
-    Abstract base class for Convolutional Autoencoder (CAE).
+    Abstract base class for autoencoder networks.
     """
 
     @abstractmethod
@@ -28,7 +28,7 @@ class BaseCNN(ABC, nn.Module):
         logger: Optional[Logger] = None,
     ) -> None:
         """
-        Initializes the Convolutional Autoencoder.
+        Initializes the autoencoder.
 
         Parameters
         ----------
@@ -241,6 +241,19 @@ class BaseCNN(ABC, nn.Module):
                     config["num_features"] = self.latent_dim
                 if config.get("num_features") == "num_channels":
                     config["num_features"] = self.num_channels * self.image_size * self.image_size
+            
+            elif layer_type == "FNO":
+                if config.get("in_channels") == "num_channels":
+                    config["in_channels"] = self.num_channels
+                if config.get("out_channels") == "num_channels":
+                    config["out_channels"] = self.num_channels
+                
+                config.setdefault("n_modes", [16, 16])
+                config.setdefault("hidden_channel", 64)
+
+                fno_config = {k: v for k, v in config.items() if k != "type"}
+
+                layer = layer_class(**fno_config)
 
             if layer_type == "Unflatten":
                 shape = config.get("shape", [self.num_channels, self.image_size, self.image_size])

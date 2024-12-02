@@ -5,7 +5,7 @@ import pandas as pd
 import torch
 
 from simulation_encoder.loaders.loader import Loader
-from simulation_encoder.models.cae import CAE
+from src.simulation_encoder.models.base_nn import BaseNN
 
 from simulation_encoder.dataclass.loss_data import LossData
 from simulation_encoder.dataclass.emulator_results import EmulationResults
@@ -22,7 +22,7 @@ class Writer:
         self._setup()
 
     def write_encoder_results(
-        self, model_name: str, dataset: Loader, model: CAE, losses: LossData
+        self, model_name: str, dataset: Loader, model: BaseNN, losses: LossData
     ) -> None:
         """Writes the results of running the models to disk under the dataset_name prefix"""
         dataset_name = dataset.name
