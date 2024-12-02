@@ -76,7 +76,6 @@ class ARCADELoader(Loader):
             self.augmentations = augmentations
 
         self.label_loader = LabelLoader(label_dir) if label_dir else None
-        self.transforms: dict[str, Augmentation] = self._get_augmentations()
 
     def get_labels(self, label: str, dataset_type: str) -> torch.Tensor:
         """Returns labels for the specified dataset type (train, val, test)"""
@@ -113,7 +112,7 @@ class ARCADELoader(Loader):
         for file_name in os.listdir(self.image_dir):
             if not file_name.endswith(".png") or not self._in_keys(file_name):
                 continue
-            # Skip images that are not in the specified channels
+ 
             if not any(channel in file_name for channel in self.channels):
                 continue
 
