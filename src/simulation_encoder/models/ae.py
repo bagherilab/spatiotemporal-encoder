@@ -196,12 +196,21 @@ class AE(BaseNN):
 
         image_criteria = self.criterion["image"]
         x.requires_grad = True
-        pred_image, _ = self(x)
 
-        loss_image = image_criteria(pred_image, x)
-        loss_image.backward()
+        try:
+            pred_image, _ = self(x)
+            loss_image = image_criteria(pred_image, x)
+            loss_image.backward()
 
-        saliency_map, _ = torch.max(x.grad.data.abs(), dim=1)  # type: ignore
+            if x.grad is not None:
+                saliency_map, _ = torch.max(x.grad.data.abs(), dim=1)  # type: ignore
+            else:
+                raise RuntimeError("Gradient is None")
+
+        except RuntimeError as e:
+            print(f"Error during saliency map computation: {e}")
+            saliency_map = torch.zeros_like(x[:, 0, :, :]) 
+        
         return saliency_map
 
     def _calc_reconstruction_loss(

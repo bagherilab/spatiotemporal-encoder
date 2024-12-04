@@ -113,6 +113,11 @@ class LayerConfig(BaseModel):
     p: Optional[float] = None
     output_padding: Optional[int] = None
     activation: Optional[str] = None
+    # Neural operators
+    hidden_channels: Optional[Union[int, str]] = None
+    n_modes: Optional[list[int]] = None
+    projection_channels: Optional[int] = None
+    lifting_channels: Optional[int] = None
 
     @model_validator(mode="before")
     def check_layers(cls, values: dict) -> dict:

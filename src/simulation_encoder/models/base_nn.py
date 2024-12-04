@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Optional, Any, Union
 from collections import defaultdict
 
+import neuralop.models as neuralops_models
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
@@ -216,7 +217,10 @@ class BaseNN(ABC, nn.Module):
         layers = []
         for config in layer_configs:
             layer_type = config.get("type")
-            layer_class = getattr(nn, layer_type, None)  # type: ignore
+            if layer_type == "FNO":
+                layer_class = getattr(neuralops_models, layer_type, None)
+            else:
+                layer_class = getattr(nn, layer_type, None)
             if layer_class is None:
                 raise ValueError(f"Layer type {layer_type} not recognized")
             # Dynamically set the number of channels and latent dimension size
@@ -268,10 +272,13 @@ class BaseNN(ABC, nn.Module):
     def _get_grad_norm(self, layer: nn.Sequential) -> torch.Tensor:
         """Calculates the gradient norm of a model"""
         for i in range(1, len(layer) - 1):
-            if hasattr(layer[-i], "weight"):
-                return torch.norm(layer[-i].weight.grad)
+            try:
+                if hasattr(layer[-i], "weight") and layer[-i].weight.grad is not None:
+                    return torch.norm(layer[-i].weight.grad)
+            except Exception as e:
+                print(f"Error accessing gradient for layer {len(layer) - i}: {e}")
 
-        raise AttributeError(f"No layers have gradient attribute")
+        return torch.tensor(0.0, device=next(layer.parameters()).device)
 
     def _get_device(self) -> str:
         device = (
