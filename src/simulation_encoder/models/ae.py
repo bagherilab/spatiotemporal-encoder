@@ -2,6 +2,7 @@ from typing import Optional, Any
 
 from collections import defaultdict
 
+from tqdm import tqdm
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
@@ -129,24 +130,27 @@ class AE(BaseNN):
 
         avg_loss: dict[str, float] = defaultdict(float)
 
-        for inputs, labels in train_loader:
+        with tqdm(train_loader, desc="Training", unit="batch", ncols=100) as pbar:
+            for inputs, labels in pbar:
 
-            inputs, labels = inputs.to(self.device), labels.to(self.device)
-            optimizer_combined.zero_grad()
-            pred_image, pred_timepoint = self(inputs)
+                inputs, labels = inputs.to(self.device), labels.to(self.device)
+                optimizer_combined.zero_grad()
+                pred_image, pred_timepoint = self(inputs)
 
-            batch_loss = {
-                "image": image_criteria(pred_image, inputs),
-                "timepoint": timepoint_criteria(pred_timepoint, labels),
-            }
-            _, reconstruction_loss_weighted = self._calc_reconstruction_loss(batch_loss)
+                batch_loss = {
+                    "image": image_criteria(pred_image, inputs),
+                    "timepoint": timepoint_criteria(pred_timepoint, labels),
+                }
+                _, reconstruction_loss_weighted = self._calc_reconstruction_loss(batch_loss)
 
-            reconstruction_loss_weighted.backward()  # type: ignore
-            optimizer_combined.step()
+                reconstruction_loss_weighted.backward()  # type: ignore
+                optimizer_combined.step()
 
-            for key in batch_loss:
-                avg_loss[key] += batch_loss[key].item()
-            avg_loss["weighted_loss"] += reconstruction_loss_weighted.item()
+                for key in batch_loss:
+                    avg_loss[key] += batch_loss[key].item()
+                avg_loss["weighted_loss"] += reconstruction_loss_weighted.item()
+
+                pbar.set_postfix({"Weighted Loss": reconstruction_loss_weighted.item()})
 
         avg_loss = {key: value / len(train_loader) for key, value in avg_loss.items()}
         return avg_loss
@@ -172,20 +176,23 @@ class AE(BaseNN):
 
         avg_loss: dict[str, float] = defaultdict(float)
         with torch.no_grad():
-            for inputs, labels in val_loader:
-                inputs, labels = inputs.to(self.device), labels.to(self.device)
-                pred_image, pred_timepoint = self(inputs)
+            with tqdm(val_loader, desc="Validation", unit="batch", ncols=100) as pbar:
+                for inputs, labels in pbar:
+                    inputs, labels = inputs.to(self.device), labels.to(self.device)
+                    pred_image, pred_timepoint = self(inputs)
 
-                batch_loss = {
-                    "image": image_criteria(pred_image, inputs),
-                    "timepoint": timepoint_criteria(pred_timepoint, labels),
-                }
-                reconstruciton_loss, reconstruciton_loss_weighted = self._calc_reconstruction_loss(
-                    batch_loss
-                )
-                for key in batch_loss:
-                    avg_loss[key] += batch_loss[key].item()
-                avg_loss["weighted_loss"] += reconstruciton_loss_weighted.item()
+                    batch_loss = {
+                        "image": image_criteria(pred_image, inputs),
+                        "timepoint": timepoint_criteria(pred_timepoint, labels),
+                    }
+                    reconstruciton_loss, reconstruciton_loss_weighted = self._calc_reconstruction_loss(
+                        batch_loss
+                    )
+                    for key in batch_loss:
+                        avg_loss[key] += batch_loss[key].item()
+                    avg_loss["weighted_loss"] += reconstruciton_loss_weighted.item()
+
+                    pbar.set_postfix({"Weighted Loss": reconstruciton_loss_weighted.item()})
 
         avg_loss = {key: value / len(val_loader) for key, value in avg_loss.items()}
         return avg_loss
