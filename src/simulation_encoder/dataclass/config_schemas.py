@@ -72,16 +72,19 @@ class MainConfig(BaseModel):
 
 
 class HyperparameterRangeConfig(BaseModel):
-    range: list[float] = Field(..., description="Range of continuous hyperparameters")
+    range: Union[float, list[float]] = Field(..., description="Range of continuous hyperparameters")
     search: str = Field(..., description="Search method for hyperparameters")
     num_samples: int = Field(..., gt=0, description="Number of samples to generate")
 
     @field_validator("range")
-    def check_range(cls, value: list[float]) -> list[float]:
-        if len(value) != 2 or value[0] >= value[1]:
-            raise ValueError(
-                "range must be a list with two elements where the first is less than the second"
-            )
+    def check_range(cls, value: Union[list[float], float]) -> list[float]:
+        if isinstance(value, list):
+            if len(value) != 2 or value[0] >= value[1]:
+                raise ValueError(
+                    "range must be a list with two elements where the first is less than the second"
+                )
+        elif not isinstance(value, (float, int)):
+            raise ValueError("range must be either a float or a list of two floats")
         return value
 
 
