@@ -1,7 +1,7 @@
 import os
 import copy
 from collections import defaultdict
-from typing import Optional, Union
+from typing import Optional
 from copy import deepcopy
 
 
@@ -77,13 +77,10 @@ class Runner:
         """
         model_num = 0
         for model_param in model_param_sets:
-            latent_dim = model_param.params.get("latent_dim")
-            model_id = f"{model_param.name}_{latent_dim}d_{model_num}"
-            while model_id in self.models:
-                model_num += 1
-                model_id = f"{model_param.name}_{latent_dim}d_{model_num}"
+            model_id = f"{model_param.name}_{model_num}"
             self.models[model_id] = model_param
             self.losses[model_id] = LossData()
+            model_num += 1
 
     def get_model(self, model_id: str) -> BaseNN:
         """Returns the specified model"""
@@ -166,7 +163,7 @@ class Runner:
 
         return losses, val_losses, grad_norms
 
-    def _eval_model(self, model_name: str, model: BaseNN, dataset: Loader) -> float:
+    def _eval_model(self, model_name: str, model: BaseNN, dataset: Loader) -> dict[str, float]:
         """Evaluates all models currently in runner"""
         test_loader = dataset.get_dataloader(dataset_type="test")
         test_loss = model.eval_one_epoch(test_loader)

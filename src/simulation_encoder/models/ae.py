@@ -59,9 +59,11 @@ class AE(BaseNN):
         self.decoder_timepoint = nn.Sequential(
             *self._create_layers(self.architecture["decoder_timepoint"])
         )
-        self.optimizers = {
-            "combined": torch.optim.Adam(self.parameters(), lr=0.001),
-        }
+
+        optimizer_config = params.get("optimizer", {})
+        optimizer_type = optimizer_config.pop("type")
+        self.optimizers = {"combined": optimizer_type(self.parameters(), **optimizer_config)}
+
         self.criterion = {
             "image": nn.MSELoss(),
             "timepoint": nn.CrossEntropyLoss(),
@@ -70,6 +72,21 @@ class AE(BaseNN):
         # Chosen arbitrarily
         # Factor to balance image and timepoint loss
         self.image_loss_factor = 10
+
+    def __str__(self) -> str:
+        """Generate a string representation of the model with key parameters."""
+        optimizer_type = self.optimizers["combined"].__class__.__name__
+        optimizer_params = self.params.get("optimizer", {})
+        optimizer_details = ", ".join([f"{key}={value}" for key, value in optimizer_params.items()])
+
+        return (
+            f"Model: {self.name}\n"
+            f"Latent Dimension: {self.latent_dim}\n"
+            f"Number of Epochs: {self.num_epochs}\n"
+            f"Optimizer: {optimizer_type} ({optimizer_details})\n"
+            f"Image Size: {self.image_size}\n"
+            f"Loss Weights: {self.loss_weights}\n"
+        )
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, ...]:
         """Performs encoding and several decoding heads"""
@@ -130,7 +147,7 @@ class AE(BaseNN):
 
         avg_loss: dict[str, float] = defaultdict(float)
 
-        with tqdm(train_loader, desc="Training", unit="batch", ncols=100) as pbar:
+        with tqdm(train_loader, desc="Training", unit="batch", ncols=120) as pbar:
             for inputs, labels in pbar:
 
                 inputs, labels = inputs.to(self.device), labels.to(self.device)
@@ -176,7 +193,7 @@ class AE(BaseNN):
 
         avg_loss: dict[str, float] = defaultdict(float)
         with torch.no_grad():
-            with tqdm(val_loader, desc="Validation", unit="batch", ncols=100) as pbar:
+            with tqdm(val_loader, desc="Validation", unit="batch", ncols=120) as pbar:
                 for inputs, labels in pbar:
                     inputs, labels = inputs.to(self.device), labels.to(self.device)
                     pred_image, pred_timepoint = self(inputs)
@@ -185,8 +202,8 @@ class AE(BaseNN):
                         "image": image_criteria(pred_image, inputs),
                         "timepoint": timepoint_criteria(pred_timepoint, labels),
                     }
-                    reconstruciton_loss, reconstruciton_loss_weighted = self._calc_reconstruction_loss(
-                        batch_loss
+                    reconstruciton_loss, reconstruciton_loss_weighted = (
+                        self._calc_reconstruction_loss(batch_loss)
                     )
                     for key in batch_loss:
                         avg_loss[key] += batch_loss[key].item()
@@ -216,8 +233,8 @@ class AE(BaseNN):
 
         except RuntimeError as e:
             print(f"Error during saliency map computation: {e}")
-            saliency_map = torch.zeros_like(x[:, 0, :, :]) 
-        
+            saliency_map = torch.zeros_like(x[:, 0, :, :])
+
         return saliency_map
 
     def _calc_reconstruction_loss(

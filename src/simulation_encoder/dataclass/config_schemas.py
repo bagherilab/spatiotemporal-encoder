@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional, Union, Any
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 """ Pydantic models for the configuration files """
@@ -77,7 +77,7 @@ class HyperparameterRangeConfig(BaseModel):
     num_samples: int = Field(..., gt=0, description="Number of samples to generate")
 
     @field_validator("range")
-    def check_range(cls, value: Union[list[float], float]) -> list[float]:
+    def check_range(cls, value: Union[list[float], float]) -> Union[list[float], float]:
         if isinstance(value, list):
             if len(value) != 2 or value[0] >= value[1]:
                 raise ValueError(
@@ -89,7 +89,9 @@ class HyperparameterRangeConfig(BaseModel):
 
 
 class HyperparameterDiscreteConfig(BaseModel):
-    values: list[int] = Field(..., description="List of discrete hyperparameter values")
+    values: Union[list[Union[int, float]], list[dict[str, Any]]] = Field(
+        ..., description="List of discrete hyperparameter values or optimizer configurations"
+    )
 
 
 class HyperparameterConfig(BaseModel):

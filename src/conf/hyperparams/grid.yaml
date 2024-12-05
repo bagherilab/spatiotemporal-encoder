@@ -7,3 +7,12 @@ continuous:
 discrete:
   latent_dim:
     values: [2]
+  optimizer:
+    values:
+      # - type: "Adam"
+      #   betas: [[0.9, 0.999], [0.8, 0.99]]
+      #   lr: [0.001, 0.01]
+      - type: "SGD"
+        momentum: [0.0, 0.9]
+        nesterov: [true, false]
+        lr: [0.001, 0.01]

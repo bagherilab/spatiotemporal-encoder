@@ -193,7 +193,7 @@ class BaseNN(ABC, nn.Module):
         pass
 
     @abstractmethod
-    def encode(self, x: torch.Tensor) -> torch.Tensor:
+    def encode(self, x: torch.Tensor) -> Union[torch.Tensor, tuple[torch.Tensor, torch.Tensor]]:
         """Encodes input tensor."""
         pass
 
@@ -216,7 +216,7 @@ class BaseNN(ABC, nn.Module):
     ) -> list[nn.Module]:
         layers = []
         for config in layer_configs:
-            layer_type = config.get("type")
+            layer_type: str = config.get("type", "")
             if layer_type == "FNO":
                 layer_class = getattr(neuralops_models, layer_type, None)
             else:
@@ -245,13 +245,13 @@ class BaseNN(ABC, nn.Module):
                     config["num_features"] = self.latent_dim
                 if config.get("num_features") == "num_channels":
                     config["num_features"] = self.num_channels * self.image_size * self.image_size
-            
+
             elif layer_type == "FNO":
                 if config.get("in_channels") == "num_channels":
                     config["in_channels"] = self.num_channels
                 if config.get("out_channels") == "num_channels":
                     config["out_channels"] = self.num_channels
-                
+
                 config.setdefault("n_modes", [16, 16])
                 config.setdefault("hidden_channel", 64)
 

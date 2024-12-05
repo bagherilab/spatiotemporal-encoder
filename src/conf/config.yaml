@@ -1,10 +1,10 @@
-experiment_name: neuralop-graph-spatial
+experiment_name: batch-testing
 experiments:      
   neuraloperator:
     datasets:
       - vascular_function_128
     model:
-      architecture: neuraloperator
+      architecture: cae
       num_channels: 1
       image_size: 128
       params: grid
