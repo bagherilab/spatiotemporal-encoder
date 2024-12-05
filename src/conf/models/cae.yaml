@@ -1,4 +1,4 @@
-type: CAE
+type: AE
 architecture:
   encoder:
     - type: Conv2d

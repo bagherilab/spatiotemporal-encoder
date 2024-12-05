@@ -1,11 +1,10 @@
-experiment_name: cae-radiation-16d
+experiment_name: neuralop-graph-spatial
 experiments:      
-  CAE:
+  neuraloperator:
     datasets:
-      - vascular_function_128 
-      - radiation_128
+      - vascular_function_128
     model:
-      architecture: cae
+      architecture: neuraloperator
       num_channels: 1
       image_size: 128
       params: grid
