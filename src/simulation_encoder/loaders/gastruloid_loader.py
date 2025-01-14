@@ -18,17 +18,17 @@ class GastruloidLoader(Loader):
         keys: list[str],
         channels: list[str],
         name: Optional[str] = None,
+        batch_size: int = 10,
         val_split: float = 0.2,
         test_split: float = 0.2,
-        batch_size: int = 10,
         logger: Optional[Logger] = None,
-        indices_file: Optional[str] = None,
         augmentations: Optional[list[dict[str, Any]]] = None,
+        indices_file: Optional[str] = None,
         random_seed: int = 42,
     ):
         self.name = name
         self.labels = None
-        self.logger = logger
+
         super().__init__(
             image_dir=image_dir,
             keys=keys,
@@ -38,6 +38,7 @@ class GastruloidLoader(Loader):
             batch_size=batch_size,
             augmentations=augmentations,
             indices_file=indices_file,
+            logger=logger,
             random_seed=random_seed,
         )
 
