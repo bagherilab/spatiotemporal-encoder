@@ -211,13 +211,15 @@ def handle_encoder_results(
 
         best_model_dataset_name = best_model_info["dataset_name"]
         best_model_dataset = runner.get_dataset(best_model_dataset_name)
-        
+
         best_model_data = best_model_info["data"]
 
         writer.write_encoder_results(
             "best_model", best_model_dataset, best_model, best_model_data["losses"]
         )
-        writer.write_encoded_data("best_model", best_model_dataset_name, best_model_data["encoded_data"])
+        writer.write_encoded_data(
+            "best_model", best_model_dataset_name, best_model_data["encoded_data"]
+        )
 
 
 def _load_yaml(yaml_file: str, config_class: BaseModel) -> BaseModel:
