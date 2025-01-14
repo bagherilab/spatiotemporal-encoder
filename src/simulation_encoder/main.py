@@ -215,10 +215,10 @@ def handle_encoder_results(
         best_model_data = best_model_info["data"]
 
         writer.write_encoder_results(
-            "best_model", best_model_dataset, best_model, best_model_data["losses"]
+            "_best_model", best_model_dataset, best_model, best_model_data["losses"]
         )
         writer.write_encoded_data(
-            "best_model", best_model_dataset_name, best_model_data["encoded_data"]
+            "_best_model", best_model_dataset_name, best_model_data["encoded_data"]
         )
 
 
