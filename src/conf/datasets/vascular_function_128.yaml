@@ -2,17 +2,17 @@ loader: ARCADE
 image_dir: data/ARCADE/vascular_function_128/images
 label_dir: data/ARCADE/vascular_function_128/labels
 channels:
-  # - cancer
-  - graph
-batch_size: 16
-val_split: 0.1
+  - cancer
+  # - graph
+batch_size: 32
+val_split: 0.2
 test_split: 0.2
 keys:
-  # - CH_Lav
-  # - CH_Lava
-  # - CH_Lvav
-  # - CH_Sav
-  # - CH_Savav
+  - CH_Lav
+  - CH_Lava
+  - CH_Lvav
+  - CH_Sav
+  - CH_Savav
   - C_Lav
   - C_Lava
   - C_Lvav

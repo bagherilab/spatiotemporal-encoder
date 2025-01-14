@@ -1,11 +1,11 @@
 loader: gastruloid
-image_dir: data/gastruloid/images
-label_dir: data/gastruloid/labels
+image_dir: data/gastruloid_128/images
+label_dir: data/gastruloid_128/labels
 channels:
   # - bf
   - stain
 batch_size: 32
-val_split: 0.1
+val_split: 0.2
 test_split: 0.2
 keys:
   - array1
