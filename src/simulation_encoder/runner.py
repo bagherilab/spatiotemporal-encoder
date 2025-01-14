@@ -11,8 +11,8 @@ from simulation_encoder.logger import Logger
 from simulation_encoder.loaders.loader import Loader
 from simulation_encoder.loaders.util_loaders import CSVLoader
 
-from src.simulation_encoder.models.base_nn import BaseNN
-from src.simulation_encoder.models.ae import AE
+from simulation_encoder.models.base_nn import BaseNN
+from simulation_encoder.models.ae import AE
 from simulation_encoder.models.pretrained_ae import PretrainedAE
 from simulation_encoder.models.vae import VAE
 from simulation_encoder.models.emulator import Emulator
