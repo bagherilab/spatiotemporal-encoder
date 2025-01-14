@@ -8,7 +8,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 from simulation_encoder.logger import Logger
-from src.simulation_encoder.models.base_nn import BaseNN
+from simulation_encoder.models.base_nn import BaseNN
 
 
 class AE(BaseNN):
@@ -63,6 +63,9 @@ class AE(BaseNN):
         optimizer_config = params.get("optimizer", {})
         optimizer_type = optimizer_config.pop("type")
         self.optimizers = {"combined": optimizer_type(self.parameters(), **optimizer_config)}
+
+        optimizer_name = optimizer_type.__name__
+        self.params["optimizer"]["type"] = optimizer_name
 
         self.criterion = {
             "image": nn.MSELoss(),

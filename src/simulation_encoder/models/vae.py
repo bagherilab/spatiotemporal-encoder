@@ -6,7 +6,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 from simulation_encoder.logger import Logger
-from src.simulation_encoder.models.base_nn import BaseNN
+from simulation_encoder.models.base_nn import BaseNN
 
 
 class VAE(BaseNN):

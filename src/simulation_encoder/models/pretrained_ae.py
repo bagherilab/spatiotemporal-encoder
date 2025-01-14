@@ -6,7 +6,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 from torchvision.models import resnet18, ResNet18_Weights
 
-from src.simulation_encoder.models.base_nn import BaseNN
+from simulation_encoder.models.base_nn import BaseNN
 from simulation_encoder.logger import Logger
 
 

@@ -217,7 +217,7 @@ class BaseNN(ABC, nn.Module):
         layers = []
         for config in layer_configs:
             layer_type: str = config.get("type", "")
-            if layer_type == "FNO":
+            if layer_type == "FNO" or layer_type == "TFNO":
                 layer_class = getattr(neuralops_models, layer_type, None)
             else:
                 layer_class = getattr(nn, layer_type, None)
