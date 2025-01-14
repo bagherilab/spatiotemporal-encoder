@@ -6,10 +6,10 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 from simulation_encoder.logger import Logger
-from simulation_encoder.models.base_cnn import BaseCNN
+from simulation_encoder.models.base_nn import BaseNN
 
 
-class VAE(BaseCNN):
+class VAE(BaseNN):
     """
     Variational Autoencoder class for encoding image data.
 
@@ -64,9 +64,11 @@ class VAE(BaseCNN):
         self.decoder_timepoint = nn.Sequential(
             *self._create_layers(self.architecture["decoder_timepoint"])
         )
-        self.optimizers = {
-            "combined": torch.optim.Adam(self.parameters(), lr=0.001),
-        }
+
+        optimizer_config = params.get("optimizer", {})
+        optimizer_type = optimizer_config.pop("type")
+        self.optimizers = {"combined": optimizer_type(self.parameters(), **optimizer_config)}
+
         self.criterion = {
             "image": nn.MSELoss(),
             "timepoint": nn.CrossEntropyLoss(),
@@ -77,6 +79,21 @@ class VAE(BaseCNN):
         self.image_loss_factor = 10
         # Factor to balance reconstruction and KL loss
         self.reconstruction_loss_factor = 500
+
+    def __str__(self) -> str:
+        """Generate a string representation of the model with key parameters."""
+        optimizer_type = self.optimizers["combined"].__class__.__name__
+        optimizer_params = self.params.get("optimizer", {})
+        optimizer_details = ", ".join([f"{key}={value}" for key, value in optimizer_params.items()])
+
+        return (
+            f"Model: {self.name}\n"
+            f"Latent Dimension: {self.latent_dim}\n"
+            f"Number of Epochs: {self.num_epochs}\n"
+            f"Optimizer: {optimizer_type} ({optimizer_details})\n"
+            f"Image Size: {self.image_size}\n"
+            f"Loss Weights: {self.loss_weights}\n"
+        )
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, ...]:
         """Performs encoding and several decoding heads"""

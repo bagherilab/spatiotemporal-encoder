@@ -1,14 +1,35 @@
-experiment_name: cae-radiation-16d
-experiments:      
-  CAE:
+experiment_name: test
+experiments:
+  # neuralop:
+  #   datasets:
+  #     - immortal_vf_128
+  #   model:
+  #       architecture: neuralop_simple
+  #       num_channels: 1
+  #       image_size: 128
+  #       params: grid_optimizers
+  #   general_configs:
+  #       pretrain: false
+  #       verbose: true  
+  # cae:
+  #   datasets:
+  #     - immortal_vf_128
+  #   model:
+  #     architecture: cae_simple
+  #     num_channels: 1
+  #     image_size: 128
+  #     params: grid_optimizers
+  #   general_configs:
+  #     pretrain: false
+  #     verbose: true
+  ae:
     datasets:
-      - vascular_function_128 
-      - radiation_128
+      - immortal_vf_128
     model:
-      architecture: cae
+      architecture: ae_simple
       num_channels: 1
       image_size: 128
-      params: grid
+      params: grid_optimizers
     general_configs:
       pretrain: false
       verbose: true

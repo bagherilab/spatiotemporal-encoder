@@ -8,20 +8,13 @@ import yaml
 import traceback
 from pydantic import BaseModel, ValidationError
 
-import sys
-from pathlib import Path
-
-# For local imports in the module
-if str(Path(__file__).parent.parent) not in sys.path:
-    sys.path.append(str(Path(__file__).parent.parent))
-
 from simulation_encoder.runner import Runner
 from simulation_encoder.writer import Writer
 from simulation_encoder.plotter import Plotter
 from simulation_encoder.logger import Logger
 from simulation_encoder.loaders.loader import Loader
 from simulation_encoder.loaders.arcade_loader import ARCADELoader
-from simulation_encoder.loaders.alphanumeric_loader import AlphaNumericLoader
+from simulation_encoder.loaders.alphanumeric_loader import AlphanumericLoader
 from simulation_encoder.loaders.gastruloid_loader import GastruloidLoader
 
 from simulation_encoder.dataclass.param_sets import DatasetParams, ModelParams
@@ -114,7 +107,7 @@ def create_dataset(dataset_name: str, dataset_params: DatasetParams, logger: Log
     elif loader.lower() == "alphanumeric":
         del params_dict["label_dir"]
         del params_dict["labels"]
-        dataset = AlphaNumericLoader(
+        dataset = AlphanumericLoader(
             **params_dict,
             logger=logger,
         )
@@ -179,9 +172,11 @@ def handle_encoder_results(
     encoder_results: dict, runner: Runner, writer: Writer, plotter: Plotter
 ) -> None:
     """Handles writing and plotting of encoder results"""
+    best_model = None
+    best_val_loss = float("inf")
+
     for dataset_name, dataset_results in encoder_results.items():
         for model_id, data in dataset_results.items():
-            writer.write_encoded_data(model_id, dataset_name, data["encoded_data"])
             writer.write_model_state(model_id, dataset_name, data["model_state"])
             writer.write_encoder_results(
                 model_id,
@@ -190,7 +185,6 @@ def handle_encoder_results(
                 data["losses"],
             )
 
-            # Plot results
             plotter.line_plot(model_id, data["grad_norms"], "grad_norms", "Epoch", "Gradient Norm")
 
             # Access LossData object for losses
@@ -200,6 +194,32 @@ def handle_encoder_results(
                 losses.losses_train.get("weighted_loss", []),
                 losses.losses_val.get("weighted_loss", []),
             )
+
+            if losses.losses_val.get("weighted_loss"):
+                final_val_loss = losses.losses_val["weighted_loss"][-1]
+                if final_val_loss < best_val_loss:
+                    best_val_loss = final_val_loss
+                    best_model_info = {
+                        "model_id": model_id,
+                        "dataset_name": dataset_name,
+                        "data": data,
+                    }
+
+    if best_model_info is not None:
+        best_model_id = best_model_info["model_id"]
+        best_model = runner.get_model(best_model_id)
+
+        best_model_dataset_name = best_model_info["dataset_name"]
+        best_model_dataset = runner.get_dataset(best_model_dataset_name)
+
+        best_model_data = best_model_info["data"]
+
+        writer.write_encoder_results(
+            "best_model", best_model_dataset, best_model, best_model_data["losses"]
+        )
+        writer.write_encoded_data(
+            "best_model", best_model_dataset_name, best_model_data["encoded_data"]
+        )
 
 
 def _load_yaml(yaml_file: str, config_class: BaseModel) -> BaseModel:

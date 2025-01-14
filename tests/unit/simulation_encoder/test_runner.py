@@ -30,7 +30,7 @@ class TestRunner(unittest.TestCase):
         self.runner.add_models([model_params])
         model_id = self.runner.models.keys()
 
-        self.assertIn("test_model_2d_0", model_id)
+        self.assertIn("test_model_0", model_id)
 
 
 if __name__ == "__main__":

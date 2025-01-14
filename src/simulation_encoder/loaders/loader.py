@@ -11,7 +11,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader, Subset, TensorDataset
 from torchvision import transforms
 
-from src.simulation_encoder.logger import Logger
+from simulation_encoder.logger import Logger
 
 
 class Augmentation:

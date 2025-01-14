@@ -6,7 +6,7 @@ from simulation_encoder.logger import Logger
 from simulation_encoder.loaders.loader import Loader, Augmentation
 
 
-class AlphaNumericLoader(Loader):
+class AlphanumericLoader(Loader):
     """
     Loader class for loading
     labeled images from a directory.
@@ -17,16 +17,18 @@ class AlphaNumericLoader(Loader):
         image_dir: str,
         keys: list[str],
         channels: list[str],
+        name: Optional[str] = None,
+        batch_size: int = 10,
         val_split: float = 0.2,
         test_split: float = 0.2,
-        batch_size: int = 10,
         logger: Optional[Logger] = None,
+        augmentations: Optional[list[dict[str, Any]]] = None,
         indices_file: Optional[str] = None,
-        augmentations: Optional[dict[str, Any]] = None,
         random_seed: int = 42,
     ):
+        self.name = name
         self.labels = None
-        self.logger = logger
+
         super().__init__(
             image_dir=image_dir,
             keys=keys,
@@ -36,10 +38,9 @@ class AlphaNumericLoader(Loader):
             batch_size=batch_size,
             augmentations=augmentations,
             indices_file=indices_file,
+            logger=logger,
             random_seed=random_seed,
         )
-
-        self.augmentations: dict[str, Augmentation] = self._get_augmentations(augmentations) or {}
 
     def _get_image_groups(self) -> None:
         """Returns groups of images based on the filename format."""
@@ -50,7 +51,7 @@ class AlphaNumericLoader(Loader):
                 "angle": "",
                 "timepoint": "",
                 "seed_key": "",
-                "augmentation": "original",
+                "augmentation": {"original": ""},
             }
         )
 

@@ -5,7 +5,7 @@ import pandas as pd
 import torch
 
 from simulation_encoder.loaders.loader import Loader
-from simulation_encoder.models.cae import CAE
+from simulation_encoder.models.base_nn import BaseNN
 
 from simulation_encoder.dataclass.loss_data import LossData
 from simulation_encoder.dataclass.emulator_results import EmulationResults
@@ -22,7 +22,7 @@ class Writer:
         self._setup()
 
     def write_encoder_results(
-        self, model_name: str, dataset: Loader, model: CAE, losses: LossData
+        self, model_name: str, dataset: Loader, model: BaseNN, losses: LossData
     ) -> None:
         """Writes the results of running the models to disk under the dataset_name prefix"""
         dataset_name = dataset.name
@@ -84,20 +84,14 @@ class Writer:
         """Saves encoded dataset and labels with dataset_name prefix"""
         model_path = os.path.join(self.results_path, model_name)
         dataset_path = os.path.join(model_path, dataset_name)
-        encoded_data_path = os.path.join(dataset_path, "encoded_data")
         self._create_dir(model_path)
         self._create_dir(dataset_path)
-        self._create_dir(encoded_data_path)
 
         full_data = pd.DataFrame()
         for key, data in encoded_data.items():
-            try:
-                data.to_csv(os.path.join(encoded_data_path, f"{key}.csv"), index=False)
-                full_data = pd.concat([full_data, data], axis=0)
-            except:
-                print(f"Error saving {key} data")
+            full_data = pd.concat([full_data, data], axis=0)
 
-        full_data.to_csv(os.path.join(encoded_data_path, "full_data.csv"), index=False)
+        full_data.to_csv(os.path.join(dataset_path, "encoded_data.csv"), index=False)
 
     def write_model_state(self, model_name: str, dataset_name: str, model_state: dict) -> None:
         """Writes the model state to disk under the model_name directory"""

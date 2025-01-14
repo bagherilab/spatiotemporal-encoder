@@ -8,11 +8,6 @@ batch_size: 16
 val_split: 0.1
 test_split: 0.2
 keys:
-  # - CH_Lav
-  # - CH_Lava
-  # - CH_Lvav
-  # - CH_Sav
-  # - CH_Savav
   - S_L11
   - S_L12
   - S_L21

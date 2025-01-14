@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional, Union, Any
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 """ Pydantic models for the configuration files """
@@ -72,21 +72,26 @@ class MainConfig(BaseModel):
 
 
 class HyperparameterRangeConfig(BaseModel):
-    range: list[float] = Field(..., description="Range of continuous hyperparameters")
+    range: Union[float, list[float]] = Field(..., description="Range of continuous hyperparameters")
     search: str = Field(..., description="Search method for hyperparameters")
     num_samples: int = Field(..., gt=0, description="Number of samples to generate")
 
     @field_validator("range")
-    def check_range(cls, value: list[float]) -> list[float]:
-        if len(value) != 2 or value[0] >= value[1]:
-            raise ValueError(
-                "range must be a list with two elements where the first is less than the second"
-            )
+    def check_range(cls, value: Union[list[float], float]) -> Union[list[float], float]:
+        if isinstance(value, list):
+            if len(value) != 2 or value[0] >= value[1]:
+                raise ValueError(
+                    "range must be a list with two elements where the first is less than the second"
+                )
+        elif not isinstance(value, (float, int)):
+            raise ValueError("range must be either a float or a list of two floats")
         return value
 
 
 class HyperparameterDiscreteConfig(BaseModel):
-    values: list[int] = Field(..., description="List of discrete hyperparameter values")
+    values: Union[list[Union[int, float]], list[dict[str, Any]]] = Field(
+        ..., description="List of discrete hyperparameter values or optimizer configurations"
+    )
 
 
 class HyperparameterConfig(BaseModel):
@@ -113,6 +118,11 @@ class LayerConfig(BaseModel):
     p: Optional[float] = None
     output_padding: Optional[int] = None
     activation: Optional[str] = None
+    # Neural operators
+    hidden_channels: Optional[Union[int, str]] = None
+    n_modes: Optional[list[int]] = None
+    projection_channels: Optional[int] = None
+    lifting_channels: Optional[int] = None
 
     @model_validator(mode="before")
     def check_layers(cls, values: dict) -> dict:

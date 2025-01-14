@@ -112,7 +112,7 @@ class ARCADELoader(Loader):
         for file_name in os.listdir(self.image_dir):
             if not file_name.endswith(".png") or not self._in_keys(file_name):
                 continue
- 
+
             if not any(channel in file_name for channel in self.channels):
                 continue
 
