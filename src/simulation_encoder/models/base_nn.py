@@ -45,6 +45,8 @@ class BaseNN(ABC, nn.Module):
         train_loader: DataLoader,
         val_loader: Optional[DataLoader] = None,
         pretrain: bool = False,
+        patience: int = 4,
+        min_delta: float = 0.0,
     ) -> tuple[dict[str, list[float]], dict[str, list[float]], dict[str, list[float]]]:
         """
         Fits the network over the training data for a number of epochs.
@@ -53,10 +55,14 @@ class BaseNN(ABC, nn.Module):
         ----------
         train_loader : DataLoader
             DataLoader containing training data
-        epochs : int
-            Number of epochs to train the network
         val_loader: DataLoader, optional
             DataLoader containing validation data, by default None
+        pretrain : bool, optional
+            Whether to use RBM for pretraining the encoder, by default False
+        patience : int, optional
+            Number of epochs to wait for improvement before early stopping, by default 5
+        min_delta : float, optional
+            Minimum change in loss to be considered an improvement, by default 0.0
 
         Returns
         -------
@@ -73,6 +79,9 @@ class BaseNN(ABC, nn.Module):
         val_losses: dict[str, list[float]] = defaultdict(list)
         grad_norms: dict[str, list[float]] = defaultdict(list)
 
+        best_val_loss = float("inf")
+        epochs_without_improvement = 0
+
         for e in range(self.num_epochs):
             train_loss = self.train_one_epoch(train_loader)
             for loss_type, loss in train_loss.items():
@@ -82,6 +91,18 @@ class BaseNN(ABC, nn.Module):
                 val_loss = self.eval_one_epoch(val_loader)
                 for loss_type, loss in val_loss.items():
                     val_losses[loss_type].append(loss)
+
+                # Check for early stopping
+                current_val_loss = val_loss["weighted_loss"]
+                if current_val_loss < best_val_loss - min_delta:
+                    best_val_loss = current_val_loss
+                    epochs_without_improvement = 0
+                else:
+                    epochs_without_improvement += 1
+
+                if epochs_without_improvement >= patience:
+                    self._log(f"Early stopping at epoch {e+1}. Best validation loss: {best_val_loss}")
+                    break
 
             encoder_grad_norm = self._get_grad_norm(self.encoder)
             decoder_image_grad_norm = self._get_grad_norm(self.decoder_image)
