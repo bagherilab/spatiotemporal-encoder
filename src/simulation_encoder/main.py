@@ -16,6 +16,7 @@ from simulation_encoder.loaders.loader import Loader
 from simulation_encoder.loaders.arcade_loader import ARCADELoader
 from simulation_encoder.loaders.alphanumeric_loader import AlphanumericLoader
 from simulation_encoder.loaders.gastruloid_loader import GastruloidLoader
+from simulation_encoder.loaders.glims_loader import GlimsLoader
 
 from simulation_encoder.dataclass.param_sets import DatasetParams, ModelParams
 from simulation_encoder.dataclass.config_schemas import (
@@ -119,6 +120,14 @@ def create_dataset(dataset_name: str, dataset_params: DatasetParams, logger: Log
             logger=logger,
         )
 
+    elif loader.lower() == "glims":
+        del params_dict["label_dir"]
+        del params_dict["labels"]
+        dataset = GlimsLoader(
+            **params_dict,
+            logger=logger,
+        )
+
     return dataset
 
 
@@ -185,12 +194,15 @@ def handle_encoder_results(
                 data["losses"],
             )
 
-            plotter.line_plot(model_id, data["grad_norms"], "grad_norms", "Epoch", "Gradient Norm")
+            plotter.line_plot(
+                model_id, dataset_name, data["grad_norms"], "grad_norms", "Epoch", "Gradient Norm"
+            )
 
             # Access LossData object for losses
             losses = data["losses"]
             plotter.loss_plot(
                 model_id,
+                dataset_name,
                 losses.losses_train.get("weighted_loss", []),
                 losses.losses_val.get("weighted_loss", []),
             )

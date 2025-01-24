@@ -15,6 +15,7 @@ class Plotter:
     def line_plot(
         self,
         model_name: str,
+        dataset_name: str,
         data: dict[str, list[float]],
         title: str,
         x_label: str = "",
@@ -30,13 +31,16 @@ class Plotter:
         plt.ylabel(y_label)
 
         model_path = os.path.join(self.results_path, model_name)
-        figure_path = os.path.join(model_path, "figures")
+        dataset_path = os.path.join(model_path, dataset_name)
+        figure_path = os.path.join(dataset_path, "figures")
         self._create_dir(figure_path)
 
         plt.savefig(os.path.join(figure_path, f"{title}.png"))
         plt.close()
 
-    def loss_plot(self, model_name: str, train_loss: list[float], val_loss: list[float]) -> None:
+    def loss_plot(
+        self, model_name: str, dataset_name: str, train_loss: list[float], val_loss: list[float]
+    ) -> None:
         """Creates a plot of the training and validation loss"""
         plt.figure()
         plt.plot(range(len(train_loss)), train_loss, label="Train Loss")
@@ -47,7 +51,8 @@ class Plotter:
         plt.ylabel("Loss")
 
         model_path = os.path.join(self.results_path, model_name)
-        figure_path = os.path.join(model_path, "figures")
+        dataset_path = os.path.join(model_path, dataset_name)
+        figure_path = os.path.join(dataset_path, "figures")
         self._create_dir(figure_path)
 
         plt.savefig(os.path.join(figure_path, "loss.png"))
