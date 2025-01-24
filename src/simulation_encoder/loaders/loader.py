@@ -177,7 +177,7 @@ class Loader(ABC, Dataset):
                 transforms.Lambda(lambda x: x[:3]),
                 transforms.Grayscale(num_output_channels=1),
                 transforms.Lambda(lambda x: x.squeeze()),
-                transforms.Lambda(lambda x: x / x.max()),
+                transforms.Lambda(lambda x: x / x.max() if x.max() > 0 else x),
             ]
         )
 

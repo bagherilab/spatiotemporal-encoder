@@ -6,7 +6,7 @@ from simulation_encoder.logger import Logger
 from simulation_encoder.loaders.loader import Loader, Augmentation
 
 
-class GastruloidLoader(Loader):
+class GlimsLoader(Loader):
     """
     Loader class for loading
     labeled images from a directory.
@@ -46,7 +46,9 @@ class GastruloidLoader(Loader):
         """Returns groups of images based on the filename format."""
         groups: dict[str, Any] = defaultdict(
             lambda: {
-                **{channel: "" for channel in self.channels},
+                "image": "",
+                "diffusivity": "",
+                "proliferation": "",
                 "timepoint": "",
                 "seed_key": "",
                 "augmentation": {"original": ""},
@@ -57,27 +59,26 @@ class GastruloidLoader(Loader):
             if not file_name.endswith(".png") or not self._in_keys(file_name):
                 continue
 
-            if not any(channel in file_name for channel in self.channels):
-                continue
+            diff, prolif, timepoint = self._parse_filename(file_name)
 
-            channel, array, raft, timepoint = self._parse_filename(file_name)
-            group_key = f"{array}_{raft}_{timepoint}"
+            group_key = f"{diff}_{prolif}_{timepoint}"
+            groups[group_key]["image"] = os.path.join(self.image_dir, file_name)
+            groups[group_key]["diffusivity"] = diff
+            groups[group_key]["proliferation"] = prolif
             groups[group_key]["timepoint"] = timepoint
-            groups[group_key][channel] = os.path.join(self.image_dir, file_name)
-            groups[group_key]["seed_key"] = f"{array}_{raft}"
+            groups[group_key]["seed_key"] = f"{prolif}_{diff}"
 
         self.groups = list(groups.values())
 
-    def _parse_filename(self, filename: str) -> tuple[str, str, int, int]:
+    def _parse_filename(self, filename: str) -> tuple[float, float, int]:
         parts = filename.split("_")
-        modality = parts[0]
-        array = parts[1]
-        raft = int(parts[2])
-        timepoint = int(parts[3].split(".")[0])
+        diff = float(parts[1]) / 10**5
+        prolif = float(parts[3]) / 10**5
+        timepoint = int(parts[4].split(".")[0])
 
-        return modality, array, raft, timepoint
+        return diff, prolif, timepoint
 
     def _in_keys(self, file_name: str) -> bool:
-        file_chunks = file_name.split("_")
-        prefix = file_chunks[1]
+        file_chunks = file_name.split("_")[0:3]
+        prefix = file_chunks[0]
         return prefix in self.keys

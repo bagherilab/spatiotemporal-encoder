@@ -59,7 +59,7 @@ class AlphanumericLoader(Loader):
             if not file_name.endswith(".png") or not self._in_keys(file_name):
                 continue
 
-            character, seed, angle, timepoint = self._parse_alphanumeric_filename(file_name)
+            character, seed, angle, timepoint = self._parse_filename(file_name)
             group_key = f"{character}_{seed}_{angle}_{timepoint}"
             groups[group_key]["image"] = os.path.join(self.image_dir, file_name)
             groups[group_key]["character"] = character
@@ -69,7 +69,7 @@ class AlphanumericLoader(Loader):
 
         self.groups = list(groups.values())
 
-    def _parse_alphanumeric_filename(self, filename: str) -> tuple[str, int, int, int]:
+    def _parse_filename(self, filename: str) -> tuple[str, int, int, int]:
         parts = filename.split("_")
         character = parts[0]
         seed = int(parts[1])

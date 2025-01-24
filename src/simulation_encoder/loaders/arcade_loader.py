@@ -116,7 +116,7 @@ class ARCADELoader(Loader):
             if not any(channel in file_name for channel in self.channels):
                 continue
 
-            context, vasc_type, seed, timepoint, image_type = self._parse_ARCADE_filename(file_name)
+            context, vasc_type, seed, timepoint, image_type = self._parse_filename(file_name)
             group_key = f"{context}_{vasc_type}_{seed}_{timepoint}"
             timepoint_short = str((timepoint // 10) - 1)
             groups[group_key]["timepoint"] = timepoint_short
@@ -147,7 +147,7 @@ class ARCADELoader(Loader):
 
         self.groups = list(groups.values())
 
-    def _parse_ARCADE_filename(self, filename: str) -> tuple[str, str, int, int, str]:
+    def _parse_filename(self, filename: str) -> tuple[str, str, int, int, str]:
         parts = filename.split("_")
         context = parts[0]  # 'CH' for healthy tissue or 'C' colony
         vasc_type = parts[1]
