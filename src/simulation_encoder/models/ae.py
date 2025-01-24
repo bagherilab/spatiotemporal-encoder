@@ -152,7 +152,6 @@ class AE(BaseNN):
 
         with tqdm(train_loader, desc="Training", unit="batch", ncols=120) as pbar:
             for inputs, labels in pbar:
-
                 inputs, labels = inputs.to(self.device), labels.to(self.device)
                 optimizer_combined.zero_grad()
                 pred_image, pred_timepoint = self(inputs)

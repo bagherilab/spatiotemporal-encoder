@@ -45,7 +45,7 @@ class BaseNN(ABC, nn.Module):
         train_loader: DataLoader,
         val_loader: Optional[DataLoader] = None,
         pretrain: bool = False,
-        patience: int = 4,
+        patience: int = 5,
         min_delta: float = 0.0,
     ) -> tuple[dict[str, list[float]], dict[str, list[float]], dict[str, list[float]]]:
         """
@@ -101,7 +101,9 @@ class BaseNN(ABC, nn.Module):
                     epochs_without_improvement += 1
 
                 if epochs_without_improvement >= patience:
-                    self._log(f"Early stopping at epoch {e+1}. Best validation loss: {best_val_loss}")
+                    self._log(
+                        f"Early stopping at epoch {e+1}. Best validation loss: {round(best_val_loss, 6)}"
+                    )
                     break
 
             encoder_grad_norm = self._get_grad_norm(self.encoder)
