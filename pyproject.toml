@@ -6,7 +6,7 @@ authors = ["Jacob Evarts <jevarts@uw.edu>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = ">=3.9"
+python = ">=3.9, <4.0"
 torch = "^2.5.0"
 pandas = "^2.2.2"
 pillow = "^10.3.0"
@@ -23,6 +23,8 @@ umap-learn = "^0.5.6"
 neuraloperator = "1.0.2"
 wandb = "^0.18.7"
 torch-harmonics = "0.7.3"
+boto3 = "^1.36.6"
+pysindy = "^1.7.5"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^8.2.2"
