@@ -1,0 +1,12 @@
+loader: glims
+image_dir: data/glims2_128/images
+label_dir: data/glims_128/labels
+channels:
+  - image
+batch_size: 32
+val_split: 0.2
+test_split: 0.2
+keys:
+  - diff
+augmentations:
+labels:

@@ -1,19 +1,19 @@
-experiment_name: test
+experiment_name: vae_cancer
 experiments:
-  # neuralop:
-  #   datasets:
-  #     - immortal_vf_128
-  #   model:
-  #       architecture: neuralop_simple
-  #       num_channels: 1
-  #       image_size: 128
-  #       params: grid_optimizers
-  #   general_configs:
-  #       pretrain: false
-  #       verbose: true  
+  vae:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: vae_simple
+        num_channels: 1
+        image_size: 128
+        params: grid_optimizers
+    general_configs:
+        pretrain: false
+        verbose: true  
   # cae:
   #   datasets:
-  #     - immortal_vf_128
+  #     - glims_128
   #   model:
   #     architecture: cae_simple
   #     num_channels: 1
@@ -22,14 +22,14 @@ experiments:
   #   general_configs:
   #     pretrain: false
   #     verbose: true
-  ae:
-    datasets:
-      - immortal_vf_128
-    model:
-      architecture: ae_simple
-      num_channels: 1
-      image_size: 128
-      params: grid_optimizers
-    general_configs:
-      pretrain: false
-      verbose: true
+  # neuralop:
+  #   datasets:
+  #     - glims_128
+  #   model:
+  #     architecture: neuralop_simple
+  #     num_channels: 1
+  #     image_size: 128
+  #     params: grid_optimizers
+  #   general_configs:
+  #     pretrain: false
+  #     verbose: true

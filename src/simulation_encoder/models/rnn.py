@@ -12,9 +12,9 @@ from simulation_encoder.models.base_nn import BaseNN
 from simulation_encoder.models.losses.log_error_loss import LogErrorLoss
 
 
-class AE(BaseNN):
+class RNN(BaseNN):
     """
-    Convolutional autoencoder class for encoding image data.
+    Recurrent neural network class for encoding image data.
 
     Parameters
     ----------

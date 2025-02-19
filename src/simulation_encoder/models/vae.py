@@ -1,6 +1,7 @@
 from typing import Optional, Any
 from collections import defaultdict
 
+from tqdm import tqdm
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
@@ -17,23 +18,25 @@ class VAE(BaseNN):
     ----------
     name : str
         Name of the model
-    architecture: dict[str: list[dict[str: Any]]]
+    architecture: dict{str: list[dict{str: Any}]}
         Dictionary containing the architecture of the network
+    num_channels: int
+        The number of channels the input has
     num_epochs : int
         Number of epochs to train the network
-    params : dict[str: Any]
+    image_size: int
+        Number of pixels for on one side of the square input image
+    params : dict{str: Any}
         Dictionary containing model hyperparameters
-    logger : Logger, optional
-        Logger object for logging
     """
 
     def __init__(
         self,
         name: str,
         architecture: dict[str, list[dict[str, Any]]],
-        image_size: int = 128,
         num_channels: int = 1,
         num_epochs: int = 5,
+        image_size: int = 128,
         params: dict[str, Any] = {},
         logger: Optional[Logger] = None,
     ):
@@ -59,7 +62,6 @@ class VAE(BaseNN):
         self.fc_logvar = nn.Linear(
             self.architecture["encoder"][-1]["out_features"], self.latent_dim
         )
-
         self.decoder_image = nn.Sequential(*self._create_layers(self.architecture["decoder_image"]))
         self.decoder_timepoint = nn.Sequential(
             *self._create_layers(self.architecture["decoder_timepoint"])
@@ -68,6 +70,9 @@ class VAE(BaseNN):
         optimizer_config = params.get("optimizer", {})
         optimizer_type = optimizer_config.pop("type")
         self.optimizers = {"combined": optimizer_type(self.parameters(), **optimizer_config)}
+
+        optimizer_name = optimizer_type.__name__
+        self.params["optimizer"]["type"] = optimizer_name
 
         self.criterion = {
             "image": nn.MSELoss(),
@@ -166,32 +171,35 @@ class VAE(BaseNN):
 
         avg_loss: dict[str, float] = defaultdict(float)
 
-        for inputs, labels in train_loader:
-            inputs, labels = inputs.to(self.device), labels.to(self.device)
-            optimizer_combined.zero_grad()
+        with tqdm(train_loader, desc="Training", unit="batch", ncols=120) as pbar:
+            for inputs, labels in pbar:
+                inputs, labels = inputs.to(self.device), labels.to(self.device)
+                optimizer_combined.zero_grad()
 
-            pred_image, pred_timepoint, mu, logvar = self(inputs)
+                pred_image, pred_timepoint, mu, logvar = self(inputs)
 
-            batch_loss = {
-                "image": image_criteria(pred_image, inputs) * self.image_loss_factor,
-                "timepoint": timepoint_criteria(pred_timepoint, labels),
-            }
+                batch_loss = {
+                    "image": image_criteria(pred_image, inputs) * self.image_loss_factor,
+                    "timepoint": timepoint_criteria(pred_timepoint, labels),
+                }
 
-            reconstruction_loss, reconstruction_loss_weighted = self._calc_reconstruction_loss(
-                batch_loss
-            )
-            kld_loss = self._calc_kld_loss(mu, logvar)
+                reconstruction_loss, reconstruction_loss_weighted = self._calc_reconstruction_loss(
+                    batch_loss
+                )
 
-            vae_loss = self.reconstruction_loss_factor * reconstruction_loss_weighted + kld_loss
+                kld_loss = self._calc_kld_loss(mu, logvar)
+                vae_loss = self.reconstruction_loss_factor * reconstruction_loss_weighted + kld_loss
 
-            vae_loss.backward()  # type: ignore
-            optimizer_combined.step()
+                vae_loss.backward()  # type: ignore
+                optimizer_combined.step()
 
-            for key in batch_loss:
-                avg_loss[key] += batch_loss[key].item()
-            avg_loss["reconstruction"] += reconstruction_loss.item()
-            avg_loss["kld"] += kld_loss.item()
-            avg_loss["combined"] += vae_loss.item()
+                for key in batch_loss:
+                    avg_loss[key] += batch_loss[key].item()
+                avg_loss["reconstruction"] += reconstruction_loss.item()
+                avg_loss["kld"] += kld_loss.item()
+                avg_loss["weighted_loss"] += vae_loss.item()
+
+                pbar.set_postfix({"Weighted Loss": vae_loss.item()})
 
         avg_loss = {key: value / len(train_loader) for key, value in avg_loss.items()}
         return avg_loss
@@ -217,25 +225,28 @@ class VAE(BaseNN):
 
         avg_loss: dict[str, float] = defaultdict(float)
         with torch.no_grad():
-            for inputs, labels in val_loader:
-                inputs, labels = inputs.to(self.device), labels.to(self.device)
-                pred_image, pred_timepoint, mu, logvar = self(inputs)
+            with tqdm(val_loader, desc="Validation", unit="batch", ncols=120) as pbar:
+                for inputs, labels in pbar:
+                    inputs, labels = inputs.to(self.device), labels.to(self.device)
+                    pred_image, pred_timepoint, mu, logvar = self(inputs)
 
-                batch_loss = {
-                    "image": image_criteria(pred_image, inputs) * self.image_loss_factor,
-                    "timepoint": timepoint_criteria(pred_timepoint, labels),
-                }
-                reconstruction_loss, reconstruction_loss_weighted = self._calc_reconstruction_loss(
-                    batch_loss
-                )
-                kld_loss = self._calc_kld_loss(mu, logvar)
-                vae_loss = self.reconstruction_loss_factor * reconstruction_loss_weighted + kld_loss
+                    batch_loss = {
+                        "image": image_criteria(pred_image, inputs) * self.image_loss_factor,
+                        "timepoint": timepoint_criteria(pred_timepoint, labels),
+                    }
+                    reconstruction_loss, reconstruction_loss_weighted = self._calc_reconstruction_loss(
+                        batch_loss
+                    )
+                    kld_loss = self._calc_kld_loss(mu, logvar)
+                    vae_loss = self.reconstruction_loss_factor * reconstruction_loss_weighted + kld_loss
 
-                for key in batch_loss:
-                    avg_loss[key] += batch_loss[key].item()
-                avg_loss["reconstruction"] += reconstruction_loss.item()
-                avg_loss["kld"] += kld_loss.item()
-                avg_loss["combined"] += vae_loss.item()
+                    for key in batch_loss:
+                        avg_loss[key] += batch_loss[key].item()
+                    avg_loss["reconstruction"] += reconstruction_loss.item()
+                    avg_loss["kld"] += kld_loss.item()
+                    avg_loss["weighted_loss"] += vae_loss.item()
+
+                    pbar.set_postfix({"Weighted Loss": vae_loss.item()})
 
         avg_loss = {key: value / len(val_loader) for key, value in avg_loss.items()}
         return avg_loss

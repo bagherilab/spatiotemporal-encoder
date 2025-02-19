@@ -72,10 +72,13 @@ def main() -> None:
         encoder_results = runner.run_encoder(experiment_name)
         handle_encoder_results(encoder_results, runner, writer, plotter)
 
+    # Temporal model
+
+
     # Emulation (optional)
-    emulation_results = runner.run_emulator(config_name)
-    if emulation_results:
-        writer.write_emulation_results(emulation_results)
+    # emulation_results = runner.run_emulator(config_name)
+    # if emulation_results:
+    #     writer.write_emulation_results(emulation_results)
 
 
 def create_datasets(experiment_config: ExperimentConfig, logger: Logger) -> dict[str, Loader]:

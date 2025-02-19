@@ -1,4 +1,4 @@
-num_epochs: 10
+num_epochs: 25
 continuous:
   image_loss_weight:
     range: 1.0
@@ -6,12 +6,12 @@ continuous:
     num_samples: 1
 discrete:
   latent_dim:
-    values: [16]
+    values: [32]
   optimizer:
     values:
       - type: "Adam"
         lr: [0.0001, 0.001]
-        betas: [[0.8, 0.99]]
+        betas: [[0.8, 0.99], [0.9, 0.999]]
       # - type: "SGD"
       #   momentum: [0.0, 0.9]
       #   nesterov: [true, false]
