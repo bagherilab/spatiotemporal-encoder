@@ -17,7 +17,6 @@ from simulation_encoder.loaders.arcade_loader import ARCADELoader
 from simulation_encoder.loaders.alphanumeric_loader import AlphanumericLoader
 from simulation_encoder.loaders.gastruloid_loader import GastruloidLoader
 from simulation_encoder.loaders.glims_loader import GlimsLoader
-
 from simulation_encoder.dataclass.param_sets import DatasetParams, ModelParams
 from simulation_encoder.dataclass.config_schemas import (
     MainConfig,
@@ -27,7 +26,7 @@ from simulation_encoder.dataclass.config_schemas import (
     ModelParamsConfig,
     ModelArchitectureConfig,
 )
-from conf.utils.generate_hyperparams import generate_hyperparameters
+from simulation_encoder.utils.generate_hyperparams import generate_hyperparameters
 
 CONFIG_YAML = "src/conf/config.yaml"
 
@@ -64,11 +63,11 @@ def main() -> None:
         for loader_name, loader in loaders.items():
             writer.write_train_test_indices(loader_name, loader.get_indices())
 
-        # # Models
+        # Models
         model_param_sets = create_model_param_sets(experiment_config.model)
         runner.add_models(model_param_sets)
 
-        # # Run
+        # Run
         encoder_results = runner.run_encoder(experiment_name)
         handle_encoder_results(encoder_results, runner, writer, plotter)
 
