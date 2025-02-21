@@ -114,7 +114,7 @@ class Loader(ABC):
         sample_ids = [self._get_data_feature(idx, "sample_id") for idx in indices]
         return sample_ids
 
-    def _augment_training_data(self):
+    def _augment_training_data(self) -> None:
         augmented_groups = []
         for transform_dict in self.augmentation_manager.transforms:
             ((aug_name, aug),) = transform_dict.items()
@@ -151,7 +151,7 @@ class Loader(ABC):
                 augmented_groups.append(aug_group)
         self.data.extend(augmented_groups)
 
-    def _load_from_indices(self, indices_file: str):
+    def _load_from_indices(self, indices_file: str) -> tuple[list[int], ...]:
         if not os.path.exists(indices_file):
             raise FileNotFoundError(f"Indices file not found: {indices_file}")
 
@@ -162,16 +162,6 @@ class Loader(ABC):
     def _get_data_feature(self, idx: int, feature: str) -> str:
         """Returns a given feature of the data at index `idx`"""
         return self.data[idx][feature]
-
-    def _load_from_indices(self, indices_file: str) -> None:
-        if not os.path.exists(indices_file):
-            raise FileNotFoundError(f"Indices file not found: {indices_file}")
-
-        with open(indices_file, "r", encoding="utf-8") as i_file:
-            indices = json.load(i_file)
-        self._train_indices = indices["train"]
-        self._val_indices = indices["val"]
-        self._test_indices = indices["test"]
 
     def _log(self, msg: str, level: str = "info") -> None:
         if self.logger:

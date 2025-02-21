@@ -46,6 +46,7 @@ class TestWriter(unittest.TestCase):
         self.mock_runner.losses.add_train_loss(train_loss)
         self.mock_runner.losses.add_val_loss(val_loss)
         self.mock_runner.losses.add_test_loss(test_loss)
+        augmentations = self.mock_runner.dataset.augmentation_manager.augmentations
 
         expected_results = {
             "model": "test_model",
@@ -53,7 +54,7 @@ class TestWriter(unittest.TestCase):
             "architecture": self.mock_runner.model.name,
             "channels": ["test_image"],
             "params": self.mock_runner.model.params,
-            "data_augmentations": ["rotate_180", "rotate_90"],
+            "data_augmentations": augmentations,
             "keys": ["test_key"],
             "losses": {
                 "train": train_loss,

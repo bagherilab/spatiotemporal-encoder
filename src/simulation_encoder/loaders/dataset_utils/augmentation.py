@@ -16,11 +16,11 @@ class Augmentation:
         Name of the augmentation technique.
     """
 
-    def __init__(self, transform: Callable[[torch.Tensor], torch.Tensor], name: str):
+    def __init__(self, transform: Callable[[torch.Tensor], torch.Tensor], name: str) -> None:
         self.transform = transform
         self.name = name
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name}: {self.transform.__class__.__name__}"
 
     def __call__(self, tensor: torch.Tensor) -> torch.Tensor:
@@ -50,7 +50,7 @@ class AugmentationsManager:
         self.transforms = self._prepare_augmentations()
 
     def _prepare_augmentations(self) -> list[dict[str, Augmentation]]:
-        transforms_list = []
+        transforms_list: list[dict[str, Augmentation]] = []
         if not self.augmentations:
             return transforms_list
 
@@ -59,7 +59,7 @@ class AugmentationsManager:
             if aug_name not in self.AUGMENTATIONS:
                 raise ValueError(f"Invalid augmentation: {aug_name}")
 
-            transform = self.AUGMENTATIONS[aug_name](int(arg) if arg is not None else arg)
+            transform = self.AUGMENTATIONS[aug_name](int(arg) if arg is not None else arg)  # type: ignore
             transforms_list.append({aug_name: Augmentation(transform, aug_name)})
 
         return transforms_list

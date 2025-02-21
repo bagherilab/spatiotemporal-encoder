@@ -18,12 +18,12 @@ class LogErrorLoss(nn.Module):
         Small constant added to avoid log(0). Default is 1e-8.
     """
 
-    def __init__(self, kernel_size=3, epsilon=1e-8):
+    def __init__(self, kernel_size: int = 3, epsilon: float = 1e-8) -> None:
         super(LogErrorLoss, self).__init__()
         self.epsilon = epsilon
         self.kernel_size = kernel_size
 
-    def forward(self, predicted, target):
+    def forward(self, predicted: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
         Compute the log error between predicted and target images.
 
@@ -53,7 +53,7 @@ class LogErrorLoss(nn.Module):
 
         return log_error.mean()
 
-    def box_blur(self, x):
+    def box_blur(self, x: torch.Tensor) -> torch.Tensor:
         """
         Apply a box blur to the input tensor using average pooling.
 

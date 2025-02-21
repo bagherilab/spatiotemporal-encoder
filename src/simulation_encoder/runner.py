@@ -10,7 +10,6 @@ from simulation_encoder.loaders.loader import Loader
 
 from simulation_encoder.models.base_nn import BaseNN
 from simulation_encoder.models.ae import AE
-from simulation_encoder.models.pretrained_ae import PretrainedAE
 from simulation_encoder.models.vae import VAE
 
 from simulation_encoder.dataclass.loss_data import LossData
@@ -88,12 +87,9 @@ class Runner:
 
         if model_type == "AE":
             return AE(**params_dict, logger=self.logger)
-        elif model_type == "PretrainedAE":
-            return PretrainedAE(**params_dict, logger=self.logger)
-        elif model_type == "VAE":
+        if model_type == "VAE":
             return VAE(**params_dict, logger=self.logger)
-        else:
-            raise ValueError(f"Model type {model_type} not recognized")
+        raise ValueError(f"Model type {model_type} not recognized")
 
     def get_losses(self) -> dict[str, LossData]:
         """Returns the loss data for all models"""

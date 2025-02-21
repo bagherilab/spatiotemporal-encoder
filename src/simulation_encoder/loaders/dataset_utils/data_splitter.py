@@ -8,18 +8,15 @@ class DatasetSplitter:
     """Handles dataset splitting while keeping time series grouped together."""
 
     def __init__(
-        self, data: list[dict[str, any]], val_split: float, test_split: float, random_seed: int = 42
+        self, data: list[dict[str, Any]], val_split: float, test_split: float, random_seed: int = 42
     ):
         self.data = data
         self.val_split = val_split
         self.test_split = test_split
         self.random_seed = random_seed
-        self._train_indices = []
-        self._val_indices = []
-        self._test_indices = []
-        self._split_data()
+        self._train_indices, self._val_indices, self._test_indices = self._split_data()
 
-    def _split_data(self):
+    def _split_data(self) -> tuple[list[int], list[int], list[int]]:
         """Ensures that all images from a single time series stay in the same split."""
         all_indices = list(range(len(self.data)))
         grouped_indices = defaultdict(list)
@@ -39,9 +36,11 @@ class DatasetSplitter:
         val_keys = simulation_ids[test_count : test_count + val_count]
         train_keys = simulation_ids[test_count + val_count :]
 
-        self._train_indices = [i for key in train_keys for i in grouped_indices[key]]
-        self._val_indices = [i for key in val_keys for i in grouped_indices[key]]
-        self._test_indices = [i for key in test_keys for i in grouped_indices[key]]
+        train_indices = [i for key in train_keys for i in grouped_indices[key]]
+        val_indices = [i for key in val_keys for i in grouped_indices[key]]
+        test_indices = [i for key in test_keys for i in grouped_indices[key]]
 
-    def get_splits(self):
+        return train_indices, val_indices, test_indices
+
+    def get_splits(self) -> tuple[list[int], list[int], list[int]]:
         return self._train_indices, self._val_indices, self._test_indices

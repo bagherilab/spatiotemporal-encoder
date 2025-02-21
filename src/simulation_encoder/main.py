@@ -101,34 +101,34 @@ def create_loader(dataset_name: str, dataset_params: DatasetParams, logger: Logg
     loader_type = params_dict.pop("loader")
     logger.log(f"Creating dataset {dataset_name} with loader - {loader_type}")
     if loader_type.lower() == "arcade":
-        loader = ARCADELoader(
+        return ARCADELoader(
             **params_dict,
             logger=logger,
         )
-    elif loader_type.lower() == "alphanumeric":
+    if loader_type.lower() == "alphanumeric":
         del params_dict["label_dir"]
         del params_dict["labels"]
-        loader = AlphanumericLoader(
+        return AlphanumericLoader(
             **params_dict,
             logger=logger,
         )
-    elif loader_type.lower() == "gastruloid":
+    if loader_type.lower() == "gastruloid":
         del params_dict["label_dir"]
         del params_dict["labels"]
-        loader = GastruloidLoader(
+        return GastruloidLoader(
             **params_dict,
             logger=logger,
         )
 
-    elif loader_type.lower() == "glims":
+    if loader_type.lower() == "glims":
         del params_dict["label_dir"]
         del params_dict["labels"]
-        loader = GlimsLoader(
+        return GlimsLoader(
             **params_dict,
             logger=logger,
         )
 
-    return loader
+    raise NameError(f"Invalid loader type specified: {loader_type}")
 
 
 def create_dataset_params(dataset_name: str, dataset_config: DatasetConfig) -> DatasetParams:

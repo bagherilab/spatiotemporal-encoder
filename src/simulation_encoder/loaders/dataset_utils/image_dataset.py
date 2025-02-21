@@ -42,7 +42,7 @@ class ImageDataset(Dataset):
     def __len__(self) -> int:
         return len(self.data)
 
-    def __getitem__(self, idx: int):
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, int]:
         image_group = self.data[idx]
         timepoint = int(image_group["timepoint"])
 
@@ -51,7 +51,7 @@ class ImageDataset(Dataset):
             (
                 self.transforms(Image.open(image_group[channel]))
                 if image_group[channel]
-                else torch.zeros((self.image_shape, self.image_shape))
+                else torch.zeros(self.image_shape)
             )
             for channel in self.channels
         ]
