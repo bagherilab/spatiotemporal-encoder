@@ -1,4 +1,4 @@
-from typing import Optional, Callable, Any
+from typing import Any
 from collections import defaultdict
 
 import numpy as np

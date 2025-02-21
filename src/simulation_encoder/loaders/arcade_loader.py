@@ -74,13 +74,13 @@ class ARCADELoader(Loader):
 
     def get_labels(self, label: str, dataset_type: str) -> torch.Tensor:
         """Returns labels for the specified dataset type (train, val, test)"""
-        indices = {
-            "train": self.train_indices,
-            "val": self.val_indices,
-            "test": self.test_indices,
-        }.get(dataset_type)
-
-        if indices is None:
+        if dataset_type == "train":
+            indices = self._train_indices
+        elif dataset_type == "val":
+            indices = self._val_indices
+        elif dataset_type == "test":
+            indices = self._test_indices
+        else:
             raise ValueError(f"Invalid dataset type: {dataset_type}")
 
         try:

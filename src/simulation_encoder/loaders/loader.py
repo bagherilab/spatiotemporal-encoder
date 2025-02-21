@@ -73,13 +73,13 @@ class Loader(ABC):
 
     def get_dataloader(self, dataset_type: str) -> DataLoader:
         """Returns DataLoader for the specified dataset type (train, val, test)"""
-        indices = {
-            "train": self._train_indices,
-            "val": self._val_indices,
-            "test": self._test_indices,
-        }.get(dataset_type)
-
-        if indices is None:
+        if dataset_type == "train":
+            indices = self._train_indices
+        elif dataset_type == "val":
+            indices = self._val_indices
+        elif dataset_type == "test":
+            indices = self._test_indices
+        else:
             raise ValueError(f"Invalid dataset type: {dataset_type}")
 
         dataset = ImageDataset(
