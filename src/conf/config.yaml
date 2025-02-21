@@ -1,10 +1,10 @@
 experiment_name: test
 experiments:
-  ae:
+  cae:
     datasets:
       - vascular_function_128
     model:
-        architecture: ae_simple
+        architecture: cae_simple
         num_channels: 1
         image_size: 128
         params: grid_test
