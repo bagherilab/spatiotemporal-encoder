@@ -83,7 +83,7 @@ class VAE(BaseNN):
         # Factor to balance image and timepoint loss
         self.image_loss_factor = 10
         # Factor to balance reconstruction and KL loss
-        self.reconstruction_loss_factor = 500
+        self.reconstruction_loss_factor = 1
 
     def __str__(self) -> str:
         """Generate a string representation of the model with key parameters."""
@@ -107,7 +107,7 @@ class VAE(BaseNN):
         sample_image = self.decode_image(z)
         sample_timepoint = self.decode_timepoint(z)
         return sample_image, sample_timepoint, mu, logvar
-    
+
     def fit(
         self,
         train_loader: DataLoader,
@@ -313,11 +313,13 @@ class VAE(BaseNN):
                         "image": image_criteria(pred_image, inputs) * self.image_loss_factor,
                         "timepoint": timepoint_criteria(pred_timepoint, labels),
                     }
-                    reconstruction_loss, reconstruction_loss_weighted = self._calc_reconstruction_loss(
-                        batch_loss
+                    reconstruction_loss, reconstruction_loss_weighted = (
+                        self._calc_reconstruction_loss(batch_loss)
                     )
                     kld_loss = self._calc_kld_loss(mu, logvar)
-                    vae_loss = self.reconstruction_loss_factor * reconstruction_loss_weighted + kld_loss
+                    vae_loss = (
+                        self.reconstruction_loss_factor * reconstruction_loss_weighted + kld_loss
+                    )
 
                     for key in batch_loss:
                         avg_loss[key] += batch_loss[key].item()
@@ -343,7 +345,7 @@ class VAE(BaseNN):
 
         saliency_map, _ = torch.max(x.grad.data.abs(), dim=1)  # type: ignore
         return saliency_map
-    
+
     def pretrain_encoder_rbm(
         self,
         train_loader: DataLoader,

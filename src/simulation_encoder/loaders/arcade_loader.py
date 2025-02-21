@@ -5,8 +5,8 @@ from collections import defaultdict
 import torch
 
 from simulation_encoder.logger import Logger
-from simulation_encoder.loaders.loader import Loader, Augmentation
-from simulation_encoder.loaders.util_loaders import LabelLoader
+from simulation_encoder.loaders.loader import Loader
+from simulation_encoder.loaders.dataset_utils.label_loaders import LabelLoader
 
 
 class ARCADELoader(Loader):
@@ -44,7 +44,7 @@ class ARCADELoader(Loader):
         keys: list[str],
         channels: list[str],
         name: Optional[str] = None,
-        batch_size: int = 10,
+        batch_size: int = 16,
         val_split: float = 0.2,
         test_split: float = 0.2,
         labels: list[str] = [],
@@ -70,19 +70,19 @@ class ARCADELoader(Loader):
             random_seed=random_seed,
         )
 
-        if augmentations is None:
-            self.augmentations = []
-        else:
-            self.augmentations = augmentations
-
         self.label_loader = LabelLoader(label_dir) if label_dir else None
 
     def get_labels(self, label: str, dataset_type: str) -> torch.Tensor:
         """Returns labels for the specified dataset type (train, val, test)"""
-        indices_attr = f"_{dataset_type}_indices"
-        if not hasattr(self, indices_attr):
+        indices = {
+            "train": self.train_indices,
+            "val": self.val_indices,
+            "test": self.test_indices,
+        }.get(dataset_type)
+
+        if indices is None:
             raise ValueError(f"Invalid dataset type: {dataset_type}")
-        indices = getattr(self, indices_attr)
+
         try:
             labels = [self.get_label(idx, label) for idx in indices]
             return torch.tensor(labels, requires_grad=False)
@@ -97,14 +97,14 @@ class ARCADELoader(Loader):
 
         raise ValueError(f"Invalid label name: {label_name}")
 
-    def _get_image_groups(self) -> None:
+    def _retrieve_data(self) -> list[dict[str, Any]]:
         """Returns groups of images based on the filename format."""
-        groups: dict[str, Any] = defaultdict(
+        image_groups: dict[str, Any] = defaultdict(
             lambda: {
                 **{channel: "" for channel in self.channels},
                 "timepoint": "",
-                "seed_key": "",
-                "augmentation": {"original": ""},
+                "sample_id": "",
+                "augmentation": {"identity": ""},
                 "labels": defaultdict(float),
             }
         )
@@ -117,35 +117,25 @@ class ARCADELoader(Loader):
                 continue
 
             context, vasc_type, seed, timepoint, image_type = self._parse_filename(file_name)
-            group_key = f"{context}_{vasc_type}_{seed}_{timepoint}"
-            timepoint_short = str((timepoint // 10) - 1)
-            groups[group_key]["timepoint"] = timepoint_short
-            groups[group_key][image_type] = os.path.join(self.image_dir, file_name)
-            groups[group_key]["seed_key"] = f"{context}_{vasc_type}_{seed}"
+            sample_id = f"{context}_{vasc_type}_{seed}"
+            simulation_id = f"{sample_id}_{timepoint}"
+            timepoint_day = str((timepoint // 10) - 1)
 
-            if not self.labels:
-                continue
+            group = image_groups[simulation_id]
+            group["timepoint"] = timepoint_day
+            group["sample_id"] = sample_id
+            group[image_type] = os.path.join(self.image_dir, file_name)
 
-            for label in self.labels:
-                if label in groups[group_key]["labels"] or not self.label_loader:
-                    continue
-                key = f"{context}_{vasc_type}"
-                label_upper = label.upper()
-                timepoint_float = float(timepoint_short)
-                groups[group_key]["labels"][label] = self.label_loader.get_labels(
-                    label_upper, key, timepoint_float, seed
-                )
+            if self.labels and self.label_loader:
+                for label in self.labels:
+                    if label not in group["labels"]:
+                        key = f"{context}_{vasc_type}"
+                        group["labels"][label] = self.label_loader.get_labels(
+                            label.upper(), key, float(timepoint_day), seed
+                        )
 
-        missing_images_count = {channel: 0 for channel in self.channels}
-        for group_key, group in groups.items():
-            for key, value in group.items():
-                if (not value) and (key in self.channels):
-                    missing_images_count[key] += 1
-        for channel, count in missing_images_count.items():
-            if count > 0:
-                self._log(f"Number of missing images in {channel} - {count}", "warning")
-
-        self.groups = list(groups.values())
+        self._log_missing_images(image_groups)
+        return list(image_groups.values())
 
     def _parse_filename(self, filename: str) -> tuple[str, str, int, int, str]:
         parts = filename.split("_")

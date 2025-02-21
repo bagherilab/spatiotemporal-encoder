@@ -3,14 +3,11 @@ from typing import Optional, Any
 from collections import defaultdict
 
 from simulation_encoder.logger import Logger
-from simulation_encoder.loaders.loader import Loader, Augmentation
+from simulation_encoder.loaders.loader import Loader
 
 
 class GlimsLoader(Loader):
-    """
-    Loader class for loading
-    labeled images from a directory.
-    """
+    """Loader class for loading labeled images from a directory."""
 
     def __init__(
         self,
@@ -27,7 +24,6 @@ class GlimsLoader(Loader):
         random_seed: int = 42,
     ):
         self.name = name
-        self.labels = None
 
         super().__init__(
             image_dir=image_dir,
@@ -42,16 +38,16 @@ class GlimsLoader(Loader):
             random_seed=random_seed,
         )
 
-    def _get_image_groups(self) -> None:
+    def _retrieve_data(self) -> list[dict[str, Any]]:
         """Returns groups of images based on the filename format."""
-        groups: dict[str, Any] = defaultdict(
+        image_groups: dict[str, Any] = defaultdict(
             lambda: {
                 "image": "",
                 "diffusivity": "",
                 "proliferation": "",
                 "timepoint": "",
-                "seed_key": "",
-                "augmentation": {"original": ""},
+                "sample_id": "",
+                "augmentation": {"identity": ""},
             }
         )
 
@@ -60,15 +56,26 @@ class GlimsLoader(Loader):
                 continue
 
             diff, prolif, timepoint = self._parse_filename(file_name)
+            sample_id = f"{prolif}_{diff}"
+            simulation_id = f"{sample_id}_{timepoint}"
 
-            group_key = f"{diff}_{prolif}_{timepoint}"
-            groups[group_key]["image"] = os.path.join(self.image_dir, file_name)
-            groups[group_key]["diffusivity"] = diff
-            groups[group_key]["proliferation"] = prolif
-            groups[group_key]["timepoint"] = timepoint
-            groups[group_key]["seed_key"] = f"{prolif}_{diff}"
+            group = image_groups[simulation_id]
+            group["image"] = os.path.join(self.image_dir, file_name)
+            group["diffusivity"] = diff
+            group["proliferation"] = prolif
+            group["timepoint"] = timepoint
+            group["sample_id"] = f"{prolif}_{diff}"
 
-        self.groups = list(groups.values())
+            for transform_dict in self.augmentation_manager.transforms:
+                ((aug_name, aug),) = transform_dict.items()
+                if aug_name == "identity":
+                    continue
+                aug_simulation_id = f"{simulation_id}_{aug_name}"
+                aug_group = dict(group)
+                aug_group["augmentation"] = {aug_name: aug}
+                image_groups[aug_simulation_id] = aug_group
+
+        return list(image_groups.values())
 
     def _parse_filename(self, filename: str) -> tuple[float, float, int]:
         parts = filename.split("_")

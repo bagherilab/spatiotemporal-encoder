@@ -1,49 +1,19 @@
 import os
 import json
 from typing import Optional, Callable, Any
-from collections import defaultdict
 from abc import ABC, abstractmethod
 
 import numpy as np
-from PIL import Image
-
 import torch
-from torch.utils.data import Dataset, DataLoader, Subset, TensorDataset
-from torchvision import transforms
+from torch.utils.data import DataLoader, Subset, TensorDataset
 
 from simulation_encoder.logger import Logger
+from simulation_encoder.loaders.dataset_utils.augmentation import AugmentationsManager
+from simulation_encoder.loaders.dataset_utils.data_splitter import DatasetSplitter
+from simulation_encoder.loaders.dataset_utils.image_dataset import ImageDataset
 
 
-class Augmentation:
-    """
-    Class for image augmentation technique.
-
-    Parameters
-    ----------
-    transform : Callable[[torch.Tensor], torch.Tensor]
-        Transformation function to apply to the image tensor.
-    name : str
-        Name of the augmentation technique.
-    """
-
-    def __init__(self, transform: Callable[[torch.Tensor], torch.Tensor], name: str):
-        self.transform = transform
-        self.name = name
-
-    def __call__(self, tensor: torch.Tensor) -> torch.Tensor:
-        if tensor.ndim == 3:  # Single image tensor
-            return self.transform(tensor)
-
-        if tensor.ndim == 4:  # Stack of image tensors
-            transformed_tensors = []
-            for i in range(tensor.size(0)):
-                transformed_tensors.append(self.transform(tensor[i]))
-            return torch.stack(transformed_tensors, dim=0)
-
-        raise ValueError(f"Unsupported tensor shape: {tensor.shape}")
-
-
-class Loader(ABC, Dataset):
+class Loader(ABC):
     """
     Abstract class for data loaders.
     """
@@ -53,56 +23,33 @@ class Loader(ABC, Dataset):
         image_dir: str,
         keys: list[str],
         channels: list[str],
-        val_split: float = 0.2,
-        test_split: float = 0.2,
-        batch_size: int = 10,
-        augmentations: Optional[list[dict[str, Any]]] = None,
-        indices_file: Optional[str] = None,
-        logger: Optional[Logger] = None,
-        random_seed: int = 42,
+        val_split: float,
+        test_split: float,
+        batch_size: int,
+        augmentations: Optional[list[dict[str, Any]]],
+        indices_file: Optional[str],
+        logger: Optional[Logger],
+        random_seed: int,
     ):
         self.image_dir = image_dir
         self.keys = keys
         self.channels = channels
-        self.val_split = val_split
-        self.test_split = test_split
         self.batch_size = batch_size
-        self.indices_file = indices_file
         self.logger = logger
-        self.random_seed = random_seed
 
-        self._train_indices: list[int] = []
-        self._val_indices: list[int] = []
-        self._test_indices: list[int] = []
+        self.augmentation_manager = AugmentationsManager(augmentations)
+        self.data = self._retrieve_data()
 
-        self.groups: list[dict[str, Any]] = []
-
-        self._get_image_groups()
-
-        if augmentations is None:
-            self.augmentations = []
-        else:
-            self.augmentations = augmentations
-        self.augmentations.append({"original": None})
-
-        self.transforms: list[dict[str, Augmentation]] = self._get_augmentations()
-
-        if self.indices_file:
-            self._load_from_indices(self.indices_file)
+        if indices_file:
+            self._train_indices, self._val_indices, self._test_indices = self._load_from_indices(
+                indices_file
+            )
             self._reconstruct_augmented_groups()
         else:
-            self._split_data()
-            self._augment_training_data()
+            splitter = DatasetSplitter(self.data, val_split, test_split, random_seed)
+            self._train_indices, self._val_indices, self._test_indices = splitter.get_splits()
 
-    def __len__(self) -> int:
-        return len(self.groups)
-
-    def __getitem__(self, idx: int) -> tuple[torch.Tensor, int]:
-        group = self.groups[idx]
-        timepoint = int(group["timepoint"])
-        image_tensor = self._get_image_tensors(group, self.channels)
-
-        return image_tensor, timepoint
+        self._augment_training_data()
 
     @property
     def n_train(self) -> int:
@@ -119,24 +66,25 @@ class Loader(ABC, Dataset):
         """Number of channels in the images"""
         return len(self.channels)
 
-    @property
-    def image_shape(self) -> tuple[int, ...]:
-        """Shape of the images"""
-        return Image.open(self.groups[0][self.channels[0]]).size
-
     @abstractmethod
-    def _get_image_groups(self) -> None:
+    def _retrieve_data(self) -> list[dict[str, Any]]:
         """Returns groups of images based on the filename format."""
-        pass
+        raise NotImplementedError("Implement this in a subclass.")
 
     def get_dataloader(self, dataset_type: str) -> DataLoader:
         """Returns DataLoader for the specified dataset type (train, val, test)"""
-        indices_attr = f"_{dataset_type}_indices"
-        if not hasattr(self, indices_attr):
+        indices = {
+            "train": self._train_indices,
+            "val": self._val_indices,
+            "test": self._test_indices,
+        }.get(dataset_type)
+
+        if indices is None:
             raise ValueError(f"Invalid dataset type: {dataset_type}")
 
-        indices = getattr(self, indices_attr)
-        dataset = Subset(self, indices)
+        dataset = ImageDataset(
+            self.image_dir, self.data, self.channels, self.augmentation_manager, indices
+        )
         return DataLoader(
             dataset,
             batch_size=self.batch_size,
@@ -148,79 +96,72 @@ class Loader(ABC, Dataset):
         """Returns the train, validation, and test indices"""
         return self._train_indices, self._val_indices, self._test_indices
 
-    def get_group_feature(self, idx: int, feature: str) -> str:
-        """Returns a given feature of the group at index `idx`"""
-        return self.groups[idx][feature]
-
     def get_timepoints(self, dataset_type: str) -> torch.Tensor:
         """Returns timepoints for the specified dataset type (train, val, test)"""
         indices_attr = f"_{dataset_type}_indices"
         if not hasattr(self, indices_attr):
             raise ValueError(f"Invalid dataset type: {dataset_type}")
         indices = getattr(self, indices_attr)
-        timepoints = [int(self.get_group_feature(idx, "timepoint")) for idx in indices]
+        timepoints = [int(self._get_data_feature(idx, "timepoint")) for idx in indices]
         return torch.tensor(timepoints, requires_grad=False)
 
-    def get_seed_keys(self, dataset_type: str) -> list[str]:
-        """Returns seed keys for the specified dataset type (train, val, test)"""
+    def get_sample_ids(self, dataset_type: str) -> list[str]:
+        """Returns sample IDs for the specified dataset type (train, val, test)"""
         indices_attr = f"_{dataset_type}_indices"
         if not hasattr(self, indices_attr):
             raise ValueError(f"Invalid dataset type: {dataset_type}")
         indices = getattr(self, indices_attr)
-        seed_keys = [self.get_group_feature(idx, "seed_key") for idx in indices]
-        return seed_keys
+        sample_ids = [self._get_data_feature(idx, "sample_id") for idx in indices]
+        return sample_ids
 
-    def _get_image_tensors(self, group: dict, channels: list) -> torch.Tensor:
-        transformation = transforms.Compose(
-            [
-                transforms.ToTensor(),
-                transforms.Lambda(lambda x: x[:3]),
-                transforms.Grayscale(num_output_channels=1),
-                transforms.Lambda(lambda x: x.squeeze()),
-                transforms.Lambda(lambda x: x / x.max() if x.max() > 0 else x),
-            ]
-        )
+    def _augment_training_data(self):
+        augmented_groups = []
+        for transform_dict in self.augmentation_manager.transforms:
+            ((aug_name, aug),) = transform_dict.items()
+            if aug_name == "identity":
+                continue
 
-        tensors = []
-        for channel in channels:
-            if group[channel] != "":
-                tensors.append(transformation(Image.open(group[channel])))
-            else:
-                zero_channel = Image.fromarray(np.zeros(self.image_shape, dtype=np.uint8))
-                tensors.append(transformation(zero_channel))
+            for index in self._train_indices:
+                group = self.data[index]
+                aug_group = dict(group)
+                aug_group["augmentation"] = {aug_name: aug}
+                aug_group["original_index"] = index
+                augmented_groups.append(aug_group)
 
-        full_tensor = torch.stack(tensors, dim=0)
+        start_idx = len(self.data)
+        self.data.extend(augmented_groups)
 
-        augmentation_name = group.get("augmentation", "original")
-        augmentation = next(
-            (
-                aug_dict[augmentation_name]
-                for aug_dict in self.transforms
-                if augmentation_name in list(aug_dict.keys())
-            ),
-            Augmentation(transforms.Lambda(lambda x: x), "original"),
-        )
-        return augmentation(full_tensor)
+        new_indices = list(range(start_idx, len(self.data)))
+        self._train_indices.extend(new_indices)
 
-    def _split_data(self, shuffle: bool = True) -> None:
-        all_indices = list(range(len(self)))
-        groups = self._get_indices_of_groups(all_indices)
+    def _reconstruct_augmented_groups(self) -> None:
+        original_length = len(self.data)
+        original_train_indices = [idx for idx in self._train_indices if idx < original_length]
 
-        group_keys = list(groups.keys())
-        if shuffle:
-            np.random.seed(self.random_seed)
-            np.random.shuffle(group_keys)
+        augmented_groups = []
+        for transform_dict in self.augmentation_manager.transforms:
+            ((aug_name, aug),) = transform_dict.items()
+            if aug_name == "identity":
+                continue
 
-        test_groups_count = int(np.floor(len(group_keys) * self.test_split))
-        val_groups_count = int(np.floor(len(group_keys) * self.val_split))
+            for index in original_train_indices:
+                original_group = self.data[index]
+                aug_group = dict(original_group.items())
+                aug_group["augmentation"] = {aug_name: aug}
+                augmented_groups.append(aug_group)
+        self.data.extend(augmented_groups)
 
-        test_group_keys = group_keys[:test_groups_count]
-        val_group_keys = group_keys[test_groups_count : test_groups_count + val_groups_count]
-        train_group_keys = group_keys[test_groups_count + val_groups_count :]
+    def _load_from_indices(self, indices_file: str):
+        if not os.path.exists(indices_file):
+            raise FileNotFoundError(f"Indices file not found: {indices_file}")
 
-        self._train_indices = [index for key in train_group_keys for index in groups[key]]
-        self._val_indices = [index for key in val_group_keys for index in groups[key]]
-        self._test_indices = [index for key in test_group_keys for index in groups[key]]
+        with open(indices_file, "r", encoding="utf-8") as f:
+            indices = json.load(f)
+        return indices["train"], indices["val"], indices["test"]
+
+    def _get_data_feature(self, idx: int, feature: str) -> str:
+        """Returns a given feature of the data at index `idx`"""
+        return self.data[idx][feature]
 
     def _load_from_indices(self, indices_file: str) -> None:
         if not os.path.exists(indices_file):
@@ -232,89 +173,25 @@ class Loader(ABC, Dataset):
         self._val_indices = indices["val"]
         self._test_indices = indices["test"]
 
-    def _get_indices_of_groups(self, indices: list[int]) -> dict[str, list[int]]:
-        groups = defaultdict(list)
-        for idx in indices:
-            group = self.groups[idx]
-            key = group["seed_key"]
-            groups[key].append(idx)
-        return groups
-
-    def _get_augmentations(self) -> list[dict[str, Augmentation]]:
-        augmentation_map: dict[str, Callable[..., Any]] = {
-            "original": lambda _: transforms.Lambda(lambda x: x),
-            "rotate": lambda degree: transforms.RandomRotation(degrees=degree),
-        }
-
-        augmentations_list: list[dict[str, Augmentation]] = []
-
-        if not self.augmentations:
-            return augmentations_list
-
-        for augmentation in self.augmentations:
-            ((aug_name, arg),) = augmentation.items()
-            if aug_name not in augmentation_map:
-                raise ValueError(f"Invalid augmentation name: {aug_name}")
-
-            transform = augmentation_map[aug_name](int(arg) if arg is not None else arg)
-
-            full_aug_name = f"{aug_name}_{arg}"
-            augmentations_list.append({full_aug_name: Augmentation(transform, aug_name)})
-
-        return augmentations_list
-
-    def _augment_training_data(self) -> None:
-        augmented_groups = []
-        for augment in self.transforms:
-            if not augment:
-                continue
-            ((aug_name, aug),) = augment.items()
-
-            for index in self._train_indices:
-                original_group = self.groups[index]
-
-                original_group["augmentation"] = {"original": ""}
-
-                if "original" in aug_name:
-                    continue
-
-                aug_group = dict(original_group.items())
-                aug_group["augmentation"] = {aug_name: aug}
-                aug_group["original_index"] = index
-                augmented_groups.append(aug_group)
-
-        start_idx = len(self.groups)
-        self.groups.extend(augmented_groups)
-
-        new_indices = list(range(start_idx, len(self.groups)))
-        self._train_indices.extend(new_indices)
-
-    def _reconstruct_augmented_groups(self) -> None:
-        original_length = len(self.groups)
-        original_train_indices = [idx for idx in self._train_indices if idx < original_length]
-
-        augmented_groups = []
-        for augment in self.transforms:
-            if not augment:
-                continue
-            ((aug_name, aug),) = augment.items()
-
-            if "original" in aug_name:
-                continue
-
-            for index in original_train_indices:
-                original_group = self.groups[index]
-                aug_group = dict(original_group.items())
-                aug_group["augmentation"] = {aug_name: aug}
-                augmented_groups.append(aug_group)
-        self.groups.extend(augmented_groups)
-
     def _log(self, msg: str, level: str = "info") -> None:
         if self.logger:
             if level == "warning":
                 self.logger.warning(msg)
             else:
                 self.logger.log(msg)
+
+    def _log_missing_images(self, image_groups: dict[str, Any]) -> None:
+        """Log missing images for each channel."""
+        missing_images_count = {channel: 0 for channel in self.channels}
+
+        for group in image_groups.values():
+            for channel in self.channels:
+                if not group[channel]:
+                    missing_images_count[channel] += 1
+
+        for channel, count in missing_images_count.items():
+            if count > 0:
+                self._log(f"Number of missing images in {channel} - {count}", "warning")
 
     @staticmethod
     def _subsample_loader(data_loader: DataLoader, frac: float) -> DataLoader:

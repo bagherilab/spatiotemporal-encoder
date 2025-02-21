@@ -19,7 +19,7 @@ class LabelResult:
 
 
 @dataclass
-class EncoderModelResult:
+class SupervisedModelResult:
     label_results: dict[str, LabelResult] = field(default_factory=dict)
 
     def add_label_result(self, label: str) -> LabelResult:
@@ -31,17 +31,17 @@ class EncoderModelResult:
 
 @dataclass
 class DatasetResult:
-    encoder_models: dict[str, EncoderModelResult] = field(default_factory=dict)
+    encoder_models: dict[str, SupervisedModelResult] = field(default_factory=dict)
 
-    def add_encoder_model_result(self, encoder_model: str) -> EncoderModelResult:
+    def add_encoder_model_result(self, encoder_model: str) -> SupervisedModelResult:
         """Add a new encoder model result and return it"""
         if encoder_model not in self.encoder_models:
-            self.encoder_models[encoder_model] = EncoderModelResult()
+            self.encoder_models[encoder_model] = SupervisedModelResult()
         return self.encoder_models[encoder_model]
 
 
 @dataclass
-class EmulationResults:
+class SupervisedResults:
     datasets: dict[str, DatasetResult] = field(default_factory=dict)
 
     def add_dataset_result(self, dataset_name: str) -> DatasetResult:

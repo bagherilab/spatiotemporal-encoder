@@ -36,14 +36,14 @@ class TestARCADELoader(unittest.TestCase):
     def tearDown(self):
         self.temp_dir.cleanup()
 
-    def test_get_image_groups_creates_groups(self):
-        dataset = ARCADELoader(
+    def test_retrieve_data_creates_groups(self):
+        loader = ARCADELoader(
             self.temp_dir.name, channels=["cancer", "graph"], keys=self.keys, test_split=0.5
         )
-        groups = dataset.groups
-        self.assertEqual(len(groups), 5)
+        image_groups = loader.data
+        self.assertEqual(len(image_groups), 5)
 
-        for group in groups:
+        for group in image_groups:
             self.assertIn("cancer", group)
             self.assertIn("graph", group)
 
@@ -97,8 +97,8 @@ class TestARCADELoader(unittest.TestCase):
         self.assertTrue(set(val_indices).isdisjoint(set(test_indices)))
 
     def test_keys_load_correct_data(self):
-        dataset = ARCADELoader(self.temp_dir.name, channels=["cancer"], keys=["CH_typeA"])
-        self.assertEqual(len(dataset), 2)
+        loader = ARCADELoader(self.temp_dir.name, channels=["cancer"], keys=["CH_typeA"])
+        self.assertEqual(len(loader.data), 2)
 
     def test_file_parsing_returns_correct_chunks(self):
         dataset = ARCADELoader(
@@ -123,7 +123,7 @@ class TestARCADELoader(unittest.TestCase):
         actual_keys = []
         for file_name in self.image_files:
             file_name = os.path.basename(file_name)
-            actual_keys.append(dataset._parse_ARCADE_filename(file_name))
+            actual_keys.append(dataset._parse_filename(file_name))
 
         self.assertEqual(actual_keys, expected_keys)
 

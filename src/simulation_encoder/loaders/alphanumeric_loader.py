@@ -3,14 +3,11 @@ from typing import Optional, Any
 from collections import defaultdict
 
 from simulation_encoder.logger import Logger
-from simulation_encoder.loaders.loader import Loader, Augmentation
+from simulation_encoder.loaders.loader import Loader
 
 
 class AlphanumericLoader(Loader):
-    """
-    Loader class for loading
-    labeled images from a directory.
-    """
+    """Loader class for loading labeled images from a directory."""
 
     def __init__(
         self,
@@ -42,16 +39,16 @@ class AlphanumericLoader(Loader):
             random_seed=random_seed,
         )
 
-    def _get_image_groups(self) -> None:
+    def _retrieve_data(self) -> list[dict[str, Any]]:
         """Returns groups of images based on the filename format."""
-        groups: dict[str, Any] = defaultdict(
+        image_groups: dict[str, Any] = defaultdict(
             lambda: {
                 "image": "",
                 "character": "",
                 "angle": "",
                 "timepoint": "",
                 "seed_key": "",
-                "augmentation": {"original": ""},
+                "augmentation": {"identity": ""},
             }
         )
 
@@ -60,14 +57,26 @@ class AlphanumericLoader(Loader):
                 continue
 
             character, seed, angle, timepoint = self._parse_filename(file_name)
-            group_key = f"{character}_{seed}_{angle}_{timepoint}"
-            groups[group_key]["image"] = os.path.join(self.image_dir, file_name)
-            groups[group_key]["character"] = character
-            groups[group_key]["angle"] = angle
-            groups[group_key]["timepoint"] = timepoint
-            groups[group_key]["seed_key"] = f"{character}_{seed}_{angle}"
+            sample_id = f"{character}_{seed}_{angle}"
+            simulation_id = f"{sample_id}_{timepoint}"
 
-        self.groups = list(groups.values())
+            group = image_groups[simulation_id]
+            group["image"] = os.path.join(self.image_dir, file_name)
+            group["character"] = character
+            group["angle"] = angle
+            group["timepoint"] = timepoint
+            group["simulation_id"] = f"{character}_{seed}_{angle}"
+
+            for augmentation in self.augmentations:
+                ((aug_name, aug),) = augmentation.items()
+                if aug_name == "identity":
+                    continue
+                aug_simulation_id = f"{simulation_id}_{aug_name}"
+                aug_group = dict(group)
+                aug_group["augmentation"] = {aug_name: aug}
+                image_groups[aug_simulation_id] = aug_group
+
+        return list(image_groups.values())
 
     def _parse_filename(self, filename: str) -> tuple[str, int, int, int]:
         parts = filename.split("_")

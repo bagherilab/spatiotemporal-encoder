@@ -8,7 +8,7 @@ from simulation_encoder.loaders.loader import Loader
 from simulation_encoder.models.base_nn import BaseNN
 
 from simulation_encoder.dataclass.loss_data import LossData
-from simulation_encoder.dataclass.emulator_results import EmulationResults
+from simulation_encoder.dataclass.supervised_results import SupervisedResults
 
 
 class Writer:
@@ -28,6 +28,7 @@ class Writer:
         dataset_name = dataset.name
         model_path = os.path.join(self.results_path, model_name)
         dataset_path = os.path.join(model_path, dataset_name)
+        augmentations = dataset.augmentation_manager.augmentations or []
         self._create_dir(dataset_path)
 
         results = {
@@ -36,7 +37,7 @@ class Writer:
             "architecture": model.name,
             "channels": dataset.channels,
             "params": model.params,
-            "data_augmentations": dataset.augmentations,
+            "data_augmentations": augmentations,
             "keys": dataset.keys,
             "losses": {
                 "train": losses.losses_train,
@@ -48,12 +49,12 @@ class Writer:
         with open(os.path.join(dataset_path, "results.json"), "w", encoding="utf-8") as r_file:
             json.dump(results, r_file, indent=4)
 
-    def write_emulation_results(self, emulation_results: EmulationResults) -> None:
+    def write_supervised_results(self, results: SupervisedResults) -> None:
         """Writes the results of all emulators to disk"""
-        emulation_results_path = os.path.join(self.results_path, "emulation_results.json")
+        results_path = os.path.join(self.results_path, "supervised_results.json")
 
         results = {}
-        for encoder_model, encoder_result in emulation_results.get_results().items():
+        for encoder_model, encoder_result in results.get_results().items():
             results[encoder_model] = {
                 label: {
                     model_type: {
@@ -65,7 +66,7 @@ class Writer:
                 for label, label_result in encoder_result.label_results.items()
             }
 
-        with open(emulation_results_path, "w", encoding="utf-8") as r_file:
+        with open(results_path, "w", encoding="utf-8") as r_file:
             json.dump(results, r_file, indent=4)
 
     def write_train_test_indices(

@@ -57,23 +57,20 @@ def main() -> None:
         writer = Writer(results_dir=f"results/{config_name}", experiment_name=experiment_name)
         plotter = Plotter(results_dir=f"results/{config_name}", experiment_name=experiment_name)
 
-        # Datasets
-        datasets = create_datasets(experiment_config, logger)
-        runner.add_datasets(datasets)
+        # Loaders
+        loaders = create_loaders(experiment_config, logger)
+        runner.add_loaders(loaders)
 
-        for dataset_name, dataset in datasets.items():
-            writer.write_train_test_indices(dataset_name, dataset.get_indices())
+        for loader_name, loader in loaders.items():
+            writer.write_train_test_indices(loader_name, loader.get_indices())
 
-        # Models
+        # # Models
         model_param_sets = create_model_param_sets(experiment_config.model)
         runner.add_models(model_param_sets)
 
-        # Run
+        # # Run
         encoder_results = runner.run_encoder(experiment_name)
         handle_encoder_results(encoder_results, runner, writer, plotter)
-
-    # Temporal model
-
 
     # Emulation (optional)
     # emulation_results = runner.run_emulator(config_name)
@@ -81,61 +78,61 @@ def main() -> None:
     #     writer.write_emulation_results(emulation_results)
 
 
-def create_datasets(experiment_config: ExperimentConfig, logger: Logger) -> dict[str, Loader]:
-    """Create a list of datasets from the experiment config file."""
-    datasets = {}
-    dataset_configs = {}
+def create_loaders(experiment_config: ExperimentConfig, logger: Logger) -> dict[str, Loader]:
+    """Create a list of loaders from the experiment config file."""
+    loaders = {}
+    loader_configs = {}
     dataset_names = experiment_config.datasets
 
     for dataset_name in dataset_names:
-        dataset_configs[dataset_name] = _load_dataset_yaml(dataset_name)
+        loader_configs[dataset_name] = _load_dataset_yaml(dataset_name)
 
-    for dataset_name, dataset_config in dataset_configs.items():
-        dataset_params = create_dataset_params(dataset_name, dataset_config)
-        dataset = create_dataset(dataset_name, dataset_params, logger)
-        datasets[dataset_name] = dataset
+    for dataset_name, loader_config in loader_configs.items():
+        dataset_params = create_dataset_params(dataset_name, loader_config)
+        loader = create_loader(dataset_name, dataset_params, logger)
+        loaders[dataset_name] = loader
 
-    return datasets
+    return loaders
 
 
-def create_dataset(dataset_name: str, dataset_params: DatasetParams, logger: Logger) -> Loader:
-    """Create the dataset object from the dataset parameters"""
+def create_loader(dataset_name: str, dataset_params: DatasetParams, logger: Logger) -> Loader:
+    """Create the loader object from the dataset parameters"""
     params_dict = dataset_params.__dict__
-    loader = params_dict.pop("loader")
-    logger.log(f"Creating dataset {dataset_name} with loader - {loader}")
-    if loader.lower() == "arcade":
-        dataset = ARCADELoader(
+    loader_type = params_dict.pop("loader")
+    logger.log(f"Creating dataset {dataset_name} with loader - {loader_type}")
+    if loader_type.lower() == "arcade":
+        loader = ARCADELoader(
             **params_dict,
             logger=logger,
         )
-    elif loader.lower() == "alphanumeric":
+    elif loader_type.lower() == "alphanumeric":
         del params_dict["label_dir"]
         del params_dict["labels"]
-        dataset = AlphanumericLoader(
+        loader = AlphanumericLoader(
             **params_dict,
             logger=logger,
         )
-    elif loader.lower() == "gastruloid":
+    elif loader_type.lower() == "gastruloid":
         del params_dict["label_dir"]
         del params_dict["labels"]
-        dataset = GastruloidLoader(
+        loader = GastruloidLoader(
             **params_dict,
             logger=logger,
         )
 
-    elif loader.lower() == "glims":
+    elif loader_type.lower() == "glims":
         del params_dict["label_dir"]
         del params_dict["labels"]
-        dataset = GlimsLoader(
+        loader = GlimsLoader(
             **params_dict,
             logger=logger,
         )
 
-    return dataset
+    return loader
 
 
 def create_dataset_params(dataset_name: str, dataset_config: DatasetConfig) -> DatasetParams:
-    """Create the dataset parameters from the experiment config file"""
+    """Create the loader parameters from the experiment config file"""
     dataset_params = DatasetParams(
         loader=dataset_config.loader,
         image_dir=dataset_config.image_dir,
@@ -192,7 +189,7 @@ def handle_encoder_results(
             writer.write_model_state(model_id, dataset_name, data["model_state"])
             writer.write_encoder_results(
                 model_id,
-                runner.get_dataset(dataset_name),
+                runner.get_loader(dataset_name),
                 runner.get_model(model_id),
                 data["losses"],
             )
@@ -225,7 +222,7 @@ def handle_encoder_results(
         best_model = runner.get_model(best_model_id)
 
         best_model_dataset_name = best_model_info["dataset_name"]
-        best_model_dataset = runner.get_dataset(best_model_dataset_name)
+        best_model_dataset = runner.get_loader(best_model_dataset_name)
 
         best_model_data = best_model_info["data"]
 

@@ -2,11 +2,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class LogErrorLoss(nn.Module):
     """
     Log Error Loss with Box Blur for spatial data comparison.
 
-    This loss computes the average log difference between a predicted image and 
+    This loss computes the average log difference between a predicted image and
     a target image after applying a box blur to both. It supports multi-channel images.
 
     Parameters
@@ -16,11 +17,12 @@ class LogErrorLoss(nn.Module):
     epsilon : float, optional
         Small constant added to avoid log(0). Default is 1e-8.
     """
+
     def __init__(self, kernel_size=3, epsilon=1e-8):
         super(LogErrorLoss, self).__init__()
         self.epsilon = epsilon
         self.kernel_size = kernel_size
-        
+
     def forward(self, predicted, target):
         """
         Compute the log error between predicted and target images.
@@ -38,8 +40,10 @@ class LogErrorLoss(nn.Module):
         torch.Tensor
             Scalar tensor representing the average log error across all pixels and channels.
         """
-        assert predicted.shape == target.shape, "Predicted and target images must have the same shape"
-        
+        assert (
+            predicted.shape == target.shape
+        ), "Predicted and target images must have the same shape"
+
         predicted_blurred = self.box_blur(predicted)
         target_blurred = self.box_blur(target)
 
@@ -63,4 +67,6 @@ class LogErrorLoss(nn.Module):
         torch.Tensor
             Blurred tensor of the same shape as the input.
         """
-        return F.avg_pool2d(x, kernel_size=self.kernel_size, stride=1, padding=self.kernel_size // 2)
+        return F.avg_pool2d(
+            x, kernel_size=self.kernel_size, stride=1, padding=self.kernel_size // 2
+        )

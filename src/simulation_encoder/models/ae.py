@@ -11,7 +11,6 @@ from simulation_encoder.logger import Logger
 from simulation_encoder.loaders.loader import Loader
 from simulation_encoder.models.rbm import RBM, CRBM
 from simulation_encoder.models.base_nn import BaseNN
-from simulation_encoder.models.losses.log_error_loss import LogErrorLoss
 
 
 class AE(BaseNN):
@@ -78,10 +77,6 @@ class AE(BaseNN):
             "image": nn.MSELoss(),
             "timepoint": nn.CrossEntropyLoss(),
         }
-        # self.criterion = {
-        #     "image": LogErrorLoss(),
-        #     "timepoint": nn.CrossEntropyLoss(),
-        # }
 
         # Chosen arbitrarily
         # Factor to balance image and timepoint loss
@@ -108,7 +103,7 @@ class AE(BaseNN):
         pred_image = self.decode_image(z)
         pred_timepoint = self.decode_timepoint(z)
         return pred_image, pred_timepoint
-    
+
     def fit(
         self,
         train_loader: DataLoader,
@@ -328,7 +323,7 @@ class AE(BaseNN):
             saliency_map = torch.zeros_like(x[:, 0, :, :])
 
         return saliency_map
-    
+
     def pretrain_encoder_rbm(
         self,
         train_loader: DataLoader,

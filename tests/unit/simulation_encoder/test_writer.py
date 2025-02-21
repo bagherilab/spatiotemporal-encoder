@@ -18,7 +18,7 @@ class TestWriter(unittest.TestCase):
 
         self.mock_runner.dataset = MagicMock()
         self.mock_runner.dataset.keys = ["test_key"]
-        self.mock_runner.dataset.augmentations = ["rotate_180", "rotate_90"]
+        self.mock_runner.dataset.augmentations = [{"rotate": 180}, {"rotate": 90}]
         self.mock_runner.dataset.channels = ["test_image"]
 
         mock_logger.log = MagicMock()
@@ -70,8 +70,6 @@ class TestWriter(unittest.TestCase):
         )
 
         actual_call_args = mock_dump.call_args[0][0]
-        print(actual_call_args)
-        print(expected_results)
         self.assertEqual(actual_call_args, expected_results)
 
 

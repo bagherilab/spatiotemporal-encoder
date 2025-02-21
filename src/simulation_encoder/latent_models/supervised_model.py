@@ -13,7 +13,7 @@ from sklearn.base import clone
 from simulation_encoder.logger import Logger
 
 
-class Emulator:
+class SupervisedModel:
     def __init__(
         self,
         model_type: str = "linear_regression",
