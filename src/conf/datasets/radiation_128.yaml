@@ -1,5 +1,5 @@
 loader: ARCADE
-image_dir: data/ARCADE/radiation_128/images
+image_dir: data/radiation_128/images
 label_dir: 
 channels:
   - cancer

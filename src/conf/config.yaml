@@ -1,13 +1,13 @@
-experiment_name: vae_cancer
+experiment_name: test
 experiments:
-  vae:
+  ae:
     datasets:
       - vascular_function_128
     model:
-        architecture: vae_simple
+        architecture: ae_simple
         num_channels: 1
         image_size: 128
-        params: grid_optimizers
+        params: grid_test
     general_configs:
         pretrain: false
         verbose: true  

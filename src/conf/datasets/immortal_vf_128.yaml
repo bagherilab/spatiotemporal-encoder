@@ -1,6 +1,6 @@
 loader: ARCADE
-image_dir: data/ARCADE/immortal_vf_128/images
-label_dir: data/ARCADE/immortal_vf_128/labels
+image_dir: data/immortal_vf_128/images
+label_dir: data/immortal_vf_128/labels
 channels:
   # - cancer
   - graph

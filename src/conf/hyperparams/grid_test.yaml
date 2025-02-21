@@ -1,9 +1,14 @@
 num_epochs: 2
 continuous:
   image_loss_weight:
-    range: [0.0, 1.0]
+    range: 1.0
     search: linear
     num_samples: 1
 discrete:
   latent_dim:
-    values: [16]
+    values: [2]
+  optimizer:
+    values:
+      - type: "Adam"
+        lr: [0.001]
+        betas: [[0.8, 0.99]]
