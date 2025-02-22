@@ -69,7 +69,7 @@ class Loader(ABC):
     @abstractmethod
     def _retrieve_data(self) -> list[dict[str, Any]]:
         """Returns groups of images based on the filename format."""
-        raise NotImplementedError("Implement this in a subclass.")
+        ...
 
     def get_dataloader(self, dataset_type: str) -> DataLoader:
         """Returns DataLoader for the specified dataset type (train, val, test)"""

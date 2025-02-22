@@ -71,7 +71,7 @@ def main() -> None:
         encoder_results = runner.run_encoder(experiment_name)
         handle_encoder_results(encoder_results, runner, writer, plotter)
 
-    # Emulation (optional)
+    # Emulation
     # emulation_results = runner.run_emulator(config_name)
     # if emulation_results:
     #     writer.write_emulation_results(emulation_results)

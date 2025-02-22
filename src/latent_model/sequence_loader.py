@@ -3,11 +3,6 @@ from torch.utils.data import DataLoader, Dataset
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-from simulation_encoder.logger import Logger
-from simulation_encoder.loaders.dataset_utils.augmentation import AugmentationsManager
-from simulation_encoder.loaders.dataset_utils.data_splitter import DatasetSplitter
-from simulation_encoder.loaders.dataset_utils.image_dataset import ImageDataset
-
 class TimeSeriesDataset(Dataset):
     """Dataset for time-series or otherwise ordered data"""
     def __init__(self, sequences: dict):
@@ -22,8 +17,6 @@ class TimeSeriesDataset(Dataset):
         sequence = torch.tensor(self.sequences[sample_id], dtype=torch.float32)
         return sequence, sample_id
 
-
-
 class SequenceLoader():
     """TODO"""
     def __init__(
@@ -33,26 +26,26 @@ class SequenceLoader():
         id_col: str = "sample_id",
         val_split: float = 0.2,
         test_split: float = 0.2,
-        batch_size: int = 16,
+        batch_size: int = 8,
         random_seed: int = 42
     ):
         self.data = self._load_csv(data_path)
         self.sequence_col = sequence_col
         self.id_col = id_col 
         self.feature_cols = [col for col in self.data.columns if col not in [self.sequence_col, self.id_col]]
+        self.num_dims = len(self.feature_cols)
 
-        
         self.val_split = val_split
         self.test_split = test_split
         self.batch_size = batch_size
         self.random_seed = random_seed
 
         self.sequences = {}
-        
         for sample_id, group in self.data.groupby(self.id_col):
             sorted_group = group.sort_values(by=self.sequence_col)
             self.sequences[sample_id] = sorted_group[self.feature_cols].values
 
+        self.sequence_len = len(group)
         self._train_ids, self._val_ids, self._test_ids = self._split_data()
 
     def get_dataloader(self, dataset_type: str) -> DataLoader:
