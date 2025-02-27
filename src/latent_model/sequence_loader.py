@@ -1,7 +1,9 @@
-import torch
-from torch.utils.data import DataLoader, Dataset
 import pandas as pd
 from sklearn.model_selection import train_test_split
+
+import torch
+from torch.utils.data import DataLoader, Dataset
+
 
 class TimeSeriesDataset(Dataset):
     """Dataset for time-series or otherwise ordered data"""
@@ -26,7 +28,7 @@ class SequenceLoader():
         id_col: str = "sample_id",
         val_split: float = 0.2,
         test_split: float = 0.2,
-        batch_size: int = 8,
+        batch_size: int = 16,
         random_seed: int = 42
     ):
         self.data = self._load_csv(data_path)

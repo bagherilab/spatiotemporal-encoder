@@ -2,31 +2,38 @@ import cProfile
 import pstats
 import time
 
-import os
-
-import yaml
+import torch
 import traceback
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 
 from simulation_encoder.runner import Runner
 from simulation_encoder.writer import Writer
 from simulation_encoder.plotter import Plotter
 from simulation_encoder.logger import Logger
+
+from simulation_encoder.models.ae import AE
+from simulation_encoder.models.vae import VAE
+
 from simulation_encoder.loaders.loader import Loader
 from simulation_encoder.loaders.arcade_loader import ARCADELoader
 from simulation_encoder.loaders.alphanumeric_loader import AlphanumericLoader
 from simulation_encoder.loaders.gastruloid_loader import GastruloidLoader
 from simulation_encoder.loaders.glims_loader import GlimsLoader
+
 from simulation_encoder.dataclass.param_sets import DatasetParams, ModelParams
 from simulation_encoder.dataclass.config_schemas import (
     MainConfig,
     DatasetConfig,
-    HyperparameterConfig,
     ExperimentConfig,
     ModelParamsConfig,
-    ModelArchitectureConfig,
 )
 from simulation_encoder.utils.generate_hyperparams import generate_hyperparameters
+from simulation_encoder.utils.yaml_utils import (
+    load_model_yaml, 
+    load_dataset_yaml,
+    load_hyperparam_yaml, 
+    load_yaml,
+)
 
 CONFIG_YAML = "src/conf/config.yaml"
 
@@ -41,7 +48,7 @@ def main() -> None:
     and the run method is called to start the simulation encoder."""
 
     try:
-        main_config = _load_yaml(CONFIG_YAML, MainConfig)
+        main_config = load_yaml(CONFIG_YAML, MainConfig)
     except ValidationError as e:
         traceback.print_exc()
         raise ValidationError(f"Configuration validation error: {e}") from e
@@ -84,7 +91,7 @@ def create_loaders(experiment_config: ExperimentConfig, logger: Logger) -> dict[
     dataset_names = experiment_config.datasets
 
     for dataset_name in dataset_names:
-        loader_configs[dataset_name] = _load_dataset_yaml(dataset_name)
+        loader_configs[dataset_name] = load_dataset_yaml(dataset_name)
 
     for dataset_name, loader_config in loader_configs.items():
         dataset_params = create_dataset_params(dataset_name, loader_config)
@@ -92,7 +99,6 @@ def create_loaders(experiment_config: ExperimentConfig, logger: Logger) -> dict[
         loaders[dataset_name] = loader
 
     return loaders
-
 
 def create_loader(dataset_name: str, dataset_params: DatasetParams, logger: Logger) -> Loader:
     """Create the loader object from the dataset parameters"""
@@ -129,7 +135,6 @@ def create_loader(dataset_name: str, dataset_params: DatasetParams, logger: Logg
 
     raise NameError(f"Invalid loader type specified: {loader_type}")
 
-
 def create_dataset_params(dataset_name: str, dataset_config: DatasetConfig) -> DatasetParams:
     """Create the loader parameters from the experiment config file"""
     dataset_params = DatasetParams(
@@ -148,14 +153,13 @@ def create_dataset_params(dataset_name: str, dataset_config: DatasetConfig) -> D
 
     return dataset_params
 
-
 def create_model_param_sets(model_config: ModelParamsConfig) -> list[ModelParams]:
     """Create the model parameters from model config files and hyperparameter yaml files."""
     model_name = model_config.architecture
     num_channels = model_config.num_channels
-    model_yaml = _load_model_yaml(model_name)
+    model_yaml = load_model_yaml(model_name)
 
-    model_params = _load_hyperparam_yaml(model_config.params)
+    model_params = load_hyperparam_yaml(model_config.params)
     num_epochs = model_params.num_epochs
     continuous_params = model_params.continuous
     discrete_params = model_params.discrete
@@ -175,7 +179,6 @@ def create_model_param_sets(model_config: ModelParamsConfig) -> list[ModelParams
 
     return model_param_sets
 
-
 def handle_encoder_results(
     encoder_results: dict, runner: Runner, writer: Writer, plotter: Plotter
 ) -> None:
@@ -185,7 +188,7 @@ def handle_encoder_results(
 
     for dataset_name, dataset_results in encoder_results.items():
         for model_id, data in dataset_results.items():
-            writer.write_model_state(model_id, dataset_name, data["model_state"])
+            # writer.write_model_state(model_id, dataset_name, data["model_state"])
             writer.write_encoder_results(
                 model_id,
                 runner.get_loader(dataset_name),
@@ -231,44 +234,24 @@ def handle_encoder_results(
         writer.write_encoded_data(
             "_best_model", best_model_dataset_name, best_model_data["encoded_data"]
         )
+        writer.write_model_state(
+            "_best_model", best_model_dataset_name, best_model_data["model_state"]
+        )
 
-
-def _load_yaml(yaml_file: str, config_class: BaseModel) -> BaseModel:
-    try:
-        with open(yaml_file, "r") as file:
-            config = yaml.safe_load(file)
-        return config_class(**config)  # type: ignore
-    except FileNotFoundError as e:
-        traceback.print_exc()
-        raise FileNotFoundError(f"File {yaml_file} not found") from e
-    except ValidationError as e:
-        traceback.print_exc()
-        raise ValidationError(
-            f"Error in loading yaml file: {e}, issue validation with {type(config_class).__name__} param set"
-        ) from e
-
-
-def _load_hyperparam_yaml(yaml_name: str) -> HyperparameterConfig:
-    yaml_file = yaml_name if yaml_name.endswith(".yaml") else yaml_name + ".yaml"
-    yaml_path = f"src/conf/hyperparams/{yaml_file}"
-    return _load_yaml(yaml_path, HyperparameterConfig)
-
-
-def _load_dataset_yaml(yaml_name: str) -> DatasetParams:
-    yaml_file = yaml_name if yaml_name.endswith(".yaml") else yaml_name + ".yaml"
-    yaml_path = f"src/conf/datasets/{yaml_file}"
-    return _load_yaml(yaml_path, DatasetParams)
-
-
-def _load_model_yaml(
-    architecture_name: str, yaml_path: str = f"src/conf/models"
-) -> ModelArchitectureConfig:
-    yaml_file = (
-        architecture_name if architecture_name.endswith(".yaml") else architecture_name + ".yaml"
-    )
-    yaml_path = os.path.join(yaml_path, yaml_file)
-    return _load_yaml(yaml_path, ModelArchitectureConfig)
-
+def create_encoder_model(model_params, model_base_name, num_channels, params, dataset_dir):
+    if model_params.type == "AE":
+        model = AE(name=model_base_name, num_channels=num_channels, architecture=model_params.architecture.model_dump(exclude_none=True), params=params)
+    elif model_params.type == "VAE":
+        model = VAE(name=model_base_name, num_channels=num_channels, architecture=model_params.architecture.model_dump(exclude_none=True), params=params)
+    else:
+        raise ValueError("Model type not supported")
+    
+    print(f"Loading model {model_base_name}")
+    state_dict = torch.load(f"{dataset_dir}/model_state.pth", weights_only=True)
+    state_dict.pop("_metadata", None)
+    model.load_state_dict(state_dict)
+        
+    return model
 
 if __name__ == "__main__":
     with cProfile.Profile() as pr:

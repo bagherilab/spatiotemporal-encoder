@@ -1,7 +1,5 @@
 from collections import defaultdict
 
-import torch
-
 from simulation_encoder.logger import Logger
 from latent_model.sequence_loader import SequenceLoader
 from latent_model.temporal_models import TemporalModel
@@ -68,17 +66,18 @@ class Runner:
 
                 print(f"Finding optimal model for {dataset_name} data encoded with {encoder_model_name}")
                 for model in self.models[encoder_model_name][dataset_name]:
-                    train_loss, val_loss = self._train_model(model, loader)
+                    train_losses, val_losses = self._train_model(model, loader)
 
-                    if val_loss[-1] < best_loss:
-                        best_loss = val_loss[-1]
+                    if val_losses[-1] < best_loss:
+                        best_loss = val_losses[-1]
                         best_model = model
+
                 results[encoder_model_name][dataset_name] = {
                     "best_model": best_model,
-                    "best_loss": best_loss,
+                    "best_val_loss": best_loss,
                 }
 
-                test_loss = self._eval_model(best_model, loader)
+                # test_loss = self._eval_model(best_model, loader)
 
         return results
 
@@ -88,7 +87,7 @@ class Runner:
         val_loader = loader.get_dataloader(dataset_type="val")
 
         losses, val_losses = model.fit(
-            train_loader, val_loader=val_loader, patience=5, min_delta=0.001, max_epochs=25
+            train_loader, val_loader=val_loader, patience=5, min_delta=0.001, max_epochs=50
         )
 
         return losses, val_losses
@@ -96,19 +95,9 @@ class Runner:
     def _eval_model(self, model: TemporalModel, loader: SequenceLoader) -> float:
         model.eval()
         test_loader = loader.get_dataloader(dataset_type="test")
-
-        with torch.no_grad():
-            for batch, _ in test_loader:
-                x_batch = batch[:, :-1, :]
-                y_batch = batch[:, -1, :]
-                y_pred = model(x_batch)
-
-                # TODO
-
-
-        
-
-
+        test_loss = model.eval_one_epoch(test_loader)
+        return test_loss
+    
     def _log(self, msg: str, level: str = "info") -> None:
         if self.logger:
             if level == "warning":
