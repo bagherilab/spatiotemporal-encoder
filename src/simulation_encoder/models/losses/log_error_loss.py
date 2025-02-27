@@ -19,7 +19,7 @@ class LogErrorLoss(nn.Module):
     """
 
     def __init__(self, kernel_size: int = 3, epsilon: float = 1e-8) -> None:
-        super(LogErrorLoss, self).__init__()
+        super().__init__()
         self.epsilon = epsilon
         self.kernel_size = kernel_size
 

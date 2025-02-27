@@ -90,7 +90,7 @@ class Writer:
         self._create_dir(dataset_path)
 
         full_data = pd.DataFrame()
-        for key, data in encoded_data.items():
+        for _, data in encoded_data.items():
             full_data = pd.concat([full_data, data], axis=0)
 
         full_data.to_csv(os.path.join(dataset_path, "encoded_data.csv"), index=False)

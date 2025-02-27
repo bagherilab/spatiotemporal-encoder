@@ -18,11 +18,11 @@ class BaseNN(ABC, nn.Module):
     def __init__(
         self,
         name: str = "",
-        architecture: dict[str, list[dict[str, Any]]] = {},
+        architecture: dict[str, list[dict[str, Any]]] = None,
         num_channels: int = 1,
         image_size: int = 128,
         num_epochs: int = 10,
-        params: dict[str, Any] = {},
+        params: dict[str, Any] = None,
         logger: Logger | None = None,
     ) -> None:
         """

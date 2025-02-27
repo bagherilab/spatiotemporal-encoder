@@ -66,8 +66,7 @@ class Runner:
         model_param_sets : list[BaseNN]
             List of models to be trained
         """
-        model_num = 0
-        for model_param in model_param_sets:
+        for model_num, model_param in enumerate(model_param_sets):
             model_id = f"{model_param.name}_{model_num}"
             self.models[model_id] = model_param
             self.losses[model_id] = LossData()

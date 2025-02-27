@@ -39,7 +39,7 @@ class VAE(BaseNN):
         num_channels: int = 1,
         num_epochs: int = 5,
         image_size: int = 128,
-        params: dict[str, Any] = {},
+        params: dict[str, Any] = None,
         logger: Logger | None = None,
     ):
         super().__init__()
@@ -319,33 +319,35 @@ class VAE(BaseNN):
         timepoint_criteria = self.criterion["timepoint"]
 
         avg_loss: dict[str, float] = defaultdict(float)
-        with torch.no_grad():
-            with tqdm(val_loader, desc="Validation", unit="batch", ncols=120) as pbar:
-                for inputs, labels in pbar:
-                    inputs, labels = inputs.to(self.device), labels.to(self.device)
-                    pred_image, pred_timepoint, mu, logvar = self(inputs)
+        with (
+            tqdm(val_loader, desc="Validation", unit="batch", ncols=120) as pbar,
+            torch.no_grad(),
+        ):
+            for inputs, labels in pbar:
+                inputs, labels = inputs.to(self.device), labels.to(self.device)
+                pred_image, pred_timepoint, mu, logvar = self(inputs)
 
-                    batch_loss = {
-                        "image": image_criteria(pred_image, inputs)
-                        * self.image_loss_factor,
-                        "timepoint": timepoint_criteria(pred_timepoint, labels),
-                    }
-                    reconstruction_loss, reconstruction_loss_weighted = (
-                        self._calc_reconstruction_loss(batch_loss)
-                    )
-                    kld_loss = self._calc_kld_loss(mu, logvar)
-                    vae_loss = (
-                        self.reconstruction_loss_factor * reconstruction_loss_weighted
-                        + kld_loss
-                    )
+                batch_loss = {
+                    "image": image_criteria(pred_image, inputs)
+                    * self.image_loss_factor,
+                    "timepoint": timepoint_criteria(pred_timepoint, labels),
+                }
+                reconstruction_loss, reconstruction_loss_weighted = (
+                    self._calc_reconstruction_loss(batch_loss)
+                )
+                kld_loss = self._calc_kld_loss(mu, logvar)
+                vae_loss = (
+                    self.reconstruction_loss_factor * reconstruction_loss_weighted
+                    + kld_loss
+                )
 
-                    for key in batch_loss:
-                        avg_loss[key] += batch_loss[key].item()
-                    avg_loss["reconstruction"] += reconstruction_loss.item()
-                    avg_loss["kld"] += kld_loss.item()
-                    avg_loss["weighted_loss"] += vae_loss.item()
+                for key in batch_loss:
+                    avg_loss[key] += batch_loss[key].item()
+                avg_loss["reconstruction"] += reconstruction_loss.item()
+                avg_loss["kld"] += kld_loss.item()
+                avg_loss["weighted_loss"] += vae_loss.item()
 
-                    pbar.set_postfix({"Weighted Loss": vae_loss.item()})
+                pbar.set_postfix({"Weighted Loss": vae_loss.item()})
 
         avg_loss = {key: value / len(val_loader) for key, value in avg_loss.items()}
         return avg_loss
@@ -437,7 +439,7 @@ class VAE(BaseNN):
                     is_flattened = True
 
                 self._log(f"RBM {in_features} nodes to {out_features} nodes")
-                gaussian = True if i == num_layers - 1 else False
+                gaussian = i == num_layers - 1  # apply gaussian to the final layer
                 rbm = RBM(
                     in_features,
                     out_features,

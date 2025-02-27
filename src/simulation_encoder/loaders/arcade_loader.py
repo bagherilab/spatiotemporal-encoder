@@ -47,10 +47,10 @@ class ARCADELoader(Loader):
         batch_size: int = 16,
         val_split: float = 0.2,
         test_split: float = 0.2,
-        labels: list[str] = [],
+        labels: list[str] = None,
         label_dir: str | None = None,
         logger: Logger | None = None,
-        augmentations: list[dict[str, Any]] | None = [],
+        augmentations: list[dict[str, Any]] | None = None,
         indices_file: str | None = None,
         random_seed: int = 42,
     ):
@@ -86,8 +86,8 @@ class ARCADELoader(Loader):
         try:
             labels = [self.get_label(idx, label) for idx in indices]
             return torch.tensor(labels, requires_grad=False)
-        except ValueError:
-            raise ValueError(f"Invalid target name: {label}")
+        except ValueError as e:
+            raise ValueError(f"Invalid target name: {label}") from e
 
     def get_label(self, idx: int, label_name: str) -> float:
         """Returns labels the group at index `idx`"""

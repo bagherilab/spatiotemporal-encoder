@@ -108,6 +108,7 @@ select = [
     # isort
     "I",
 ]
+ignore = ["B007", "E501"]
 
 [tool.hatch.build.targets.sdist]
 include = ["src/simulation_encoder"]

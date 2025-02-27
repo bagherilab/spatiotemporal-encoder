@@ -10,7 +10,7 @@ from simulation_encoder.logger import Logger
 
 class BaseRBM(ABC, nn.Module):
     def __init__(self, logger: Logger | None = None):
-        super(BaseRBM, self).__init__()
+        super().__init__()
         self.logger = logger
 
     @abstractmethod
@@ -84,7 +84,7 @@ class RBM(BaseRBM):
         logger: Logger | None = None,
         device: str = "cpu",
     ):
-        super(RBM, self).__init__(logger)
+        super().__init__(logger)
 
         self.visible_dim = visible_dim
         self.hidden_dim = hidden_dim
@@ -185,7 +185,7 @@ class CRBM(BaseRBM):
         logger: Logger | None = None,
         device: str = "cpu",
     ):
-        super(CRBM, self).__init__(logger)
+        super().__init__(logger)
 
         self.visible_dim = visible_dim
         self.hidden_dim = hidden_dim

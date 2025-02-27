@@ -84,8 +84,8 @@ def _get_optimizer_values(
                 if isinstance(opt["type"], str) and opt["type"] in globals()
                 else opt["type"]
             )
-        except KeyError:
-            raise ValueError(f"Invalid optimizer type: {opt['type']}")
+        except KeyError as e:
+            raise ValueError(f"Invalid optimizer type: {opt['type']}") from e
 
         opt_params = {k: v for k, v in opt.items() if k != "type"}
         opt_combinations = list(product(*opt_params.values()))

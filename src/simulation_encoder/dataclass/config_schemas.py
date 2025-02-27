@@ -96,7 +96,7 @@ class HyperparameterRangeConfig(BaseModel):
                 raise ValueError(
                     "range must be a list with two elements where the first is less than the second"
                 )
-        elif not isinstance(value, (float, int)):
+        elif not isinstance(value, (float | int)):
             raise ValueError("range must be either a float or a list of two floats")
         return value
 

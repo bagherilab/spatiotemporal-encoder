@@ -6,16 +6,17 @@ import neuralop
 import torch
 from torch.optim import SGD, Adam
 
-torch.serialization.add_safe_globals([torch._C._nn.gelu])
-torch.serialization.add_safe_globals(
-    [neuralop.layers.spectral_convolution.SpectralConv]
-)
-
 from latent_model.sequence_loader import SequenceLoader
 from latent_model.temporal_models import LSTMModel, RNNModel, TemporalModel
 from simulation_encoder.main import create_encoder_model
 from simulation_encoder.models.base_nn import BaseNN
 from simulation_encoder.utils.yaml_utils import load_model_yaml
+
+torch.serialization.add_safe_globals([torch._C._nn.gelu])
+torch.serialization.add_safe_globals(
+    [neuralop.layers.spectral_convolution.SpectralConv]
+)
+
 
 RESULTS_DIR = "results"
 EXPERIMENT_NAME = "arch_simple_cancer_v3"
