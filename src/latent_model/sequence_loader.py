@@ -11,10 +11,10 @@ class TimeSeriesDataset(Dataset):
         self.sequences = sequences
         self.sample_ids = list(sequences.keys())
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.sample_ids)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> tuple[torch.tensor, int]:
         sample_id = self.sample_ids[idx]
         sequence = torch.tensor(self.sequences[sample_id], dtype=torch.float32)
         return sequence, sample_id

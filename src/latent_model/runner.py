@@ -29,8 +29,8 @@ class Runner:
     def __init__(self, logger: Logger = None, verbose: bool = False) -> None:
         self.logger = logger
         self.verbose = verbose
-        self.models = {}
-        self.loaders = {}
+        self.models: dict[str, TemporalModel] = {}
+        self.loaders: dict[str, SequenceLoader] = {}
 
     def add_loaders(self, loaders: dict[str, SequenceLoader]) -> None:
         """Set the loaders on which models should be trained"""
@@ -55,7 +55,7 @@ class Runner:
         if not self.models:
             raise ValueError("No models have been added to the runner.")
 
-        results = defaultdict(dict)
+        results: dict = defaultdict(dict)
 
         for encoder_model_name, dataset_loaders in self.loaders.items():
             for dataset_name, loader in dataset_loaders.items():

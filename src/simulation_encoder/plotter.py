@@ -66,7 +66,7 @@ class Plotter:
 
     @staticmethod
     def show_images(
-        image_lists: list[list[torch.Tensor]], row_labels: list[str] = None
+        image_lists: list[list[torch.Tensor]], row_labels: list[str] | None = None
     ) -> None:
         """TODO"""
         num_rows = len(image_lists)

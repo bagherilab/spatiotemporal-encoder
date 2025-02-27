@@ -6,26 +6,21 @@ authors = [{ name = "Jacob Evarts", email = "jevarts@uw.edu" }]
 requires-python = ">=3.11"
 readme = "README.md"
 dependencies = [
-    "torch>=2.3.0,<3",
+    "torch==2.6.0",
     "pandas>=2.2.2,<3",
     "pillow>=10.3.0,<11",
     "scipy==1.12.0",
     "matplotlib>=3.9.0,<4",
     "pyyaml>=6.0.1,<7",
     "scikit-learn>=1.5.0,<2",
-    "torchvision>=0.18.1,<0.19",
+    "torchvision>=0.18.1",
     "pydantic>=2.8.2,<3",
     "seaborn>=0.13.2,<0.14",
     "ipykernel>=6.29.5,<7",
     "llvmlite>=0.43.0,<0.44",
-    "umap-learn>=0.5.6,<0.6",
     "neuraloperator>=0.3.0",
     "wandb>=0.19.7",
-]
-
-[project.optional-dependencies]
-test = [
-    "ruff>=0.9.8",
+    "tqdm>=4.67.1",
 ]
 
 [dependency-groups]
@@ -41,9 +36,6 @@ test = [
 ]
 dev = [
     "ipykernel>=6.29.4,<7",
-]
-ruff = [
-    "ruff>=0.9.8",
 ]
 
 [tool.uv]

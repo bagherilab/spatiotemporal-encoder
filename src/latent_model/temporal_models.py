@@ -121,7 +121,7 @@ class LSTMModel(TemporalModel):
         self.optimizer = optim.Adam(self.parameters(), lr=0.001)
         self.criterion = nn.MSELoss()
 
-    def forward(self, x):
+    def forward(self, x: torch.tensor) -> torch.tensor:
         out, (hn, cn) = self.lstm(x)
         out = out[:, -1, :]
         out = self.fc(out)
