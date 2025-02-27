@@ -1,16 +1,17 @@
-import os
 import json
-from typing import Optional, Callable, Any
+import os
 from abc import ABC, abstractmethod
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, Subset, TensorDataset
 
-from simulation_encoder.logger import Logger
 from simulation_encoder.loaders.dataset_utils.augmentation import AugmentationsManager
 from simulation_encoder.loaders.dataset_utils.data_splitter import DatasetSplitter
 from simulation_encoder.loaders.dataset_utils.image_dataset import ImageDataset
+from simulation_encoder.logger import Logger
 
 
 class Loader(ABC):
@@ -26,9 +27,9 @@ class Loader(ABC):
         val_split: float,
         test_split: float,
         batch_size: int,
-        augmentations: Optional[list[dict[str, Any]]],
-        indices_file: Optional[str],
-        logger: Optional[Logger],
+        augmentations: list[dict[str, Any]] | None,
+        indices_file: str | None,
+        logger: Logger | None,
         random_seed: int,
     ):
         self.image_dir = image_dir
@@ -41,13 +42,15 @@ class Loader(ABC):
         self.data = self._retrieve_data()
 
         if indices_file:
-            self._train_indices, self._val_indices, self._test_indices = self._load_from_indices(
-                indices_file
+            self._train_indices, self._val_indices, self._test_indices = (
+                self._load_from_indices(indices_file)
             )
             self._reconstruct_augmented_groups()
         else:
             splitter = DatasetSplitter(self.data, val_split, test_split, random_seed)
-            self._train_indices, self._val_indices, self._test_indices = splitter.get_splits()
+            self._train_indices, self._val_indices, self._test_indices = (
+                splitter.get_splits()
+            )
 
         self._augment_training_data()
 
@@ -136,7 +139,9 @@ class Loader(ABC):
 
     def _reconstruct_augmented_groups(self) -> None:
         original_length = len(self.data)
-        original_train_indices = [idx for idx in self._train_indices if idx < original_length]
+        original_train_indices = [
+            idx for idx in self._train_indices if idx < original_length
+        ]
 
         augmented_groups = []
         for transform_dict in self.augmentation_manager.transforms:
@@ -155,7 +160,7 @@ class Loader(ABC):
         if not os.path.exists(indices_file):
             raise FileNotFoundError(f"Indices file not found: {indices_file}")
 
-        with open(indices_file, "r", encoding="utf-8") as f:
+        with open(indices_file, encoding="utf-8") as f:
             indices = json.load(f)
         return indices["train"], indices["val"], indices["test"]
 
@@ -190,10 +195,15 @@ class Loader(ABC):
 
         total_num_samples = len(data_loader.dataset)  # type: ignore
         num_samples = int(total_num_samples * frac)
-        indices = np.random.choice(total_num_samples, num_samples, replace=False).tolist()
+        indices = np.random.choice(
+            total_num_samples, num_samples, replace=False
+        ).tolist()
         dataset = Subset(data_loader.dataset, indices)
         return DataLoader(
-            dataset, batch_size=data_loader.batch_size, shuffle=True, collate_fn=Loader._collate_fn
+            dataset,
+            batch_size=data_loader.batch_size,
+            shuffle=True,
+            collate_fn=Loader._collate_fn,
         )
 
     @staticmethod
@@ -218,7 +228,9 @@ class Loader(ABC):
 
     @staticmethod
     def _transform_dataloader(
-        func: Callable[[torch.Tensor], torch.Tensor], data_loader: DataLoader, device: str = "cpu"
+        func: Callable[[torch.Tensor], torch.Tensor],
+        data_loader: DataLoader,
+        device: str = "cpu",
     ) -> DataLoader:
         transformed_data = []
         labels = []
@@ -233,12 +245,17 @@ class Loader(ABC):
 
         dataset = TensorDataset(transformed_data_tensor, labels_tensor)
         return DataLoader(
-            dataset, batch_size=data_loader.batch_size, shuffle=True, collate_fn=Loader._collate_fn
+            dataset,
+            batch_size=data_loader.batch_size,
+            shuffle=True,
+            collate_fn=Loader._collate_fn,
         )
 
     @staticmethod
-    def _collate_fn(batch: list[tuple[torch.Tensor, int]]) -> tuple[torch.Tensor, torch.Tensor]:
-        images, labels = zip(*batch)
+    def _collate_fn(
+        batch: list[tuple[torch.Tensor, int]],
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        images, labels = zip(*batch, strict=False)
         images_stack = torch.stack(images)
         labels_tensor = torch.tensor(labels)
         return images_stack, labels_tensor

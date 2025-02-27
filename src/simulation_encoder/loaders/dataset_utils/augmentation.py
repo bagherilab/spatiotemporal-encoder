@@ -1,4 +1,5 @@
-from typing import Callable, Any, Optional
+from collections.abc import Callable
+from typing import Any
 
 import torch
 from torchvision import transforms
@@ -16,7 +17,9 @@ class Augmentation:
         Name of the augmentation technique.
     """
 
-    def __init__(self, transform: Callable[[torch.Tensor], torch.Tensor], name: str) -> None:
+    def __init__(
+        self, transform: Callable[[torch.Tensor], torch.Tensor], name: str
+    ) -> None:
         self.transform = transform
         self.name = name
 
@@ -59,7 +62,9 @@ class AugmentationsManager:
             if aug_name not in self.AUGMENTATIONS:
                 raise ValueError(f"Invalid augmentation: {aug_name}")
 
-            transform = self.AUGMENTATIONS[aug_name](int(arg) if arg is not None else arg)  # type: ignore
+            transform = self.AUGMENTATIONS[aug_name](
+                int(arg) if arg is not None else arg
+            )  # type: ignore
             transforms_list.append({aug_name: Augmentation(transform, aug_name)})
 
         return transforms_list

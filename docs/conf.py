@@ -12,18 +12,18 @@
 
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../src'))
 
-import sphinx_rtd_theme
+sys.path.insert(0, os.path.abspath("../src"))
+
 
 # -- Project information -----------------------------------------------------
 
-project = 'SANDBOX'
-copyright = 'YYYY, AUTHOR_NAME'
-author = 'AUTHOR_NAME'
+project = "SANDBOX"
+copyright = "YYYY, AUTHOR_NAME"
+author = "AUTHOR_NAME"
 
 # The full version, including alpha/beta/rc tags
-release = 'VERSION NUMBER X.X.X'
+release = "VERSION NUMBER X.X.X"
 
 # -- General configuration ---------------------------------------------------
 
@@ -39,20 +39,20 @@ extensions = [
 ]
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # Decides whether module names are prepended to all object names.
 add_module_names = False
 
 # Default options for autodoc directives.
 autodoc_default_options = {
-    'member-order': 'bysource',
-    'undoc-members': True,
+    "member-order": "bysource",
+    "undoc-members": True,
 }
 
 # List of modules to be mocked up. Useful when some external dependencies are not met at build time and break the building process.
@@ -62,9 +62,9 @@ autodoc_mock_imports = []
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'sphinx_rtd_theme'
+html_theme = "sphinx_rtd_theme"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = ["_static"]

@@ -1,8 +1,8 @@
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-from simulation_encoder.writer import Writer
 from simulation_encoder.dataclass.loss_data import LossData
+from simulation_encoder.writer import Writer
 
 
 class TestWriter(unittest.TestCase):

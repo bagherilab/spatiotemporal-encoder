@@ -1,4 +1,5 @@
-from typing import Optional, Union, Any
+from typing import Any
+
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 """ Pydantic models for the configuration files """
@@ -15,16 +16,22 @@ class DatasetConfig(BaseModel):
     val_split: float = Field(
         ..., ge=0.0, le=1.0, description="Validation split ratio, between 0 and 1"
     )
-    test_split: float = Field(..., ge=0.0, le=1.0, description="Test split ratio, between 0 and 1")
+    test_split: float = Field(
+        ..., ge=0.0, le=1.0, description="Test split ratio, between 0 and 1"
+    )
     keys: list[str] = Field(..., description="List of keys")
-    augmentations: Optional[dict] = None
-    labels: Optional[list[str]] = None
+    augmentations: dict | None = None
+    labels: list[str] | None = None
 
     @model_validator(mode="before")
     def check_split_ratios(cls, values: dict) -> dict:
         val_split = values.get("val_split")
         test_split = values.get("test_split")
-        if val_split is not None and test_split is not None and (val_split + test_split >= 1):
+        if (
+            val_split is not None
+            and test_split is not None
+            and (val_split + test_split >= 1)
+        ):
             raise ValueError("The sum of val_split and test_split must be less than 1")
         return values
 
@@ -34,8 +41,12 @@ class ModelParamsConfig(BaseModel):
     num_channels: int = Field(
         ..., description="Number of channels (should be the same across datasets)"
     )
-    image_size: int = Field(..., gt=0, description="Size of the images, must be greater than 0")
-    params: str = Field(..., description="Path or name of the hyperparameter configuration")
+    image_size: int = Field(
+        ..., gt=0, description="Size of the images, must be greater than 0"
+    )
+    params: str = Field(
+        ..., description="Path or name of the hyperparameter configuration"
+    )
 
     @field_validator("image_size")
     def check_image_size(cls, value: int) -> int:
@@ -72,12 +83,14 @@ class MainConfig(BaseModel):
 
 
 class HyperparameterRangeConfig(BaseModel):
-    range: Union[float, list[float]] = Field(..., description="Range of continuous hyperparameters")
+    range: float | list[float] = Field(
+        ..., description="Range of continuous hyperparameters"
+    )
     search: str = Field(..., description="Search method for hyperparameters")
     num_samples: int = Field(..., gt=0, description="Number of samples to generate")
 
     @field_validator("range")
-    def check_range(cls, value: Union[list[float], float]) -> Union[list[float], float]:
+    def check_range(cls, value: list[float] | float) -> list[float] | float:
         if isinstance(value, list):
             if len(value) != 2 or value[0] >= value[1]:
                 raise ValueError(
@@ -89,15 +102,16 @@ class HyperparameterRangeConfig(BaseModel):
 
 
 class HyperparameterDiscreteConfig(BaseModel):
-    values: Union[list[Union[int, float]], list[dict[str, Any]]] = Field(
-        ..., description="List of discrete hyperparameter values or optimizer configurations"
+    values: list[int | float] | list[dict[str, Any]] = Field(
+        ...,
+        description="List of discrete hyperparameter values or optimizer configurations",
     )
 
 
 class HyperparameterConfig(BaseModel):
     num_epochs: int = Field(..., gt=0, description="Number of epochs for training")
-    continuous: Optional[dict[str, HyperparameterRangeConfig]] = None
-    discrete: Optional[dict[str, HyperparameterDiscreteConfig]] = None
+    continuous: dict[str, HyperparameterRangeConfig] | None = None
+    discrete: dict[str, HyperparameterDiscreteConfig] | None = None
 
 
 """ Model architecture and type """
@@ -105,24 +119,24 @@ class HyperparameterConfig(BaseModel):
 
 class LayerConfig(BaseModel):
     type: str = Field(..., description="Name of layer in PyTorch")
-    in_features: Optional[Union[int, str]] = None
-    out_features: Optional[Union[int, str]] = None
-    num_features: Optional[Union[int, str]] = None
-    in_channels: Optional[Union[int, str]] = None
-    out_channels: Optional[Union[int, str]] = None
-    kernel_size: Optional[int] = None
-    stride: Optional[int] = None
-    shape: Optional[list[int]] = None
-    scale_factor: Optional[int] = None
-    padding: Optional[Union[int, str]] = None
-    p: Optional[float] = None
-    output_padding: Optional[int] = None
-    activation: Optional[str] = None
+    in_features: int | str | None = None
+    out_features: int | str | None = None
+    num_features: int | str | None = None
+    in_channels: int | str | None = None
+    out_channels: int | str | None = None
+    kernel_size: int | None = None
+    stride: int | None = None
+    shape: list[int] | None = None
+    scale_factor: int | None = None
+    padding: int | str | None = None
+    p: float | None = None
+    output_padding: int | None = None
+    activation: str | None = None
     # Neural operators
-    hidden_channels: Optional[Union[int, str]] = None
-    n_modes: Optional[list[int]] = None
-    projection_channels: Optional[int] = None
-    lifting_channels: Optional[int] = None
+    hidden_channels: int | str | None = None
+    n_modes: list[int] | None = None
+    projection_channels: int | None = None
+    lifting_channels: int | None = None
 
     @model_validator(mode="before")
     def check_layers(cls, values: dict) -> dict:
@@ -133,7 +147,10 @@ class LayerConfig(BaseModel):
             values.get("in_features") is None or values.get("out_features") is None
         ):
             raise ValueError("Missing in_features for Linear layer")
-        if layer_type in ["BatchNorm1d", "BatchNorm2d"] and values.get("num_features") is None:
+        if (
+            layer_type in ["BatchNorm1d", "BatchNorm2d"]
+            and values.get("num_features") is None
+        ):
             raise ValueError("Missing num_features for BatchNorm layer")
         if layer_type in ["Conv2d", "ConvTranspose2d"] and (
             values.get("in_channels") is None or values.get("out_channels") is None
@@ -144,7 +161,7 @@ class LayerConfig(BaseModel):
 
 
 class EncoderDecoderConfig(BaseModel):
-    encoder: Optional[list[LayerConfig]] = None
+    encoder: list[LayerConfig] | None = None
     decoder_image: list[LayerConfig]
     decoder_timepoint: list[LayerConfig]
 

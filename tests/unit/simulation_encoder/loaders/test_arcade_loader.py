@@ -1,11 +1,9 @@
-import unittest
-from unittest.mock import patch, MagicMock
-
 import os
 import tempfile
-from PIL import Image
+import unittest
+from unittest.mock import MagicMock, patch
 
-import numpy as np
+from PIL import Image
 
 from simulation_encoder.loaders.arcade_loader import ARCADELoader
 
@@ -38,7 +36,10 @@ class TestARCADELoader(unittest.TestCase):
 
     def test_retrieve_data_creates_groups(self):
         loader = ARCADELoader(
-            self.temp_dir.name, channels=["cancer", "graph"], keys=self.keys, test_split=0.5
+            self.temp_dir.name,
+            channels=["cancer", "graph"],
+            keys=self.keys,
+            test_split=0.5,
         )
         image_groups = loader.data
         self.assertEqual(len(image_groups), 5)
@@ -97,7 +98,9 @@ class TestARCADELoader(unittest.TestCase):
         self.assertTrue(set(val_indices).isdisjoint(set(test_indices)))
 
     def test_keys_load_correct_data(self):
-        loader = ARCADELoader(self.temp_dir.name, channels=["cancer"], keys=["CH_typeA"])
+        loader = ARCADELoader(
+            self.temp_dir.name, channels=["cancer"], keys=["CH_typeA"]
+        )
         self.assertEqual(len(loader.data), 2)
 
     def test_file_parsing_returns_correct_chunks(self):
@@ -130,13 +133,18 @@ class TestARCADELoader(unittest.TestCase):
     @patch("simulation_encoder.logger.Logger")
     def test_missing_image_logging(self, mock_logger):
         _ = ARCADELoader(
-            self.temp_dir.name, channels=["cancer", "graph"], keys=["CH_typeAB"], logger=mock_logger
+            self.temp_dir.name,
+            channels=["cancer", "graph"],
+            keys=["CH_typeAB"],
+            logger=mock_logger,
         )
 
         missing_channel = "cancer"
         missing_count = 1
 
-        expected_message = f"Number of missing images in {missing_channel} - {missing_count}"
+        expected_message = (
+            f"Number of missing images in {missing_channel} - {missing_count}"
+        )
         mock_logger.warning.assert_called_once_with(expected_message)
 
 

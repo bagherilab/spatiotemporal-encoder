@@ -1,8 +1,8 @@
 from collections import defaultdict
 
-from simulation_encoder.logger import Logger
 from latent_model.sequence_loader import SequenceLoader
 from latent_model.temporal_models import TemporalModel
+from simulation_encoder.logger import Logger
 
 
 class Runner:
@@ -26,9 +26,7 @@ class Runner:
         Dictionary of model names and their corresponding loss data
     """
 
-    def __init__(
-        self, logger: Logger = None, verbose: bool = False
-    ) -> None:
+    def __init__(self, logger: Logger = None, verbose: bool = False) -> None:
         self.logger = logger
         self.verbose = verbose
         self.models = {}
@@ -45,7 +43,7 @@ class Runner:
     def get_loader(self, model_name: str, dataset_name: str) -> SequenceLoader:
         """Returns loader"""
         return self.loaders[model_name][dataset_name]
-    
+
     def get_models(self, model_name: str, dataset_name: str) -> list[TemporalModel]:
         """Returns potential models"""
         return self.models[model_name][dataset_name]
@@ -64,7 +62,9 @@ class Runner:
                 best_model = None
                 best_loss = float("inf")
 
-                print(f"Finding optimal model for {dataset_name} data encoded with {encoder_model_name}")
+                print(
+                    f"Finding optimal model for {dataset_name} data encoded with {encoder_model_name}"
+                )
                 for model in self.models[encoder_model_name][dataset_name]:
                     train_losses, val_losses = self._train_model(model, loader)
 
@@ -87,17 +87,21 @@ class Runner:
         val_loader = loader.get_dataloader(dataset_type="val")
 
         losses, val_losses = model.fit(
-            train_loader, val_loader=val_loader, patience=5, min_delta=0.001, max_epochs=50
+            train_loader,
+            val_loader=val_loader,
+            patience=5,
+            min_delta=0.001,
+            max_epochs=50,
         )
 
         return losses, val_losses
-    
+
     def _eval_model(self, model: TemporalModel, loader: SequenceLoader) -> float:
         model.eval()
         test_loader = loader.get_dataloader(dataset_type="test")
         test_loss = model.eval_one_epoch(test_loader)
         return test_loss
-    
+
     def _log(self, msg: str, level: str = "info") -> None:
         if self.logger:
             if level == "warning":

@@ -1,16 +1,15 @@
+from abc import ABC, abstractmethod
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-from typing import Optional
-from abc import ABC, abstractmethod
-
 from simulation_encoder.logger import Logger
 
 
 class BaseRBM(ABC, nn.Module):
-    def __init__(self, logger: Optional[Logger] = None):
+    def __init__(self, logger: Logger | None = None):
         super(BaseRBM, self).__init__()
         self.logger = logger
 
@@ -46,10 +45,14 @@ class BaseRBM(ABC, nn.Module):
                 weight_decay = 2e-4
                 batch_size = v0.size(0)
 
-                self.update_weights(v0, vk, ph0, phk, lr, momentum_coef, weight_decay, batch_size)
+                self.update_weights(
+                    v0, vk, ph0, phk, lr, momentum_coef, weight_decay, batch_size
+                )
                 train_loss += loss(v0, vk).item()
 
-            self._log(f"Epoch: {epoch+1}/{num_epochs} Loss: {train_loss/len(dataloader)}")
+            self._log(
+                f"Epoch: {epoch + 1}/{num_epochs} Loss: {train_loss / len(dataloader)}"
+            )
 
         return
 
@@ -78,7 +81,7 @@ class RBM(BaseRBM):
         visible_dim: int,
         hidden_dim: int,
         gaussian: bool,
-        logger: Optional[Logger] = None,
+        logger: Logger | None = None,
         device: str = "cpu",
     ):
         super(RBM, self).__init__(logger)
@@ -104,7 +107,9 @@ class RBM(BaseRBM):
         """Sample hidden units given visible units"""
         activation = torch.matmul(v, self.W) + self.h_bias
         if self.gaussian:
-            return activation, torch.normal(activation, torch.ones_like(activation).to(self.device))
+            return activation, torch.normal(
+                activation, torch.ones_like(activation).to(self.device)
+            )
         p = torch.sigmoid(activation)
         return p, torch.bernoulli(p)
 
@@ -177,7 +182,7 @@ class CRBM(BaseRBM):
         kernel_size: int = 3,
         stride: int = 1,
         padding: int = 1,
-        logger: Optional[Logger] = None,
+        logger: Logger | None = None,
         device: str = "cpu",
     ):
         super(CRBM, self).__init__(logger)
@@ -190,14 +195,17 @@ class CRBM(BaseRBM):
         self.device = device
 
         self.W = nn.Parameter(
-            torch.randn(hidden_dim, visible_dim, kernel_size, kernel_size).to(self.device) * 0.1
+            torch.randn(hidden_dim, visible_dim, kernel_size, kernel_size).to(
+                self.device
+            )
+            * 0.1
         )
         self.h_bias = nn.Parameter(torch.zeros(hidden_dim).to(self.device))
         self.v_bias = nn.Parameter(torch.zeros(visible_dim).to(self.device))
 
-        self.W_momentum = torch.zeros(hidden_dim, visible_dim, kernel_size, kernel_size).to(
-            self.device
-        )
+        self.W_momentum = torch.zeros(
+            hidden_dim, visible_dim, kernel_size, kernel_size
+        ).to(self.device)
         self.h_bias_momentum = torch.zeros(hidden_dim).to(self.device)
         self.v_bias_momentum = torch.zeros(visible_dim).to(self.device)
 
@@ -225,7 +233,11 @@ class CRBM(BaseRBM):
     def sample_v(self, h: torch.Tensor) -> torch.Tensor:
         """Sample visible units given hidden units"""
         conv_transpose_output = F.conv_transpose2d(
-            h, self.W, stride=self.stride, padding=self.padding, output_padding=self.output_padding
+            h,
+            self.W,
+            stride=self.stride,
+            padding=self.padding,
+            output_padding=self.output_padding,
         )
         activation = conv_transpose_output + self.v_bias.view(1, -1, 1, 1)
         p = torch.sigmoid(activation)
@@ -244,10 +256,16 @@ class CRBM(BaseRBM):
     ) -> None:
         """Update weights of the CRBM"""
         pos_phase = F.conv2d(
-            v0.transpose(0, 1), ph0.transpose(0, 1), padding=self.padding, stride=self.stride
+            v0.transpose(0, 1),
+            ph0.transpose(0, 1),
+            padding=self.padding,
+            stride=self.stride,
         )
         neg_phase = F.conv2d(
-            vk.transpose(0, 1), phk.transpose(0, 1), padding=self.padding, stride=self.stride
+            vk.transpose(0, 1),
+            phk.transpose(0, 1),
+            padding=self.padding,
+            stride=self.stride,
         )
 
         grad_W = (pos_phase - neg_phase) / batch_size

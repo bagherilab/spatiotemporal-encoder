@@ -40,9 +40,9 @@ class LogErrorLoss(nn.Module):
         torch.Tensor
             Scalar tensor representing the average log error across all pixels and channels.
         """
-        assert (
-            predicted.shape == target.shape
-        ), "Predicted and target images must have the same shape"
+        assert predicted.shape == target.shape, (
+            "Predicted and target images must have the same shape"
+        )
 
         predicted_blurred = self.box_blur(predicted)
         target_blurred = self.box_blur(target)

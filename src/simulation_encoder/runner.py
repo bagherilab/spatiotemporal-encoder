@@ -2,18 +2,15 @@ import copy
 from collections import defaultdict
 from copy import deepcopy
 
-
 import pandas as pd
-
-from simulation_encoder.logger import Logger
-from simulation_encoder.loaders.loader import Loader
-
-from simulation_encoder.models.base_nn import BaseNN
-from simulation_encoder.models.ae import AE
-from simulation_encoder.models.vae import VAE
 
 from simulation_encoder.dataclass.loss_data import LossData
 from simulation_encoder.dataclass.param_sets import ModelParams
+from simulation_encoder.loaders.loader import Loader
+from simulation_encoder.logger import Logger
+from simulation_encoder.models.ae import AE
+from simulation_encoder.models.base_nn import BaseNN
+from simulation_encoder.models.vae import VAE
 
 
 class Runner:
@@ -116,9 +113,13 @@ class Runner:
 
             for loader_name, loader in self.loaders.items():
                 self._log(f"Training on dataset {loader_name}")
-                self._log(f"Training points - {loader.n_train} Testing points - {loader.n_test}")
+                self._log(
+                    f"Training points - {loader.n_train} Testing points - {loader.n_test}"
+                )
 
-                losses, val_losses, grad_norms = self._train_model(model_id, model, loader)
+                losses, val_losses, grad_norms = self._train_model(
+                    model_id, model, loader
+                )
 
                 loss_data = LossData()
                 loss_data.add_train_loss(losses)
@@ -144,7 +145,11 @@ class Runner:
         val_loader = loader.get_dataloader(dataset_type="val")
 
         losses, val_losses, grad_norms = model.fit(
-            train_loader, val_loader=val_loader, pretrain=self.pretrain, patience=5, min_delta=0.001
+            train_loader,
+            val_loader=val_loader,
+            pretrain=self.pretrain,
+            patience=5,
+            min_delta=0.001,
         )
 
         self.losses[model_id].add_train_loss(losses)
@@ -152,7 +157,9 @@ class Runner:
 
         return losses, val_losses, grad_norms
 
-    def _eval_model(self, model_name: str, model: BaseNN, loader: Loader) -> dict[str, float]:
+    def _eval_model(
+        self, model_name: str, model: BaseNN, loader: Loader
+    ) -> dict[str, float]:
         """Evaluates all models currently in runner"""
         test_loader = loader.get_dataloader(dataset_type="test")
         test_loss = model.eval_one_epoch(test_loader)
@@ -181,7 +188,9 @@ class Runner:
                 # Add labels if they exist
                 if hasattr(loader, "labels") and loader.labels is not None:
                     for label in loader.labels:
-                        encoded_df[label] = loader.get_labels(label=label, dataset_type=split)
+                        encoded_df[label] = loader.get_labels(
+                            label=label, dataset_type=split
+                        )
 
                 # Add timepoint and sample_id
                 encoded_df["timepoint"] = loader.get_timepoints(dataset_type=split)
@@ -193,7 +202,11 @@ class Runner:
         return encoded_data
 
     def _normalize_data(
-        self, X_train: pd.DataFrame, y_train: pd.Series, X_val: pd.DataFrame, y_val: pd.Series
+        self,
+        X_train: pd.DataFrame,
+        y_train: pd.Series,
+        X_val: pd.DataFrame,
+        y_val: pd.Series,
     ) -> tuple:
         """Normalize the training and validation data"""
         X_train_norm = (X_train - X_train.mean()) / X_train.std()

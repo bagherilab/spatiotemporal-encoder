@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 
 @dataclass
@@ -11,10 +11,10 @@ class DatasetParams:
     val_split: float
     test_split: float
     keys: list[str]
-    name: Optional[str] = None
-    labels: Optional[list[str]] = None
-    label_dir: Optional[str] = None
-    augmentations: Optional[dict] = None
+    name: str | None = None
+    labels: list[str] | None = None
+    label_dir: str | None = None
+    augmentations: dict | None = None
 
 
 @dataclass

@@ -1,9 +1,7 @@
-import os
 import json
-from typing import Optional
+import os
 
 import pandas as pd
-
 from torch.utils.data import Dataset
 
 
@@ -20,7 +18,12 @@ class CSVLoader(Dataset):
     """
 
     def __init__(
-        self, conf_name: str, exp_id: str, model: str, dataset_name: str, labels: list[str]
+        self,
+        conf_name: str,
+        exp_id: str,
+        model: str,
+        dataset_name: str,
+        labels: list[str],
     ) -> None:
         self.exp_id = exp_id
         self.dataset_name = dataset_name
@@ -32,13 +35,15 @@ class CSVLoader(Dataset):
         return len(self._X_train) + len(self._X_val) + len(self._X_test)
 
     def __getitem__(self, idx: int) -> None:
-        raise NotImplementedError("This method is not implemented yet. Use get_dataloader instead.")
+        raise NotImplementedError(
+            "This method is not implemented yet. Use get_dataloader instead."
+        )
 
     def get_data(
         self,
         dataset_type: str,
-        feature_timepoint: Optional[int] = None,
-        response_timepoint: Optional[int] = None,
+        feature_timepoint: int | None = None,
+        response_timepoint: int | None = None,
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         if dataset_type == "train":
             X, y = self._X_train, self._y_train
@@ -65,7 +70,9 @@ class CSVLoader(Dataset):
             X = X.sort_values("seed_key").reset_index(drop=True)
             y = y.sort_values("seed_key").reset_index(drop=True)
 
-        return X.drop(["timepoint", "seed_key"], axis=1), y.drop(["timepoint", "seed_key"], axis=1)
+        return X.drop(["timepoint", "seed_key"], axis=1), y.drop(
+            ["timepoint", "seed_key"], axis=1
+        )
 
     def _load_data(self) -> None:
         self._X_train, self._y_train = self._load_csv("train")
@@ -100,7 +107,7 @@ class LabelLoader:
     def get_labels(self, label: str, key: str, time: float, seed: int) -> float:
         file = f"{self.label_dir}/VASCULAR_FUNCTION_{key}.SEEDS.{label}.json"
 
-        with open(file, "r", encoding="utf-8") as f:
+        with open(file, encoding="utf-8") as f:
             vals = json.load(f)
         for val in vals:
             if val["time"] == time:

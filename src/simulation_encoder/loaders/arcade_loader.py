@@ -1,12 +1,12 @@
 import os
-from typing import Optional, Any
 from collections import defaultdict
+from typing import Any
 
 import torch
 
-from simulation_encoder.logger import Logger
-from simulation_encoder.loaders.loader import Loader
 from simulation_encoder.loaders.dataset_utils.label_loaders import LabelLoader
+from simulation_encoder.loaders.loader import Loader
+from simulation_encoder.logger import Logger
 
 
 class ARCADELoader(Loader):
@@ -43,15 +43,15 @@ class ARCADELoader(Loader):
         image_dir: str,
         keys: list[str],
         channels: list[str],
-        name: Optional[str] = None,
+        name: str | None = None,
         batch_size: int = 16,
         val_split: float = 0.2,
         test_split: float = 0.2,
         labels: list[str] = [],
-        label_dir: Optional[str] = None,
-        logger: Optional[Logger] = None,
-        augmentations: Optional[list[dict[str, Any]]] = [],
-        indices_file: Optional[str] = None,
+        label_dir: str | None = None,
+        logger: Logger | None = None,
+        augmentations: list[dict[str, Any]] | None = [],
+        indices_file: str | None = None,
         random_seed: int = 42,
     ):
         self.name = name
@@ -116,7 +116,9 @@ class ARCADELoader(Loader):
             if not any(channel in file_name for channel in self.channels):
                 continue
 
-            context, vasc_type, seed, timepoint, image_type = self._parse_filename(file_name)
+            context, vasc_type, seed, timepoint, image_type = self._parse_filename(
+                file_name
+            )
             sample_id = f"{context}_{vasc_type}_{seed}"
             simulation_id = f"{sample_id}_{timepoint}"
             timepoint_day = str((timepoint // 10) - 1)

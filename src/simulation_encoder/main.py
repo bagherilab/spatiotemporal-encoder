@@ -1,39 +1,36 @@
 import cProfile
 import pstats
 import time
+import traceback
 
 import torch
-import traceback
 from pydantic import ValidationError
 
-from simulation_encoder.runner import Runner
-from simulation_encoder.writer import Writer
-from simulation_encoder.plotter import Plotter
-from simulation_encoder.logger import Logger
-
-from simulation_encoder.models.ae import AE
-from simulation_encoder.models.vae import VAE
-
-from simulation_encoder.loaders.loader import Loader
-from simulation_encoder.loaders.arcade_loader import ARCADELoader
-from simulation_encoder.loaders.alphanumeric_loader import AlphanumericLoader
-from simulation_encoder.loaders.gastruloid_loader import GastruloidLoader
-from simulation_encoder.loaders.glims_loader import GlimsLoader
-
-from simulation_encoder.dataclass.param_sets import DatasetParams, ModelParams
 from simulation_encoder.dataclass.config_schemas import (
-    MainConfig,
     DatasetConfig,
     ExperimentConfig,
+    MainConfig,
     ModelParamsConfig,
 )
+from simulation_encoder.dataclass.param_sets import DatasetParams, ModelParams
+from simulation_encoder.loaders.alphanumeric_loader import AlphanumericLoader
+from simulation_encoder.loaders.arcade_loader import ARCADELoader
+from simulation_encoder.loaders.gastruloid_loader import GastruloidLoader
+from simulation_encoder.loaders.glims_loader import GlimsLoader
+from simulation_encoder.loaders.loader import Loader
+from simulation_encoder.logger import Logger
+from simulation_encoder.models.ae import AE
+from simulation_encoder.models.vae import VAE
+from simulation_encoder.plotter import Plotter
+from simulation_encoder.runner import Runner
 from simulation_encoder.utils.generate_hyperparams import generate_hyperparameters
 from simulation_encoder.utils.yaml_utils import (
-    load_model_yaml, 
     load_dataset_yaml,
-    load_hyperparam_yaml, 
+    load_hyperparam_yaml,
+    load_model_yaml,
     load_yaml,
 )
+from simulation_encoder.writer import Writer
 
 CONFIG_YAML = "src/conf/config.yaml"
 
@@ -60,8 +57,12 @@ def main() -> None:
 
         logger = Logger(log_name=f"{config_name}", verbose=verbose)
         runner = Runner(pretrain, logger, verbose)
-        writer = Writer(results_dir=f"results/{config_name}", experiment_name=experiment_name)
-        plotter = Plotter(results_dir=f"results/{config_name}", experiment_name=experiment_name)
+        writer = Writer(
+            results_dir=f"results/{config_name}", experiment_name=experiment_name
+        )
+        plotter = Plotter(
+            results_dir=f"results/{config_name}", experiment_name=experiment_name
+        )
 
         # Loaders
         loaders = create_loaders(experiment_config, logger)
@@ -84,7 +85,9 @@ def main() -> None:
     #     writer.write_emulation_results(emulation_results)
 
 
-def create_loaders(experiment_config: ExperimentConfig, logger: Logger) -> dict[str, Loader]:
+def create_loaders(
+    experiment_config: ExperimentConfig, logger: Logger
+) -> dict[str, Loader]:
     """Create a list of loaders from the experiment config file."""
     loaders = {}
     loader_configs = {}
@@ -100,7 +103,10 @@ def create_loaders(experiment_config: ExperimentConfig, logger: Logger) -> dict[
 
     return loaders
 
-def create_loader(dataset_name: str, dataset_params: DatasetParams, logger: Logger) -> Loader:
+
+def create_loader(
+    dataset_name: str, dataset_params: DatasetParams, logger: Logger
+) -> Loader:
     """Create the loader object from the dataset parameters"""
     params_dict = dataset_params.__dict__
     loader_type = params_dict.pop("loader")
@@ -135,7 +141,10 @@ def create_loader(dataset_name: str, dataset_params: DatasetParams, logger: Logg
 
     raise NameError(f"Invalid loader type specified: {loader_type}")
 
-def create_dataset_params(dataset_name: str, dataset_config: DatasetConfig) -> DatasetParams:
+
+def create_dataset_params(
+    dataset_name: str, dataset_config: DatasetConfig
+) -> DatasetParams:
     """Create the loader parameters from the experiment config file"""
     dataset_params = DatasetParams(
         loader=dataset_config.loader,
@@ -152,6 +161,7 @@ def create_dataset_params(dataset_name: str, dataset_config: DatasetConfig) -> D
     )
 
     return dataset_params
+
 
 def create_model_param_sets(model_config: ModelParamsConfig) -> list[ModelParams]:
     """Create the model parameters from model config files and hyperparameter yaml files."""
@@ -179,6 +189,7 @@ def create_model_param_sets(model_config: ModelParamsConfig) -> list[ModelParams
 
     return model_param_sets
 
+
 def handle_encoder_results(
     encoder_results: dict, runner: Runner, writer: Writer, plotter: Plotter
 ) -> None:
@@ -197,7 +208,12 @@ def handle_encoder_results(
             )
 
             plotter.line_plot(
-                model_id, dataset_name, data["grad_norms"], "grad_norms", "Epoch", "Gradient Norm"
+                model_id,
+                dataset_name,
+                data["grad_norms"],
+                "grad_norms",
+                "Epoch",
+                "Gradient Norm",
             )
 
             # Access LossData object for losses
@@ -238,20 +254,34 @@ def handle_encoder_results(
             "_best_model", best_model_dataset_name, best_model_data["model_state"]
         )
 
-def create_encoder_model(model_params, model_base_name, num_channels, params, dataset_dir):
+
+def create_encoder_model(
+    model_params, model_base_name, num_channels, params, dataset_dir
+):
     if model_params.type == "AE":
-        model = AE(name=model_base_name, num_channels=num_channels, architecture=model_params.architecture.model_dump(exclude_none=True), params=params)
+        model = AE(
+            name=model_base_name,
+            num_channels=num_channels,
+            architecture=model_params.architecture.model_dump(exclude_none=True),
+            params=params,
+        )
     elif model_params.type == "VAE":
-        model = VAE(name=model_base_name, num_channels=num_channels, architecture=model_params.architecture.model_dump(exclude_none=True), params=params)
+        model = VAE(
+            name=model_base_name,
+            num_channels=num_channels,
+            architecture=model_params.architecture.model_dump(exclude_none=True),
+            params=params,
+        )
     else:
         raise ValueError("Model type not supported")
-    
+
     print(f"Loading model {model_base_name}")
     state_dict = torch.load(f"{dataset_dir}/model_state.pth", weights_only=True)
     state_dict.pop("_metadata", None)
     model.load_state_dict(state_dict)
-        
+
     return model
+
 
 if __name__ == "__main__":
     with cProfile.Profile() as pr:

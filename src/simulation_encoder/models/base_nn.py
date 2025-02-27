@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional, Any, Union
-from collections import defaultdict
+from typing import Any
 
 import neuralop.models as neuralops_models
 import torch
@@ -24,7 +23,7 @@ class BaseNN(ABC, nn.Module):
         image_size: int = 128,
         num_epochs: int = 10,
         params: dict[str, Any] = {},
-        logger: Optional[Logger] = None,
+        logger: Logger | None = None,
     ) -> None:
         """
         Initializes the autoencoder.
@@ -42,7 +41,7 @@ class BaseNN(ABC, nn.Module):
     def fit(
         self,
         train_loader: DataLoader,
-        val_loader: Optional[DataLoader] = None,
+        val_loader: DataLoader | None = None,
         pretrain: bool = False,
         patience: int = 5,
         min_delta: float = 0.0,
@@ -94,15 +93,21 @@ class BaseNN(ABC, nn.Module):
                 if config.get("in_features") == "latent_dim":
                     config["in_features"] = self.latent_dim
                 if config.get("in_features") == "num_channels":
-                    config["in_features"] = self.image_size * self.image_size * self.num_channels
+                    config["in_features"] = (
+                        self.image_size * self.image_size * self.num_channels
+                    )
                 if config.get("out_features") == "num_channels":
-                    config["out_features"] = self.image_size * self.image_size * self.num_channels
+                    config["out_features"] = (
+                        self.image_size * self.image_size * self.num_channels
+                    )
 
             elif layer_type == "BatchNorm1d":
                 if config.get("num_features") == "latent_dim":
                     config["num_features"] = self.latent_dim
                 if config.get("num_features") == "num_channels":
-                    config["num_features"] = self.num_channels * self.image_size * self.image_size
+                    config["num_features"] = (
+                        self.num_channels * self.image_size * self.image_size
+                    )
 
             elif layer_type == "FNO":
                 if config.get("in_channels") == "num_channels":
@@ -118,7 +123,9 @@ class BaseNN(ABC, nn.Module):
                 layer = layer_class(**fno_config)
 
             if layer_type == "Unflatten":
-                shape = config.get("shape", [self.num_channels, self.image_size, self.image_size])
+                shape = config.get(
+                    "shape", [self.num_channels, self.image_size, self.image_size]
+                )
                 layer = layer_class(1, tuple(shape))  # type: ignore
             else:
                 layer = layer_class(**{k: v for k, v in config.items() if k != "type"})
@@ -142,7 +149,9 @@ class BaseNN(ABC, nn.Module):
         device = (
             "cuda"
             if torch.cuda.is_available()
-            else "mps" if torch.backends.mps.is_available() else "cpu"
+            else "mps"
+            if torch.backends.mps.is_available()
+            else "cpu"
         )
         return device
 

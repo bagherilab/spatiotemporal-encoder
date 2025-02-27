@@ -1,11 +1,8 @@
-import unittest
-from unittest.mock import patch
-
-import os
 import tempfile
+import unittest
 
-from simulation_encoder.runner import Runner
 from simulation_encoder.dataclass.param_sets import ModelParams
+from simulation_encoder.runner import Runner
 
 
 class TestRunner(unittest.TestCase):
@@ -18,8 +15,12 @@ class TestRunner(unittest.TestCase):
             name="test_model",
             architecture={
                 "encoder": [{"type": "Linear", "in_features": 1, "out_features": 1}],
-                "decoder_image": [{"type": "Linear", "in_features": 1, "out_features": 1}],
-                "decoder_timepoint": [{"type": "Linear", "in_features": 1, "out_features": 1}],
+                "decoder_image": [
+                    {"type": "Linear", "in_features": 1, "out_features": 1}
+                ],
+                "decoder_timepoint": [
+                    {"type": "Linear", "in_features": 1, "out_features": 1}
+                ],
             },
             model_type="CAE",
             num_channels=1,

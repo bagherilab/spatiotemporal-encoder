@@ -1,20 +1,14 @@
+from abc import ABC, abstractmethod
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from abc import ABC, abstractmethod
-
 from latent_model.sequence_loader import SequenceLoader
 
+
 class TemporalModel(ABC, nn.Module):
-    def __init__(
-            self, 
-            input_size, 
-            hidden_size, 
-            output_size, 
-            num_layers=1, 
-            dropout=0.0
-        ):
+    def __init__(self, input_size, hidden_size, output_size, num_layers=1, dropout=0.0):
         super(TemporalModel, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
@@ -27,9 +21,11 @@ class TemporalModel(ABC, nn.Module):
         """This method should be implemented by subclasses."""
         ...
 
-    def fit(self, train_loader, val_loader=None, patience=5, min_delta=0.001, max_epochs=100):
+    def fit(
+        self, train_loader, val_loader=None, patience=5, min_delta=0.001, max_epochs=100
+    ):
         """Train model with early stopping based on validation loss."""
-        
+
         best_val_loss = float("inf")
         patience_counter = 0
 
@@ -42,7 +38,7 @@ class TemporalModel(ABC, nn.Module):
 
             val_loss = self.eval_one_epoch(val_loader)
             val_losses.append(val_loss)
-            
+
             # Early stopping check
             if val_loss < best_val_loss - min_delta:
                 best_val_loss = val_loss
@@ -53,7 +49,7 @@ class TemporalModel(ABC, nn.Module):
                     break
 
         return losses, val_losses
-    
+
     def train_one_epoch(self, train_loader: SequenceLoader) -> float:
         self.train()
 
@@ -87,14 +83,17 @@ class TemporalModel(ABC, nn.Module):
                 y_batch = batch[:, -1, :]
                 y_pred = self(x_batch)
                 val_loss += criterion(y_pred, y_batch).item()
-        
+
         avg_val_loss = val_loss / len(val_loader)
         return avg_val_loss
+
 
 class RNNModel(TemporalModel):
     def __init__(self, input_size, hidden_size, output_size, num_layers=1):
         super().__init__(input_size, hidden_size, output_size, num_layers)
-        self.rnn = nn.RNN(input_size, hidden_size, num_layers=num_layers, batch_first=True)
+        self.rnn = nn.RNN(
+            input_size, hidden_size, num_layers=num_layers, batch_first=True
+        )
         self.fc = nn.Linear(hidden_size, output_size)
 
         self.optimizer = optim.Adam(self.parameters(), lr=0.001)
@@ -106,10 +105,17 @@ class RNNModel(TemporalModel):
         out = self.fc(out)
         return out
 
+
 class LSTMModel(TemporalModel):
     def __init__(self, input_size, hidden_size, output_size, num_layers=1, dropout=0.0):
         super().__init__(input_size, hidden_size, output_size, num_layers, dropout)
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers=num_layers, batch_first=True, dropout=dropout)
+        self.lstm = nn.LSTM(
+            input_size,
+            hidden_size,
+            num_layers=num_layers,
+            batch_first=True,
+            dropout=dropout,
+        )
         self.fc = nn.Linear(hidden_size, output_size)
 
         self.optimizer = optim.Adam(self.parameters(), lr=0.001)

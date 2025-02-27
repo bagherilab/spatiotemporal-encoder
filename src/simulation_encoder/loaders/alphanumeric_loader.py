@@ -1,9 +1,9 @@
 import os
-from typing import Optional, Any
 from collections import defaultdict
+from typing import Any
 
-from simulation_encoder.logger import Logger
 from simulation_encoder.loaders.loader import Loader
+from simulation_encoder.logger import Logger
 
 
 class AlphanumericLoader(Loader):
@@ -14,13 +14,13 @@ class AlphanumericLoader(Loader):
         image_dir: str,
         keys: list[str],
         channels: list[str],
-        name: Optional[str] = None,
+        name: str | None = None,
         batch_size: int = 10,
         val_split: float = 0.2,
         test_split: float = 0.2,
-        logger: Optional[Logger] = None,
-        augmentations: Optional[list[dict[str, Any]]] = None,
-        indices_file: Optional[str] = None,
+        logger: Logger | None = None,
+        augmentations: list[dict[str, Any]] | None = None,
+        indices_file: str | None = None,
         random_seed: int = 42,
     ):
         self.name = name

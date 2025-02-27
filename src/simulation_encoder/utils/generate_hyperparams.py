@@ -2,7 +2,6 @@ from itertools import product
 from typing import Any
 
 import numpy as np
-from torch.optim import Adam, SGD
 
 from simulation_encoder.dataclass.config_schemas import (
     HyperparameterDiscreteConfig,
@@ -11,7 +10,8 @@ from simulation_encoder.dataclass.config_schemas import (
 
 
 def generate_hyperparameters(
-    continuous_params: HyperparameterRangeConfig, discrete_params: HyperparameterDiscreteConfig
+    continuous_params: HyperparameterRangeConfig,
+    discrete_params: HyperparameterDiscreteConfig,
 ) -> list[dict[str, Any]]:
     """Generates sets of hyperparameters using a grid search over continuous and discrete parameters."""
     continuous_values = _get_continuous_values(continuous_params)
@@ -34,7 +34,7 @@ def generate_hyperparameters(
 
 
 def _get_continuous_values(
-    continuous_params: dict[str, HyperparameterRangeConfig]
+    continuous_params: dict[str, HyperparameterRangeConfig],
 ) -> dict[str, list[float]]:
     continuous_values = {}
     if continuous_params:
@@ -60,7 +60,7 @@ def _get_continuous_values(
 
 
 def _get_discrete_values(
-    discrete_params: dict[str, HyperparameterDiscreteConfig]
+    discrete_params: dict[str, HyperparameterDiscreteConfig],
 ) -> dict[str, list[Any]]:
     discrete_values = {}
     if discrete_params:
@@ -72,7 +72,9 @@ def _get_discrete_values(
     return discrete_values
 
 
-def _get_optimizer_values(optimizer_configs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _get_optimizer_values(
+    optimizer_configs: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     optimizer_values = []
 
     for opt in optimizer_configs:
@@ -89,7 +91,7 @@ def _get_optimizer_values(optimizer_configs: list[dict[str, Any]]) -> list[dict[
         opt_combinations = list(product(*opt_params.values()))
 
         for combo in opt_combinations:
-            param_set = {k: v for k, v in zip(opt_params.keys(), combo)}
+            param_set = {k: v for k, v in zip(opt_params.keys(), combo, strict=False)}
             param_set["type"] = opt_type
 
             # Skip this combination if nesterov is True and momentum is 0

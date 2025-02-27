@@ -1,14 +1,13 @@
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 import pandas as pd
-
-from sklearn.linear_model import LinearRegression
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.svm import SVR
-from sklearn.neural_network import MLPRegressor
-from sklearn.model_selection import ParameterGrid, KFold
 from sklearn.base import clone
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import KFold, ParameterGrid
+from sklearn.neural_network import MLPRegressor
+from sklearn.svm import SVR
 
 from simulation_encoder.logger import Logger
 
@@ -17,8 +16,8 @@ class SupervisedModel:
     def __init__(
         self,
         model_type: str = "linear_regression",
-        params: Optional[dict[str, Any]] = None,
-        logger: Optional[Logger] = None,
+        params: dict[str, Any] | None = None,
+        logger: Logger | None = None,
     ):
         self.model_type = model_type
         self.logger = logger
@@ -74,15 +73,15 @@ class SupervisedModel:
     def predict(self, X: pd.DataFrame) -> np.ndarray:
         return self.model.predict(X)
 
-    def grid_search(self, X: pd.DataFrame, y: pd.DataFrame) -> Optional[dict]:
+    def grid_search(self, X: pd.DataFrame, y: pd.DataFrame) -> dict | None:
         """Perform a grid search to find the best hyperparameters."""
         param_grid = ParameterGrid(self.param_grid)
         best_score = -np.inf
-        best_params: Optional[dict] = None
+        best_params: dict | None = None
         n_models = len(param_grid)
 
         for i, params in enumerate(param_grid):
-            self._log(f"{i+1}/{n_models} - {self.model_type}")
+            self._log(f"{i + 1}/{n_models} - {self.model_type}")
             model = clone(self.model).set_params(**params)
             scores = []
             for train_idx, val_idx in KFold(n_splits=5).split(X):

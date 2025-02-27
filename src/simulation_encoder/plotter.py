@@ -1,7 +1,8 @@
 import os
 
-import torch
 import matplotlib.pyplot as plt
+import torch
+
 
 class Plotter:
     """Class for creating and saving plots"""
@@ -40,7 +41,11 @@ class Plotter:
         plt.close()
 
     def loss_plot(
-        self, model_name: str, dataset_name: str, train_loss: list[float], val_loss: list[float]
+        self,
+        model_name: str,
+        dataset_name: str,
+        train_loss: list[float],
+        val_loss: list[float],
     ) -> None:
         """Creates a plot of the training and validation loss"""
         plt.figure()
@@ -60,7 +65,9 @@ class Plotter:
         plt.close()
 
     @staticmethod
-    def show_images(image_lists: list[list[torch.Tensor]], row_labels: list[str] = None) -> None:
+    def show_images(
+        image_lists: list[list[torch.Tensor]], row_labels: list[str] = None
+    ) -> None:
         """TODO"""
         num_rows = len(image_lists)
         if num_rows == 0:
@@ -70,7 +77,9 @@ class Plotter:
         if not all(len(lst) == num_images for lst in image_lists):
             raise ValueError("All image lists must have the same length.")
 
-        fig, axes = plt.subplots(num_rows, num_images, figsize=(num_images * 2, num_rows * 2))
+        fig, axes = plt.subplots(
+            num_rows, num_images, figsize=(num_images * 2, num_rows * 2)
+        )
 
         if num_rows == 1:
             axes = [axes]
@@ -86,10 +95,12 @@ class Plotter:
 
             # Add row labels
             if row_labels:
-                axes[i][0].set_ylabel(row_labels[i], fontsize=20, rotation=90, labelpad=10, va="center")
+                axes[i][0].set_ylabel(
+                    row_labels[i], fontsize=20, rotation=90, labelpad=10, va="center"
+                )
 
         plt.show()
-    
+
     def _setup(self) -> None:
         self._create_dir(self.results_dir)
         self._create_dir(self.results_path)

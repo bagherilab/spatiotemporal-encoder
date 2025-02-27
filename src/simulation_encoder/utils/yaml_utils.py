@@ -1,17 +1,19 @@
 import os
-import yaml
 import traceback
+
+import yaml
 from pydantic import BaseModel, ValidationError
 
-from simulation_encoder.dataclass.param_sets import DatasetParams, ModelParams
 from simulation_encoder.dataclass.config_schemas import (
     HyperparameterConfig,
     ModelArchitectureConfig,
 )
+from simulation_encoder.dataclass.param_sets import DatasetParams
+
 
 def load_yaml(yaml_file: str, config_class: BaseModel) -> BaseModel:
     try:
-        with open(yaml_file, "r") as file:
+        with open(yaml_file) as file:
             config = yaml.safe_load(file)
         return config_class(**config)  # type: ignore
     except FileNotFoundError as e:
@@ -37,24 +39,12 @@ def load_dataset_yaml(yaml_name: str) -> DatasetParams:
 
 
 def load_model_yaml(
-    architecture_name: str, yaml_path: str = f"src/conf/models"
+    architecture_name: str, yaml_path: str = "src/conf/models"
 ) -> ModelArchitectureConfig:
     yaml_file = (
-        architecture_name if architecture_name.endswith(".yaml") else architecture_name + ".yaml"
+        architecture_name
+        if architecture_name.endswith(".yaml")
+        else architecture_name + ".yaml"
     )
     yaml_path = os.path.join(yaml_path, yaml_file)
     return load_yaml(yaml_path, ModelArchitectureConfig)
-
-def load_yaml(yaml_file: str, config_class: BaseModel) -> BaseModel:
-    try:
-        with open(yaml_file, "r") as file:
-            config = yaml.safe_load(file)
-        return config_class(**config)  # type: ignore
-    except FileNotFoundError as e:
-        traceback.print_exc()
-        raise FileNotFoundError(f"File {yaml_file} not found") from e
-    except ValidationError as e:
-        traceback.print_exc()
-        raise ValidationError(
-            f"Error in loading yaml file: {e}, issue validation with {type(config_class).__name__} param set"
-        ) from e

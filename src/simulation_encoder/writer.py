@@ -1,14 +1,13 @@
-import os
 import json
+import os
 
 import pandas as pd
 import torch
 
-from simulation_encoder.loaders.loader import Loader
-from simulation_encoder.models.base_nn import BaseNN
-
 from simulation_encoder.dataclass.loss_data import LossData
 from simulation_encoder.dataclass.supervised_results import SupervisedResults
+from simulation_encoder.loaders.loader import Loader
+from simulation_encoder.models.base_nn import BaseNN
 
 
 class Writer:
@@ -46,7 +45,9 @@ class Writer:
             },
         }
 
-        with open(os.path.join(dataset_path, "results.json"), "w", encoding="utf-8") as r_file:
+        with open(
+            os.path.join(dataset_path, "results.json"), "w", encoding="utf-8"
+        ) as r_file:
             json.dump(results, r_file, indent=4)
 
     def write_supervised_results(self, results: SupervisedResults) -> None:
@@ -94,7 +95,9 @@ class Writer:
 
         full_data.to_csv(os.path.join(dataset_path, "encoded_data.csv"), index=False)
 
-    def write_model_state(self, model_name: str, dataset_name: str, model_state: dict) -> None:
+    def write_model_state(
+        self, model_name: str, dataset_name: str, model_state: dict
+    ) -> None:
         """Writes the model state to disk under the model_name directory"""
         model_path = os.path.join(self.results_path, model_name)
         dataset_path = os.path.join(model_path, dataset_name)

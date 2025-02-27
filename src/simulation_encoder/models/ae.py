@@ -1,16 +1,15 @@
-from typing import Optional, Any
-
 from collections import defaultdict
+from typing import Any
 
-from tqdm import tqdm
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 
-from simulation_encoder.logger import Logger
 from simulation_encoder.loaders.loader import Loader
-from simulation_encoder.models.rbm import RBM, CRBM
+from simulation_encoder.logger import Logger
 from simulation_encoder.models.base_nn import BaseNN
+from simulation_encoder.models.rbm import CRBM, RBM
 
 
 class AE(BaseNN):
@@ -41,7 +40,7 @@ class AE(BaseNN):
         num_epochs: int = 5,
         image_size: int = 128,
         params: dict[str, Any] = {},
-        logger: Optional[Logger] = None,
+        logger: Logger | None = None,
     ):
         super().__init__()
 
@@ -60,15 +59,21 @@ class AE(BaseNN):
             "timepoint": params.get("timepoint_loss_weight", 1.0),
         }
 
-        self.encoder = nn.Sequential(*self._create_layers(self.architecture["encoder"].copy()))
-        self.decoder_image = nn.Sequential(*self._create_layers(self.architecture["decoder_image"]))
+        self.encoder = nn.Sequential(
+            *self._create_layers(self.architecture["encoder"].copy())
+        )
+        self.decoder_image = nn.Sequential(
+            *self._create_layers(self.architecture["decoder_image"])
+        )
         self.decoder_timepoint = nn.Sequential(
             *self._create_layers(self.architecture["decoder_timepoint"])
         )
 
         optimizer_config = params.get("optimizer", {})
         optimizer_type = optimizer_config.pop("type")
-        self.optimizers = {"combined": optimizer_type(self.parameters(), **optimizer_config)}
+        self.optimizers = {
+            "combined": optimizer_type(self.parameters(), **optimizer_config)
+        }
 
         optimizer_name = optimizer_type.__name__
         self.params["optimizer"]["type"] = optimizer_name
@@ -86,7 +91,9 @@ class AE(BaseNN):
         """Generate a string representation of the model with key parameters."""
         optimizer_type = self.optimizers["combined"].__class__.__name__
         optimizer_params = self.params.get("optimizer", {})
-        optimizer_details = ", ".join([f"{key}={value}" for key, value in optimizer_params.items()])
+        optimizer_details = ", ".join(
+            [f"{key}={value}" for key, value in optimizer_params.items()]
+        )
 
         return (
             f"Model: {self.name}\n"
@@ -107,7 +114,7 @@ class AE(BaseNN):
     def fit(
         self,
         train_loader: DataLoader,
-        val_loader: Optional[DataLoader] = None,
+        val_loader: DataLoader | None = None,
         pretrain: bool = False,
         patience: int = 5,
         min_delta: float = 0.0,
@@ -136,7 +143,7 @@ class AE(BaseNN):
         self.to(self.device)
 
         if pretrain:
-            self._log(f"Pretraining encoder using RBM")
+            self._log("Pretraining encoder using RBM")
             self.pretrain_encoder_rbm(train_loader)
 
         train_losses: dict[str, list[float]] = defaultdict(list)
@@ -166,7 +173,7 @@ class AE(BaseNN):
 
                 if epochs_without_improvement >= patience:
                     self._log(
-                        f"Early stopping at epoch {e+1}. Best validation loss: {round(best_val_loss, 6)}"
+                        f"Early stopping at epoch {e + 1}. Best validation loss: {round(best_val_loss, 6)}"
                     )
                     break
 
@@ -178,7 +185,7 @@ class AE(BaseNN):
             grad_norms["decoder_image"].append(decoder_image_grad_norm.item())
             grad_norms["decoder_timepoint"].append(decoder_timepoint_grad_norm.item())
 
-            msg = f"Epoch {e+1}/{self.num_epochs}- Train loss: {round(train_loss['weighted_loss'], 6)} Val loss: {round(val_loss['weighted_loss'], 6)}"
+            msg = f"Epoch {e + 1}/{self.num_epochs}- Train loss: {round(train_loss['weighted_loss'], 6)} Val loss: {round(val_loss['weighted_loss'], 6)}"
             self._log(msg)
 
         return (train_losses, val_losses, grad_norms)
@@ -245,7 +252,9 @@ class AE(BaseNN):
                     "image": image_criteria(pred_image, inputs),
                     "timepoint": timepoint_criteria(pred_timepoint, labels),
                 }
-                _, reconstruction_loss_weighted = self._calc_reconstruction_loss(batch_loss)
+                _, reconstruction_loss_weighted = self._calc_reconstruction_loss(
+                    batch_loss
+                )
 
                 reconstruction_loss_weighted.backward()  # type: ignore
                 optimizer_combined.step()
@@ -296,7 +305,9 @@ class AE(BaseNN):
                         avg_loss[key] += batch_loss[key].item()
                     avg_loss["weighted_loss"] += reconstruciton_loss_weighted.item()
 
-                    pbar.set_postfix({"Weighted Loss": reconstruciton_loss_weighted.item()})
+                    pbar.set_postfix(
+                        {"Weighted Loss": reconstruciton_loss_weighted.item()}
+                    )
 
         avg_loss = {key: value / len(val_loader) for key, value in avg_loss.items()}
         return avg_loss
@@ -349,7 +360,9 @@ class AE(BaseNN):
 
         num_layers = len(self.architecture["encoder"])
         is_flattened = False
-        for i, (layer_params, layer) in enumerate(zip(self.architecture["encoder"], self.encoder)):
+        for i, (layer_params, layer) in enumerate(
+            zip(self.architecture["encoder"], self.encoder, strict=False)
+        ):
             if layer_params["type"] == "Conv2d":
                 in_channels = layer_params["in_channels"]
                 out_channels = layer_params["out_channels"]
@@ -382,7 +395,9 @@ class AE(BaseNN):
                 kernel_size = layer_params["kernel_size"]
                 stride = layer_params["stride"]
                 maxpool = nn.MaxPool2d(kernel_size, stride)
-                train_loader = Loader._transform_dataloader(maxpool, train_loader, self.device)
+                train_loader = Loader._transform_dataloader(
+                    maxpool, train_loader, self.device
+                )
 
             elif layer_params["type"] == "Linear":
                 in_features = layer_params["in_features"]
@@ -395,7 +410,11 @@ class AE(BaseNN):
                 self._log(f"RBM {in_features} nodes to {out_features} nodes")
                 gaussian = True if i == num_layers - 1 else False
                 rbm = RBM(
-                    in_features, out_features, gaussian, logger=self.logger, device=self.device
+                    in_features,
+                    out_features,
+                    gaussian,
+                    logger=self.logger,
+                    device=self.device,
                 )
 
                 rbm.train_machine(train_loader, rbm_epochs, rbm_lr)
@@ -419,8 +438,8 @@ class AE(BaseNN):
         self, losses: dict[str, torch.Tensor]
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Calculates the combined loss from individual losses and weights"""
-        combined_loss = torch.Tensor(sum([losses[key] for key in losses.keys()])).detach()
+        combined_loss = torch.Tensor(sum([losses[key] for key in losses])).detach()
         combined_loss_weighted = torch.Tensor(
-            sum([losses[key] * self.loss_weights[key] for key in losses.keys()])
+            sum([losses[key] * self.loss_weights[key] for key in losses])
         )
         return combined_loss, combined_loss_weighted
