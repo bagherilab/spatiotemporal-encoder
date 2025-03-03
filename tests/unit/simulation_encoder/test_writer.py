@@ -50,12 +50,13 @@ class TestWriter(unittest.TestCase):
 
         expected_results = {
             "model": "test_model",
-            "dataset": self.mock_runner.dataset.name,
             "architecture": self.mock_runner.model.name,
+            "loader": self.mock_runner.dataset.__class__.__name__,
+            "dataset": self.mock_runner.dataset.name,
             "channels": ["test_image"],
-            "params": self.mock_runner.model.params,
+            "model_params": self.mock_runner.model.params,
             "data_augmentations": augmentations,
-            "keys": ["test_key"],
+            "data_keys": ["test_key"],
             "losses": {
                 "train": train_loss,
                 "val": val_loss,
