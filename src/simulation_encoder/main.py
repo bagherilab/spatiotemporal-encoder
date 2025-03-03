@@ -2,7 +2,6 @@ import cProfile
 import pstats
 import time
 
-import torch
 import traceback
 from pydantic import ValidationError
 
@@ -11,19 +10,9 @@ from simulation_encoder.writer import Writer
 from simulation_encoder.plotter import Plotter
 from simulation_encoder.logger import Logger
 
-from simulation_encoder.models.ae import AE
-from simulation_encoder.models.vae import VAE
-
-from simulation_encoder.loaders.loader import Loader
-from simulation_encoder.loaders.arcade_loader import ARCADELoader
-from simulation_encoder.loaders.alphanumeric_loader import AlphanumericLoader
-from simulation_encoder.loaders.gastruloid_loader import GastruloidLoader
-from simulation_encoder.loaders.glims_loader import GlimsLoader
-
 from simulation_encoder.dataclass.param_sets import DatasetParams, ModelParams
 from simulation_encoder.dataclass.config_schemas import (
     MainConfig,
-    DatasetConfig,
     ExperimentConfig,
     ModelParamsConfig,
 )
@@ -63,18 +52,19 @@ def main() -> None:
         writer = Writer(results_dir=f"results/{config_name}", experiment_name=experiment_name)
         plotter = Plotter(results_dir=f"results/{config_name}", experiment_name=experiment_name)
 
-        # Loaders
-        loaders = create_loaders(experiment_config, logger)
-        runner.add_loaders(loaders)
+        # Loader
+        loader_params = create_loader_params(experiment_config)
+        runner.add_loaders(loader_params)
 
-        for loader_name, loader in loaders.items():
-            writer.write_train_test_indices(loader_name, loader.get_indices())
+        for dataset_name in loader_params.keys():
+            loader = runner.get_loader(dataset_name)
+            writer.write_train_test_indices(dataset_name, loader.get_indices())
 
-        # Models
+        # Model
         model_param_sets = create_model_param_sets(experiment_config.model)
         runner.add_models(model_param_sets)
 
-        # Run
+        # Run the encoder
         encoder_results = runner.run_encoder(experiment_name)
         handle_encoder_results(encoder_results, runner, writer, plotter, save_all_models=False)
 
@@ -84,76 +74,42 @@ def main() -> None:
     #     writer.write_emulation_results(emulation_results)
 
 
-def create_loaders(experiment_config: ExperimentConfig, logger: Logger) -> dict[str, Loader]:
-    """Create a list of loaders from the experiment config file."""
-    loaders = {}
-    loader_configs = {}
+def create_loader_params(experiment_config: ExperimentConfig) -> dict[str, DatasetParams]:
+    """
+    Create loader parameter sets from the experiment config.
+
+    Parameters
+    ----------
+    experiment_config : ExperimentConfig
+        Experiment configuration containing dataset information
+
+    Returns
+    -------
+    dict[str, DatasetParams]
+        Dictionary mapping dataset names to their parameter sets
+    """
+    loader_params = {}
+
     dataset_names = experiment_config.datasets
 
     for dataset_name in dataset_names:
-        loader_configs[dataset_name] = load_dataset_yaml(dataset_name)
-
-    for dataset_name, loader_config in loader_configs.items():
-        dataset_params = create_dataset_params(dataset_name, loader_config)
-        loader = create_loader(dataset_name, dataset_params, logger)
-        loaders[dataset_name] = loader
-
-    return loaders
-
-
-def create_loader(dataset_name: str, dataset_params: DatasetParams, logger: Logger) -> Loader:
-    """Create the loader object from the dataset parameters"""
-    params_dict = dataset_params.__dict__
-    loader_type = params_dict.pop("loader")
-    logger.log(f"Creating dataset {dataset_name} with loader - {loader_type}")
-    if loader_type.lower() == "arcade":
-        return ARCADELoader(
-            **params_dict,
-            logger=logger,
+        dataset_config = load_dataset_yaml(dataset_name)
+        dataset_params = DatasetParams(
+            loader=dataset_config.loader,
+            image_dir=dataset_config.image_dir,
+            label_dir=dataset_config.label_dir,
+            channels=dataset_config.channels,
+            batch_size=dataset_config.batch_size,
+            val_split=dataset_config.val_split,
+            test_split=dataset_config.test_split,
+            keys=dataset_config.keys,
+            augmentations=dataset_config.augmentations,
+            labels=dataset_config.labels,
+            name=dataset_name,
         )
-    if loader_type.lower() == "alphanumeric":
-        del params_dict["label_dir"]
-        del params_dict["labels"]
-        return AlphanumericLoader(
-            **params_dict,
-            logger=logger,
-        )
-    if loader_type.lower() == "gastruloid":
-        del params_dict["label_dir"]
-        del params_dict["labels"]
-        return GastruloidLoader(
-            **params_dict,
-            logger=logger,
-        )
+        loader_params[dataset_name] = dataset_params
 
-    if loader_type.lower() == "glims":
-        del params_dict["label_dir"]
-        del params_dict["labels"]
-        return GlimsLoader(
-            **params_dict,
-            logger=logger,
-        )
-
-    raise NameError(f"Invalid loader type specified: {loader_type}")
-
-
-def create_dataset_params(dataset_name: str, dataset_config: DatasetConfig) -> DatasetParams:
-    """Create the loader parameters from the experiment config file"""
-    dataset_params = DatasetParams(
-        loader=dataset_config.loader,
-        image_dir=dataset_config.image_dir,
-        label_dir=dataset_config.label_dir,
-        channels=dataset_config.channels,
-        batch_size=dataset_config.batch_size,
-        val_split=dataset_config.val_split,
-        test_split=dataset_config.test_split,
-        keys=dataset_config.keys,
-        augmentations=dataset_config.augmentations,
-        labels=dataset_config.labels,
-        name=dataset_name,
-    )
-
-    return dataset_params
+    return loader_params
 
 
 def create_model_param_sets(model_config: ModelParamsConfig) -> list[ModelParams]:
@@ -187,7 +143,7 @@ def handle_encoder_results(
     encoder_results: dict, runner: Runner, writer: Writer, plotter: Plotter, save_all_models=False
 ) -> None:
     """Handles writing and plotting of encoder results"""
-    best_model = None
+    best_model_info = None
     best_val_loss = float("inf")
 
     for dataset_name, dataset_results in encoder_results.items():
@@ -243,32 +199,6 @@ def handle_encoder_results(
         writer.write_model_state(
             "_best_model", best_model_dataset_name, best_model_data["model_state"]
         )
-
-
-def create_encoder_model(model_params, model_base_name, num_channels, params, dataset_dir):
-    if model_params.type == "AE":
-        model = AE(
-            name=model_base_name,
-            num_channels=num_channels,
-            architecture=model_params.architecture.model_dump(exclude_none=True),
-            params=params,
-        )
-    elif model_params.type == "VAE":
-        model = VAE(
-            name=model_base_name,
-            num_channels=num_channels,
-            architecture=model_params.architecture.model_dump(exclude_none=True),
-            params=params,
-        )
-    else:
-        raise ValueError("Model type not supported")
-
-    print(f"Loading model {model_base_name}")
-    state_dict = torch.load(f"{dataset_dir}/model_state.pth", weights_only=True)
-    state_dict.pop("_metadata", None)
-    model.load_state_dict(state_dict)
-
-    return model
 
 
 if __name__ == "__main__":

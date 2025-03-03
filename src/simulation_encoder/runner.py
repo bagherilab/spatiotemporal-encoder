@@ -1,19 +1,21 @@
 import copy
 from collections import defaultdict
 from copy import deepcopy
-
-
 import pandas as pd
 
 from simulation_encoder.logger import Logger
 from simulation_encoder.loaders.loader import Loader
+from simulation_encoder.loaders.arcade_loader import ARCADELoader
+from simulation_encoder.loaders.gastruloid_loader import GastruloidLoader
+from simulation_encoder.loaders.alphanumeric_loader import AlphanumericLoader
+from simulation_encoder.loaders.glims_loader import GlimsLoader
 
-from simulation_encoder.models.base_nn import BaseNN
 from simulation_encoder.models.ae import AE
 from simulation_encoder.models.vae import VAE
+from simulation_encoder.models.base_nn import BaseNN
 
 from simulation_encoder.dataclass.loss_data import LossData
-from simulation_encoder.dataclass.param_sets import ModelParams
+from simulation_encoder.dataclass.param_sets import ModelParams, DatasetParams
 
 
 class Runner:
@@ -22,17 +24,19 @@ class Runner:
 
     Parameters
     ----------
+    pretrain : bool
+        Controls if models should be pretrained
+    logger : Logger
+        Logger for tracking training progress
     verbose : bool
         Controls if model training is output to console
 
     Attributes
     ----------
-    UUID : uuid.UUID
-        Unique identifier for the run
-    models : dict[str, AE]
-        Dictionary of model names and their corresponding autoencoder models
-    dataset : Loader
-        Dataset to be used for training and evaluation
+    models : dict[str, ModelParams]
+        Dictionary of model IDs and their corresponding parameter sets
+    loader_params : dict[str, DatasetParams]
+        Dictionary of loader names and their corresponding parameter sets
     losses : dict[str, LossData]
         Dictionary of model names and their corresponding loss data
     """
@@ -45,20 +49,25 @@ class Runner:
         self.verbose = verbose
 
         self.models: dict[str, ModelParams] = {}
-        self.loaders: dict[str, Loader] = {}
+        self.loader_params: dict[str, DatasetParams] = {}
+
+        # Cache for created loaders
+        self._loader_cache: dict[str, Loader] = {}
 
         self.losses: dict[str, LossData] = {}
 
-    def add_loaders(self, loaders: dict[str, Loader]) -> None:
+    def add_loaders(self, loader_param_sets: dict[str, DatasetParams]) -> None:
         """
-        Set the loaders on which models should be trained
+        Add loader parameter sets to be used for creating loaders
 
         Parameters
         ----------
-        dataset : Loader
-            Dataset to be used for training and evaluation
+        loader_param_sets : dict[str, DatasetParams]
+            Dictionary mapping loader names to their parameter sets
         """
-        self.loaders = loaders
+        self.loader_params.update(loader_param_sets)
+        # Clear the cache when new loader params are added
+        self._loader_cache = {}
 
     def add_models(self, model_param_sets: list[ModelParams]) -> None:
         """
@@ -66,8 +75,8 @@ class Runner:
 
         Parameters
         ----------
-        model_param_sets : list[BaseNN]
-            List of models to be trained
+        model_param_sets : list[ModelParams]
+            List of model parameter sets to be trained
         """
         model_num = 0
         for model_param in model_param_sets:
@@ -76,8 +85,45 @@ class Runner:
             self.losses[model_id] = LossData()
             model_num += 1
 
+    def get_loader(self, loader_name: str) -> Loader:
+        """
+        Returns a created loader instance from the loader parameters
+
+        Parameters
+        ----------
+        loader_name : str
+            Name of the loader to create
+
+        Returns
+        -------
+        Loader
+            Created loader instance
+        """
+        if loader_name in self._loader_cache:
+            return self._loader_cache[loader_name]
+
+        if loader_name not in self.loader_params:
+            raise ValueError(f"Loader {loader_name} not found")
+
+        loader = self._create_loader(loader_name)
+        self._loader_cache[loader_name] = loader
+
+        return loader
+
     def get_model(self, model_id: str) -> BaseNN:
-        """Returns the specified model"""
+        """
+        Returns a created model instance from the model parameters
+
+        Parameters
+        ----------
+        model_id : str
+            ID of the model to create
+
+        Returns
+        -------
+        BaseNN
+            Created model instance
+        """
         if model_id not in self.models:
             raise ValueError(f"Model {model_id} not found")
 
@@ -91,18 +137,22 @@ class Runner:
             return VAE(**params_dict, logger=self.logger)
         raise ValueError(f"Model type {model_type} not recognized")
 
-    def get_losses(self) -> dict[str, LossData]:
-        """Returns the loss data for all models"""
-        return self.losses
-
-    def get_loader(self, loader_name: str) -> Loader:
-        """Returns the dataset"""
-        return self.loaders[loader_name]
-
     def run_encoder(self, experiment_name: str) -> dict:
-        """Runs the training and evaluation of models"""
-        if not self.loaders:
-            raise ValueError("No loaders has been added to runner.")
+        """
+        Runs the training and evaluation of models
+
+        Parameters
+        ----------
+        experiment_name : str
+            Name of the experiment to run
+
+        Returns
+        -------
+        dict
+            Dictionary of results
+        """
+        if not self.loader_params:
+            raise ValueError("No loader parameters have been added to runner.")
         if not self.models:
             raise ValueError("No models have been added to runner.")
         self.logger.set_experiment_name(experiment_name)
@@ -114,7 +164,8 @@ class Runner:
             self.logger.set_model_name(model_id)
             self._log(f"Training model {model_id} on device {model.device}")
 
-            for loader_name, loader in self.loaders.items():
+            for loader_name in self.loader_params:
+                loader = self.get_loader(loader_name)
                 self._log(f"Training on dataset {loader_name}")
                 self._log(f"Training points - {loader.n_train} Testing points - {loader.n_test}")
 
@@ -160,6 +211,55 @@ class Runner:
 
         return test_loss
 
+    def _create_loader(self, loader_name: str) -> Loader:
+        """
+        Helper method to create a loader from parameters
+
+        Parameters
+        ----------
+        loader_name : str
+            Name of the loader to create
+
+        Returns
+        -------
+        Loader
+            Created loader instance
+        """
+        dataset_params = self.loader_params[loader_name]
+        params_dict = deepcopy(dataset_params.__dict__)
+        loader_type = params_dict.pop("loader")
+
+        self._log(f"Creating loader {loader_name} with type {loader_type}")
+
+        if loader_type.lower() == "arcade":
+            return ARCADELoader(
+                **params_dict,
+                logger=self.logger,
+            )
+        else:
+            # Only ARCADE loaders have labels currently
+            if "label_dir" in params_dict:
+                del params_dict["label_dir"]
+            if "labels" in params_dict:
+                del params_dict["labels"]
+
+            if loader_type.lower() == "alphanumeric":
+                return AlphanumericLoader(
+                    **params_dict,
+                    logger=self.logger,
+                )
+            if loader_type.lower() == "gastruloid":
+                return GastruloidLoader(
+                    **params_dict,
+                    logger=self.logger,
+                )
+            if loader_type.lower() == "glims":
+                return GlimsLoader(
+                    **params_dict,
+                    logger=self.logger,
+                )
+        raise ValueError(f"Invalid loader type specified: {loader_type}")
+
     def _encode_dataset(self, model: BaseNN, loader: Loader) -> dict[str, pd.DataFrame]:
         """Encodes the dataset using the model. Final dataframe includes labels and seed keys"""
         data_loaders = {
@@ -172,22 +272,18 @@ class Runner:
         num_dims = model.latent_dim
         column_names = [f"dim_{i}" for i in range(num_dims)]
 
-        for split, datat_loader in data_loaders.items():
-            # Encode data and convert to DataFrame
-            encoded = model.encode_loader(datat_loader).cpu() if datat_loader else None
+        for split, data_loader in data_loaders.items():
+            encoded = model.encode_loader(data_loader).cpu() if data_loader else None
             if encoded is not None:
                 encoded_df = pd.DataFrame(encoded, columns=column_names)
 
-                # Add labels if they exist
                 if hasattr(loader, "labels") and loader.labels is not None:
                     for label in loader.labels:
                         encoded_df[label] = loader.get_labels(label=label, dataset_type=split)
 
-                # Add timepoint and sample_id
                 encoded_df["timepoint"] = loader.get_timepoints(dataset_type=split)
                 encoded_df["sample_id"] = loader.get_sample_ids(dataset_type=split)
 
-                # Store the dataframe in the dictionary
                 encoded_data[split] = encoded_df
 
         return encoded_data
@@ -201,22 +297,6 @@ class Runner:
         X_val_norm = (X_val - X_train.mean()) / X_train.std()
         y_val_norm = (y_val - y_train.mean()) / y_train.std()
         return X_train_norm, y_train_norm, X_val_norm, y_val_norm
-
-    def _is_model_folder(self, folder_name: str) -> bool:
-        """Check if folder is a model folder"""
-        folder_chunks = folder_name.split("_")
-        if len(folder_chunks) < 3:
-            return False
-
-        model_id = folder_chunks[-1]
-        dim = folder_chunks[-2]
-        try:
-            int(dim[:-1])
-            int(model_id)
-        except ValueError:
-            return False
-
-        return True
 
     def _log(self, msg: str, level: str = "info") -> None:
         if self.logger:
