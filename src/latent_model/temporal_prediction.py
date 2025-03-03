@@ -51,8 +51,11 @@ def create_loaders(results_path: str) -> dict[str, dict[str, SequenceLoader]]:
         loaders[model_name] = {}
         model_path = f"{results_path}/{model_name}/_best_model"
         for dataset_name in os.listdir(model_path):
-            loaders[model_name][dataset_name] = SequenceLoader(f"{model_path}/{dataset_name}/encoded_data.csv")
+            loaders[model_name][dataset_name] = SequenceLoader(
+                f"{model_path}/{dataset_name}/encoded_data.csv"
+            )
     return loaders
+
 
 def create_models(
     results_path: str, loaders: dict[str, dict[str, SequenceLoader]]

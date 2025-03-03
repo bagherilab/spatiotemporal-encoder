@@ -133,6 +133,21 @@
 #         for model_type in emulator_models:
 #             models[model_type] = SupervisedModel(model_type=model_type, logger=self.logger)
 #         return models
+# def _is_model_folder(self, folder_name: str) -> bool:
+#     """Check if folder is a model folder"""
+#     folder_chunks = folder_name.split("_")
+#     if len(folder_chunks) < 3:
+#         return False
+
+#     model_id = folder_chunks[-1]
+#     dim = folder_chunks[-2]
+#     try:
+#         int(dim[:-1])
+#         int(model_id)
+#     except ValueError:
+#         return False
+
+#     return True
 
 #     def _log(self, msg: str, level: str = "info") -> None:
 #         if self.logger:
