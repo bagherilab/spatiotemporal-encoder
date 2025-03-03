@@ -14,6 +14,32 @@ torch.serialization.add_safe_globals([torch._C._nn.gelu])
 torch.serialization.add_safe_globals([neuralop.layers.spectral_convolution.SpectralConv])
 
 
+def create_model(model_params, model_base_name, num_channels, params, dataset_dir):
+    if model_params.type == "AE":
+        model = AE(
+            name=model_base_name,
+            num_channels=num_channels,
+            architecture=model_params.architecture.model_dump(exclude_none=True),
+            params=params,
+        )
+    elif model_params.type == "VAE":
+        model = VAE(
+            name=model_base_name,
+            num_channels=num_channels,
+            architecture=model_params.architecture.model_dump(exclude_none=True),
+            params=params,
+        )
+    else:
+        raise ValueError("Model type not supported")
+
+    print(f"Loading model {model_base_name}")
+    state_dict = torch.load(f"{dataset_dir}/model_state.pth", weights_only=True)
+    state_dict.pop("_metadata", None)
+    model.load_state_dict(state_dict)
+
+    return model
+
+
 def load_models(
     results_path: str,
     best_models_flag: bool = False,
@@ -154,29 +180,3 @@ def _load_all_models(results_path: str) -> dict[str, dict[str, dict[str, object]
         all_models[experiment] = dict(sorted(all_models[experiment].items()))
 
     return all_models
-
-
-def create_model(model_params, model_base_name, num_channels, params, dataset_dir):
-    if model_params.type == "AE":
-        model = AE(
-            name=model_base_name,
-            num_channels=num_channels,
-            architecture=model_params.architecture.model_dump(exclude_none=True),
-            params=params,
-        )
-    elif model_params.type == "VAE":
-        model = VAE(
-            name=model_base_name,
-            num_channels=num_channels,
-            architecture=model_params.architecture.model_dump(exclude_none=True),
-            params=params,
-        )
-    else:
-        raise ValueError("Model type not supported")
-
-    print(f"Loading model {model_base_name}")
-    state_dict = torch.load(f"{dataset_dir}/model_state.pth", weights_only=True)
-    state_dict.pop("_metadata", None)
-    model.load_state_dict(state_dict)
-
-    return model
