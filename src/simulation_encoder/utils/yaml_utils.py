@@ -9,6 +9,7 @@ from simulation_encoder.dataclass.config_schemas import (
     ModelArchitectureConfig,
 )
 
+
 def load_yaml(yaml_file: str, config_class: BaseModel) -> BaseModel:
     try:
         with open(yaml_file, "r") as file:
@@ -44,6 +45,7 @@ def load_model_yaml(
     )
     yaml_path = os.path.join(yaml_path, yaml_file)
     return load_yaml(yaml_path, ModelArchitectureConfig)
+
 
 def load_yaml(yaml_file: str, config_class: BaseModel) -> BaseModel:
     try:

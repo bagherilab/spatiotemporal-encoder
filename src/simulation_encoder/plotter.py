@@ -3,6 +3,7 @@ import os
 import torch
 import matplotlib.pyplot as plt
 
+
 class Plotter:
     """Class for creating and saving plots"""
 
@@ -86,10 +87,12 @@ class Plotter:
 
             # Add row labels
             if row_labels:
-                axes[i][0].set_ylabel(row_labels[i], fontsize=20, rotation=90, labelpad=10, va="center")
+                axes[i][0].set_ylabel(
+                    row_labels[i], fontsize=20, rotation=90, labelpad=10, va="center"
+                )
 
         plt.show()
-    
+
     def _setup(self) -> None:
         self._create_dir(self.results_dir)
         self._create_dir(self.results_path)

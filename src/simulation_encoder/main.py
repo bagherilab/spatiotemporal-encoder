@@ -29,9 +29,9 @@ from simulation_encoder.dataclass.config_schemas import (
 )
 from simulation_encoder.utils.generate_hyperparams import generate_hyperparameters
 from simulation_encoder.utils.yaml_utils import (
-    load_model_yaml, 
+    load_model_yaml,
     load_dataset_yaml,
-    load_hyperparam_yaml, 
+    load_hyperparam_yaml,
     load_yaml,
 )
 
@@ -76,7 +76,7 @@ def main() -> None:
 
         # Run
         encoder_results = runner.run_encoder(experiment_name)
-        handle_encoder_results(encoder_results, runner, writer, plotter)
+        handle_encoder_results(encoder_results, runner, writer, plotter, save_all_models=False)
 
     # Emulation
     # emulation_results = runner.run_emulator(config_name)
@@ -99,6 +99,7 @@ def create_loaders(experiment_config: ExperimentConfig, logger: Logger) -> dict[
         loaders[dataset_name] = loader
 
     return loaders
+
 
 def create_loader(dataset_name: str, dataset_params: DatasetParams, logger: Logger) -> Loader:
     """Create the loader object from the dataset parameters"""
@@ -135,6 +136,7 @@ def create_loader(dataset_name: str, dataset_params: DatasetParams, logger: Logg
 
     raise NameError(f"Invalid loader type specified: {loader_type}")
 
+
 def create_dataset_params(dataset_name: str, dataset_config: DatasetConfig) -> DatasetParams:
     """Create the loader parameters from the experiment config file"""
     dataset_params = DatasetParams(
@@ -152,6 +154,7 @@ def create_dataset_params(dataset_name: str, dataset_config: DatasetConfig) -> D
     )
 
     return dataset_params
+
 
 def create_model_param_sets(model_config: ModelParamsConfig) -> list[ModelParams]:
     """Create the model parameters from model config files and hyperparameter yaml files."""
@@ -179,8 +182,9 @@ def create_model_param_sets(model_config: ModelParamsConfig) -> list[ModelParams
 
     return model_param_sets
 
+
 def handle_encoder_results(
-    encoder_results: dict, runner: Runner, writer: Writer, plotter: Plotter
+    encoder_results: dict, runner: Runner, writer: Writer, plotter: Plotter, save_all_models=False
 ) -> None:
     """Handles writing and plotting of encoder results"""
     best_model = None
@@ -188,7 +192,9 @@ def handle_encoder_results(
 
     for dataset_name, dataset_results in encoder_results.items():
         for model_id, data in dataset_results.items():
-            # writer.write_model_state(model_id, dataset_name, data["model_state"])
+            if save_all_models:
+                writer.write_model_state(model_id, dataset_name, data["model_state"])
+
             writer.write_encoder_results(
                 model_id,
                 runner.get_loader(dataset_name),
@@ -238,20 +244,32 @@ def handle_encoder_results(
             "_best_model", best_model_dataset_name, best_model_data["model_state"]
         )
 
+
 def create_encoder_model(model_params, model_base_name, num_channels, params, dataset_dir):
     if model_params.type == "AE":
-        model = AE(name=model_base_name, num_channels=num_channels, architecture=model_params.architecture.model_dump(exclude_none=True), params=params)
+        model = AE(
+            name=model_base_name,
+            num_channels=num_channels,
+            architecture=model_params.architecture.model_dump(exclude_none=True),
+            params=params,
+        )
     elif model_params.type == "VAE":
-        model = VAE(name=model_base_name, num_channels=num_channels, architecture=model_params.architecture.model_dump(exclude_none=True), params=params)
+        model = VAE(
+            name=model_base_name,
+            num_channels=num_channels,
+            architecture=model_params.architecture.model_dump(exclude_none=True),
+            params=params,
+        )
     else:
         raise ValueError("Model type not supported")
-    
+
     print(f"Loading model {model_base_name}")
     state_dict = torch.load(f"{dataset_dir}/model_state.pth", weights_only=True)
     state_dict.pop("_metadata", None)
     model.load_state_dict(state_dict)
-        
+
     return model
+
 
 if __name__ == "__main__":
     with cProfile.Profile() as pr:

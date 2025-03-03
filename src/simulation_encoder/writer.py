@@ -33,12 +33,13 @@ class Writer:
 
         results = {
             "model": model_name,
-            "dataset": dataset_name,
             "architecture": model.name,
+            "loader": dataset.__class__.__name__,
+            "dataset": dataset_name,
             "channels": dataset.channels,
-            "params": model.params,
+            "model_params": model.params,
             "data_augmentations": augmentations,
-            "keys": dataset.keys,
+            "data_keys": dataset.keys,
             "losses": {
                 "train": losses.losses_train,
                 "val": losses.losses_val,
