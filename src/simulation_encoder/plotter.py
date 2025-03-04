@@ -71,7 +71,7 @@ class Plotter:
         if not all(len(lst) == num_images for lst in image_lists):
             raise ValueError("All image lists must have the same length.")
 
-        fig, axes = plt.subplots(num_rows, num_images, figsize=(num_images * 2, num_rows * 2))
+        fig, axes = plt.subplots(num_rows, num_images, figsize=(num_images, num_rows * 2))
 
         if num_rows == 1:
             axes = [axes]
@@ -83,14 +83,22 @@ class Plotter:
                 ax = axes[i][j]
                 img = image_lists[i][j].squeeze().detach().numpy()
                 ax.imshow(img, cmap="gray", vmin=0, vmax=1)
-                # ax.axis("off")
+                ax.set_xticks([])
+                ax.set_yticks([])
+                ax.set_xticklabels([])
+                ax.set_yticklabels([])
+                ax.spines['top'].set_visible(False)
+                ax.spines['right'].set_visible(False)
+                ax.spines['bottom'].set_visible(False)
+                ax.spines['left'].set_visible(False)
 
             # Add row labels
             if row_labels:
                 axes[i][0].set_ylabel(
-                    row_labels[i], fontsize=20, rotation=90, labelpad=10, va="center"
+                    row_labels[i], fontsize=16, rotation=90, labelpad=10, va="center"
                 )
 
+        plt.tick_params(left=False, right=False, bottom=False, labelleft=False,labelbottom=False)
         plt.show()
 
     def _setup(self) -> None:

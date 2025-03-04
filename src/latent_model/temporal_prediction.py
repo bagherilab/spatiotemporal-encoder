@@ -1,6 +1,7 @@
 import os
 import itertools
 
+from simulation_encoder.plotter import Plotter
 from simulation_encoder.models.model_retrieval import load_models
 from simulation_encoder.loaders.loader_retrieval import load_loaders
 
@@ -9,6 +10,7 @@ from latent_model.sequence_loader import SequenceLoader
 from latent_model.runner import Runner
 
 RESULTS_DIR = "results"
+DATA_DIR = "data"
 EXPERIMENT_NAME = "arch_simple_cancer_v3"
 
 
@@ -23,25 +25,24 @@ def main() -> None:
 
     results = runner.run_temporal_model()
 
-    encoder_models = load_models(results_path)
-    encoder_loaders = load_loaders(results_path)
+    encoder_models = load_models(results_path, best_models_flag=True)
+    encoder_loaders = load_loaders(results_path, DATA_DIR)
 
-    print(results)
+    for model_name, dataset in encoder_models.items():
+        for dataset_name, encoder_model in dataset.items():
+            temporal_model = results[model_name][dataset_name]["best_model"]
+            loader = sequential_loaders[model_name][dataset_name]
+            test_dataloader = loader.get_dataloader("test")
+            original_test_dataloader = encoder_loaders[dataset_name].get_dataloader("test")
 
-    # for model_name, dataset in models.items():
-    #     for dataset_name, encoder_model in dataset.items():
-    #         temporal_model = results[model_name][dataset_name]["best_model"]
-    #         loader = sequential_loaders[model_name][dataset_name]
-    #         test_dataloader = loader.get_dataloader("test")
-
-    #         for batch, labels in test_dataloader:
-    #             x_batch = batch[:, :-1, :]
-    #             y_batch = batch[:, -1, :]
-    #             y_pred = temporal_model(x_batch)
-    #             image_decoded = encoder_model.decode_image(y_batch)
-    #             pred_image_decoded = encoder_model.decode_image(y_pred)
-    #             Plotter.show_images([image_decoded, pred_image_decoded], ["decoded", "predicted"])
-    #             break
+            for batch, labels in test_dataloader:
+                x_batch = batch[:, :-1, :]
+                y_batch = batch[:, -1, :]
+                y_pred = temporal_model(x_batch)
+                image_decoded = encoder_model.decode_image(y_batch)
+                pred_image_decoded = encoder_model.decode_image(y_pred)
+                Plotter.show_images([image_decoded, pred_image_decoded], ["decoded", "predicted"])
+                break
 
 
 def create_loaders(results_path: str) -> dict[str, dict[str, SequenceLoader]]:

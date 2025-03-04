@@ -87,7 +87,7 @@ class Runner:
         val_loader = loader.get_dataloader(dataset_type="val")
 
         losses, val_losses = model.fit(
-            train_loader, val_loader=val_loader, patience=5, min_delta=0.001, max_epochs=50
+            train_loader, val_loader=val_loader, patience=5, min_delta=0.001, max_epochs=1
         )
 
         return losses, val_losses
