@@ -1,4 +1,4 @@
-experiment_name: arch_simple_cancer_v3
+experiment_name: test
 experiments:
   ae:
     datasets:
@@ -7,29 +7,29 @@ experiments:
         architecture: ae_simple
         num_channels: 1
         image_size: 128
-        params: grid_optimizers
+        params: grid_test
     general_configs:
         pretrain: false
         verbose: true  
-  cae:
-    datasets:
-      - vascular_function_128
-    model:
-      architecture: cae_simple
-      num_channels: 1
-      image_size: 128
-      params: grid_optimizers
-    general_configs:
-      pretrain: false
-      verbose: true
-  neuralop:
-    datasets:
-      - vascular_function_128
-    model:
-      architecture: neuralop_simple
-      num_channels: 1
-      image_size: 128
-      params: grid_optimizers
-    general_configs:
-      pretrain: false
-      verbose: true
+  # cae:
+  #   datasets:
+  #     - vascular_function_128
+  #   model:
+  #     architecture: cae_simple
+  #     num_channels: 1
+  #     image_size: 128
+  #     params: grid_optimizers
+  #   general_configs:
+  #     pretrain: false
+  #     verbose: true
+  # neuralop:
+  #   datasets:
+  #     - vascular_function_128
+  #   model:
+  #     architecture: neuralop_simple
+  #     num_channels: 1
+  #     image_size: 128
+  #     params: grid_optimizers
+  #   general_configs:
+  #     pretrain: false
+  #     verbose: true
