@@ -4,7 +4,6 @@ import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
 from PIL import Image
-import matplotlib.pyplot as plt
 
 from simulation_encoder.loaders.dataset_utils.augmentation import AugmentationsManager
 
