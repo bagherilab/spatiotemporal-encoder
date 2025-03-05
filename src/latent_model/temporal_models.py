@@ -87,28 +87,41 @@ class TemporalModel(ABC, nn.Module):
 
 
 class RNNModel(TemporalModel):
-    def __init__(self, input_size, hidden_size, output_size, num_layers=1):
+    def __init__(self, input_size, hidden_size, output_size, num_layers=1, classification=False):
         super().__init__(input_size, hidden_size, output_size, num_layers)
         self.rnn = nn.RNN(input_size, hidden_size, num_layers=num_layers, batch_first=True)
         self.fc = nn.Linear(hidden_size, output_size)
+        
+        if classification:
+            self.out_layer = nn.Softmax(dim=-1) if output_size > 1 else nn.Sigmoid()
+            self.criterion = nn.CrossEntropyLoss() if output_size > 1 else nn.BCEWithLogitsLoss()
+        else:
+            self.out_layer = nn.Identity()
+            self.criterion = nn.MSELoss()
 
         self.optimizer = optim.Adam(self.parameters(), lr=0.001)
-        self.criterion = nn.MSELoss()
 
     def forward(self, x):
         out, _ = self.rnn(x)
         out = out[:, -1, :]
         out = self.fc(out)
-        return out
+        return self.out_layer(out)
 
 
 class LSTMModel(TemporalModel):
-    def __init__(self, input_size, hidden_size, output_size, num_layers=1, dropout=0.0):
+    def __init__(self, input_size, hidden_size, output_size, num_layers=1, dropout=0.0, classification=False):
         super().__init__(input_size, hidden_size, output_size, num_layers, dropout)
         self.lstm = nn.LSTM(
             input_size, hidden_size, num_layers=num_layers, batch_first=True, dropout=dropout
         )
         self.fc = nn.Linear(hidden_size, output_size)
+
+        if classification:
+            self.out_layer = nn.Softmax(dim=-1) if output_size > 1 else nn.Sigmoid()
+            self.criterion = nn.CrossEntropyLoss() if output_size > 1 else nn.BCEWithLogitsLoss()
+        else:
+            self.out_layer = nn.Identity()
+            self.criterion = nn.MSELoss()
 
         self.optimizer = optim.Adam(self.parameters(), lr=0.001)
         self.criterion = nn.MSELoss()
@@ -117,4 +130,4 @@ class LSTMModel(TemporalModel):
         out, (hn, cn) = self.lstm(x)
         out = out[:, -1, :]
         out = self.fc(out)
-        return out
+        return self.out_layer(out)
