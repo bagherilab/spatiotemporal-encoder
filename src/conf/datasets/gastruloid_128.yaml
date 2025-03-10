@@ -3,12 +3,16 @@ image_dir: data/gastruloid_128/images
 label_dir: data/gastruloid_128/labels
 channels:
   # - bf
-  - stain
+  - green
+  # - red
 batch_size: 32
 val_split: 0.2
 test_split: 0.2
 keys:
   - array1
+  - array2
+  # - array3
+  # - array4
 augmentations:
   # - rotate: 90
   # - rotate: 180

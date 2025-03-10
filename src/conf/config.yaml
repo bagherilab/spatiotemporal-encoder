@@ -1,19 +1,42 @@
-experiment_name: test
+experiment_name: arch_simple_gastruloid_decoder_test
 experiments:
-  ae:
-    datasets:
-      - vascular_function_128
-    model:
-        architecture: ae_simple
+  ae-decoder:
+      datasets:
+        - gastruloid_128
+      model:
+        architecture: nerualop_encoder
         num_channels: 1
         image_size: 128
-        params: grid_test
-    general_configs:
+        params: grid_optimizers
+      general_configs:
         pretrain: false
-        verbose: true  
+        verbose: true
+  neuralop-decoder:
+    datasets:
+      - gastruloid_128
+    model:
+      architecture: neuralop_simple
+      num_channels: 1
+      image_size: 128
+      params: grid_optimizers
+    general_configs:
+      pretrain: false
+      verbose: true
+  
+  # ae:
+  #   datasets:
+  #     - gastruloid_128
+  #   model:
+  #       architecture: ae_simple
+  #       num_channels: 1
+  #       image_size: 128
+  #       params: grid_optimizers
+  #   general_configs:
+  #       pretrain: false
+  #       verbose: true  
   # cae:
   #   datasets:
-  #     - vascular_function_128
+  #     - gastruloid_128
   #   model:
   #     architecture: cae_simple
   #     num_channels: 1
@@ -24,7 +47,7 @@ experiments:
   #     verbose: true
   # neuralop:
   #   datasets:
-  #     - vascular_function_128
+  #     - gastruloid_128
   #   model:
   #     architecture: neuralop_simple
   #     num_channels: 1
