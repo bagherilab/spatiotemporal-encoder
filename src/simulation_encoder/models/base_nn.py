@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional, Any, Union
-from collections import defaultdict
+from typing import Optional, Any
 
 import neuralop.models as neuralops_models
 import torch
