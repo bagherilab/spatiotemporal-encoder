@@ -25,6 +25,7 @@ wandb = "^0.18.7"
 torch-harmonics = "0.7.3"
 boto3 = "^1.36.6"
 pysindy = "^1.7.5"
+tifffile = "^2025.2.18"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^8.2.2"
