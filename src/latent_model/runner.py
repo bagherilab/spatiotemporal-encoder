@@ -1,8 +1,8 @@
 from collections import defaultdict
 
 from simulation_encoder.logger import Logger
-from latent_model.sequence_loader import SequenceLoader
-from latent_model.temporal_models import TemporalModel
+from latent_model.loaders.sequence_loader import SequenceLoader
+from latent_model.models.temporal_models import TemporalModel
 
 
 class Runner:

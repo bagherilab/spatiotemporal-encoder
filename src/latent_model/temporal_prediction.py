@@ -5,8 +5,8 @@ from simulation_encoder.plotter import Plotter
 from simulation_encoder.models.model_retrieval import load_models
 from simulation_encoder.loaders.loader_retrieval import load_loaders
 
-from latent_model.temporal_models import TemporalModel, RNNModel, LSTMModel
-from latent_model.sequence_loader import SequenceLoader
+from latent_model.models.temporal_models import TemporalModel, RNNModel, LSTMModel
+from latent_model.loaders.sequence_loader import SequenceLoader
 from latent_model.runner import Runner
 
 RESULTS_DIR = "results"
@@ -45,7 +45,7 @@ def main() -> None:
                 break
 
 
-def create_loaders(results_path: str) -> dict[str, dict[str, SequenceLoader]]:
+def create_loaders(results_path: str, seq_len: int | None = None) -> dict[str, dict[str, SequenceLoader]]:
     """Creates data loaders for all of the best performing models in a given encoder result"""
     loaders = {}
     for model_name in os.listdir(results_path):
@@ -53,7 +53,7 @@ def create_loaders(results_path: str) -> dict[str, dict[str, SequenceLoader]]:
         model_path = f"{results_path}/{model_name}/_best_model"
         for dataset_name in os.listdir(model_path):
             loaders[model_name][dataset_name] = SequenceLoader(
-                f"{model_path}/{dataset_name}/encoded_data.csv"
+                f"{model_path}/{dataset_name}/encoded_data.csv", max_seq_len=seq_len
             )
     return loaders
 
@@ -68,14 +68,13 @@ def create_models(
         for dataset_name in os.listdir(model_path):
             loader = loaders[model_name][dataset_name]
             num_dims = loader.num_dims
-            seq_len = loader.sequence_len
             temporal_models[model_name][dataset_name] = create_models_list(
                 input_size=num_dims, output_size=num_dims
             )
     return temporal_models
 
 
-def create_models_list(input_size: int, output_size: int) -> list[TemporalModel]:
+def create_models_list(input_size: int, output_size: int, classification: bool=False) -> list[TemporalModel]:
     model_classes = [RNNModel, LSTMModel]
     hidden_sizes = [32, 64, 128]
     num_layers = [1, 2, 3]
@@ -88,6 +87,7 @@ def create_models_list(input_size: int, output_size: int) -> list[TemporalModel]
             hidden_size=hidden_size,
             num_layers=num_layer,
             output_size=output_size,
+            classification=classification
         )
         models.append(model)
 
