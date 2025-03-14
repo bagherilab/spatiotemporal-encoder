@@ -54,15 +54,15 @@ def main() -> None:
 
         # Loader
         loader_params = create_loader_params(experiment_config)
-        runner.add_loaders(loader_params)
+        runner.add_loader_params(loader_params)
 
         for dataset_name in loader_params.keys():
-            loader = runner.get_loader(dataset_name)
+            loader = runner.create_loader(dataset_name)
             writer.write_train_test_indices(dataset_name, loader.get_indices())
 
         # Model
         model_param_sets = create_model_param_sets(experiment_config.model)
-        runner.add_models(model_param_sets)
+        runner.add_model_params(model_param_sets)
 
         # Run the encoder
         encoder_results = runner.run_encoder(experiment_name)
@@ -148,13 +148,16 @@ def handle_encoder_results(
 
     for dataset_name, dataset_results in encoder_results.items():
         for model_id, data in dataset_results.items():
+            model = data["model"]
+            loader = runner.create_loader(dataset_name)
+
             if save_all_models:
-                writer.write_model_state(model_id, dataset_name, data["model_state"])
+                writer.write_model_state(model_id, dataset_name, model)
 
             writer.write_encoder_results(
                 model_id,
-                runner.get_loader(dataset_name),
-                runner.get_model(model_id),
+                loader,
+                model,
                 data["losses"],
             )
 
@@ -176,28 +179,25 @@ def handle_encoder_results(
                 if final_val_loss < best_val_loss:
                     best_val_loss = final_val_loss
                     best_model_info = {
-                        "model_id": model_id,
+                        "model": model,
+
                         "dataset_name": dataset_name,
-                        "data": data,
+                        "losses": losses,
                     }
 
     if best_model_info is not None:
-        best_model_id = best_model_info["model_id"]
-        best_model = runner.get_model(best_model_id)
-
+        best_model = best_model_info["model"]
         best_model_dataset_name = best_model_info["dataset_name"]
-        best_model_dataset = runner.get_loader(best_model_dataset_name)
-
-        best_model_data = best_model_info["data"]
+        best_model_loader = runner.create_loader(best_model_dataset_name)
 
         writer.write_encoder_results(
-            "_best_model", best_model_dataset, best_model, best_model_data["losses"]
+            "_best_model", best_model_loader, best_model, best_model_info["losses"]
         )
         writer.write_encoded_data(
-            "_best_model", best_model_dataset_name, best_model_data["encoded_data"]
+            "_best_model", best_model_loader, best_model_dataset_name, best_model 
         )
         writer.write_model_state(
-            "_best_model", best_model_dataset_name, best_model_data["model_state"]
+            "_best_model", best_model_dataset_name, best_model
         )
 
 

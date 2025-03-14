@@ -56,7 +56,7 @@ class Runner:
 
         self.losses: dict[str, LossData] = {}
 
-    def add_loaders(self, loader_param_sets: dict[str, DatasetParams]) -> None:
+    def add_loader_params(self, loader_param_sets: dict[str, DatasetParams]) -> None:
         """
         Add loader parameter sets to be used for creating loaders
 
@@ -69,7 +69,7 @@ class Runner:
         # Clear the cache when new loader params are added
         self._loader_cache = {}
 
-    def add_models(self, model_param_sets: list[ModelParams]) -> None:
+    def add_model_params(self, model_param_sets: list[ModelParams]) -> None:
         """
         Add models to be trained by the runner
 
@@ -85,7 +85,7 @@ class Runner:
             self.losses[model_id] = LossData()
             model_num += 1
 
-    def get_loader(self, loader_name: str) -> Loader:
+    def create_loader(self, loader_name: str) -> Loader:
         """
         Returns a created loader instance from the loader parameters
 
@@ -110,7 +110,7 @@ class Runner:
 
         return loader
 
-    def get_model(self, model_id: str) -> BaseNN:
+    def create_model(self, model_id: str) -> BaseNN:
         """
         Returns a created model instance from the model parameters
 
@@ -160,12 +160,12 @@ class Runner:
         results: dict = defaultdict(dict)
 
         for model_id, _ in self.models.items():
-            model = self.get_model(model_id)
+            model = self.create_model(model_id)
             self.logger.set_model_name(model_id)
             self._log(f"Training model {model_id} on device {model.device}")
 
             for loader_name in self.loader_params:
-                loader = self.get_loader(loader_name)
+                loader = self.create_loader(loader_name)
                 self._log(f"Training on dataset {loader_name}")
                 self._log(f"Training points - {loader.n_train} Testing points - {loader.n_test}")
 
@@ -175,12 +175,9 @@ class Runner:
                 loss_data.add_train_loss(losses)
                 loss_data.add_val_loss(val_losses)
 
-                encoded_dataset = self._encode_dataset(model, loader)
-                model_snapshot = copy.deepcopy(model.state_dict())
-
+                model_snapshot = copy.deepcopy(model)
                 dataset_results = {
-                    "encoded_data": encoded_dataset,
-                    "model_state": model_snapshot,
+                    "model": model_snapshot,
                     "losses": loss_data,
                     "grad_norms": grad_norms,
                 }
@@ -260,7 +257,18 @@ class Runner:
                 )
         raise ValueError(f"Invalid loader type specified: {loader_type}")
 
-    def _encode_dataset(self, model: BaseNN, loader: Loader) -> dict[str, pd.DataFrame]:
+    def _normalize_data(
+        self, X_train: pd.DataFrame, y_train: pd.Series, X_val: pd.DataFrame, y_val: pd.Series
+    ) -> tuple:
+        """Normalize the training and validation data"""
+        X_train_norm = (X_train - X_train.mean()) / X_train.std()
+        y_train_norm = (y_train - y_train.mean()) / y_train.std()
+        X_val_norm = (X_val - X_train.mean()) / X_train.std()
+        y_val_norm = (y_val - y_train.mean()) / y_train.std()
+        return X_train_norm, y_train_norm, X_val_norm, y_val_norm
+    
+    @staticmethod
+    def _encode_dataset(model: BaseNN, loader: Loader) -> dict[str, pd.DataFrame]:
         """Encodes the dataset using the model. Final dataframe includes labels and seed keys"""
         data_loaders = {
             "train": loader.get_dataloader(dataset_type="train"),
@@ -287,16 +295,6 @@ class Runner:
                 encoded_data[split] = encoded_df
 
         return encoded_data
-
-    def _normalize_data(
-        self, X_train: pd.DataFrame, y_train: pd.Series, X_val: pd.DataFrame, y_val: pd.Series
-    ) -> tuple:
-        """Normalize the training and validation data"""
-        X_train_norm = (X_train - X_train.mean()) / X_train.std()
-        y_train_norm = (y_train - y_train.mean()) / y_train.std()
-        X_val_norm = (X_val - X_train.mean()) / X_train.std()
-        y_val_norm = (y_val - y_train.mean()) / y_train.std()
-        return X_train_norm, y_train_norm, X_val_norm, y_val_norm
 
     def _log(self, msg: str, level: str = "info") -> None:
         if self.logger:
