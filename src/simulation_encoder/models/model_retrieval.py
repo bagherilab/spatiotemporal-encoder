@@ -15,6 +15,9 @@ torch.serialization.add_safe_globals([neuralop.layers.spectral_convolution.Spect
 
 
 def create_model(model_params, model_base_name, num_channels, params, dataset_dir):
+    # for layer in model_params.architecture.encoder:
+    #     if layer.type == 'AdaptiveAvgPool2d':
+    #         layer.output_size = 1
     if model_params.type == "AE":
         model = AE(
             name=model_base_name,

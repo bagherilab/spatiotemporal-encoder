@@ -37,6 +37,23 @@ class BaseNN(ABC, nn.Module):
         """
         super().__init__()
 
+    def __str__(self) -> str:
+        """Generate a string representation of the model with key parameters."""
+        optimizer_type = self.optimizers["combined"].__class__.__name__
+        optimizer_params = self.params.get("optimizer", {})
+        optimizer_details = ", ".join([f"{key}={value}" for key, value in optimizer_params.items()])
+        num_params = sum(p.numel() for p in self.parameters() if p.requires_grad)
+
+        return (
+            f"Model: {self.name}\n"
+            f"Latent Dimension: {self.latent_dim}\n"
+            f"Number of Epochs: {self.num_epochs}\n"
+            f"Optimizer: {optimizer_type} ({optimizer_details})\n"
+            f"Image Size: {self.image_size}\n"
+            f"Loss Weights: {self.loss_weights}\n"
+            f"Number of Parameters: {num_params}\n"
+        )
+
     @abstractmethod
     def fit(
         self,
@@ -78,14 +95,20 @@ class BaseNN(ABC, nn.Module):
                 layer_class = getattr(neuralops_models, layer_type, None)
             else:
                 layer_class = getattr(nn, layer_type, None)
+
             if layer_class is None:
                 raise ValueError(f"Layer type {layer_type} not recognized")
+            
             # Dynamically set the number of channels and latent dimension size
             if layer_type == "Conv2d" or layer_type == "ConvTranspose2d":
                 if config.get("in_channels") == "num_channels":
                     config["in_channels"] = self.num_channels
                 if config.get("out_channels") == "num_channels":
                     config["out_channels"] = self.num_channels
+                if config.get("in_channels") == "latent_dim":
+                    config["in_channels"] = self.latent_dim
+                if config.get("out_channels") == "latent_dim":
+                    config["out_channels"] = self.latent_dim
 
             elif layer_type == "Linear":
                 if config.get("out_features") == "latent_dim":
@@ -111,10 +134,6 @@ class BaseNN(ABC, nn.Module):
 
                 config.setdefault("n_modes", [16, 16])
                 config.setdefault("hidden_channel", 64)
-
-                fno_config = {k: v for k, v in config.items() if k != "type"}
-
-                layer = layer_class(**fno_config)
 
             if layer_type == "Unflatten":
                 shape = config.get("shape", [self.num_channels, self.image_size, self.image_size])

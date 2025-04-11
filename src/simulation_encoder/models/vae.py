@@ -87,21 +87,6 @@ class VAE(BaseNN):
         # Factor to balance reconstruction and KL loss
         self.reconstruction_loss_factor = 1
 
-    def __str__(self) -> str:
-        """Generate a string representation of the model with key parameters."""
-        optimizer_type = self.optimizers["combined"].__class__.__name__
-        optimizer_params = self.params.get("optimizer", {})
-        optimizer_details = ", ".join([f"{key}={value}" for key, value in optimizer_params.items()])
-
-        return (
-            f"Model: {self.name}\n"
-            f"Latent Dimension: {self.latent_dim}\n"
-            f"Number of Epochs: {self.num_epochs}\n"
-            f"Optimizer: {optimizer_type} ({optimizer_details})\n"
-            f"Image Size: {self.image_size}\n"
-            f"Loss Weights: {self.loss_weights}\n"
-        )
-
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, ...]:
         """Performs encoding and several decoding heads"""
         mu, logvar = self.encode(x)
