@@ -42,16 +42,23 @@ class BaseNN(ABC, nn.Module):
         optimizer_type = self.optimizers["combined"].__class__.__name__
         optimizer_params = self.params.get("optimizer", {})
         optimizer_details = ", ".join([f"{key}={value}" for key, value in optimizer_params.items()])
-        num_params = sum(p.numel() for p in self.parameters() if p.requires_grad)
+
+        encoder_params = sum(p.numel() for p in self.encoder.parameters() if p.requires_grad)
+        decoder_image_params = sum(p.numel() for p in self.decoder_image.parameters() if p.requires_grad)
+        decoder_timepoint_params = sum(p.numel() for p in self.decoder_timepoint.parameters() if p.requires_grad)
+
+        total_params = encoder_params + decoder_image_params + decoder_timepoint_params
 
         return (
             f"Model: {self.name}\n"
             f"Latent Dimension: {self.latent_dim}\n"
-            f"Number of Epochs: {self.num_epochs}\n"
             f"Optimizer: {optimizer_type} ({optimizer_details})\n"
             f"Image Size: {self.image_size}\n"
             f"Loss Weights: {self.loss_weights}\n"
-            f"Number of Parameters: {num_params}\n"
+            f"Encoder Parameters: {encoder_params:,}\n"
+            f"Decoder (Image) Parameters: {decoder_image_params:,}\n"
+            f"Decoder (Timepoint) Parameters: {decoder_timepoint_params:,}\n"
+            f"Total Parameters: {total_params:,}\n"
         )
 
     @abstractmethod

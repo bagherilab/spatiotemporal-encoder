@@ -6,7 +6,7 @@ channels:
   # - graph
 batch_size: 16
 val_split: 0.2
-test_split: 0.5
+test_split: 0.2
 keys:
   - CH_Lav
   - CH_Lava

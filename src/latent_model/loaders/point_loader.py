@@ -3,57 +3,54 @@ from sklearn.model_selection import train_test_split
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-class TimeSeriesDataset(Dataset):
-    """Dataset for time-series or otherwise ordered data with padding at sequence beginnings"""
-    def __init__(self, sequences: dict, max_seq_len: int):
+class PointDataset(Dataset):
+    """Dataset for a single time point from sequence data"""
+    def __init__(self, sequences: dict, time_point_idx: int):
         self.sequences = sequences
         self.sample_ids = list(sequences.keys())
-        self.max_seq_len = max_seq_len
+        self.time_point_idx = time_point_idx
         
-        self.padded_sequences = {}
+        self.time_point_data = {}
         for sample_id, seq_data in sequences.items():
-            self.padded_sequences[sample_id] = self._pad_sequence(seq_data)
+            self.time_point_data[sample_id] = self._extract_time_point(seq_data)
         
     def __len__(self):
         return len(self.sample_ids)
     
     def __getitem__(self, idx):
         sample_id = self.sample_ids[idx]
-        padded_sequence = self.padded_sequences[sample_id]
-        return padded_sequence, sample_id
+        time_point = self.time_point_data[sample_id]
+        return time_point, sample_id
     
-    def _pad_sequence(self, sequence_data):
-        """Pad a sequence at the beginning to the maximum length"""
+    def _extract_time_point(self, sequence_data):
+        """Extract a single time point from a sequence"""
         sequence = torch.tensor(sequence_data, dtype=torch.float32)
-        seq_len = sequence.shape[0]
-        feature_dim = sequence.shape[1]
         
-        if not self.max_seq_len or seq_len >= self.max_seq_len:
-            return sequence
+        if self.time_point_idx >= sequence.shape[0]:
+            raise IndexError(f"Time point index {self.time_point_idx} is beyond sequence length {sequence.shape[0]}")
+        time_point = sequence[self.time_point_idx]
         
-        padded_seq = torch.zeros(self.max_seq_len, feature_dim, dtype=torch.float32)
-        padding_len = self.max_seq_len - seq_len
-        
-        padded_seq[padding_len:] = sequence
-        
-        return padded_seq
+        return time_point
 
-class SequenceLoader:
-    """Loader for sequence data with variable lengths, padded at initialization"""
+class PointLoader:
+    """Loader for a single time point from sequence data"""
     def __init__(
         self,
         data_path: str,
+        time_point_idx: int,
         sequence_col: str = "timepoint",
         id_col: str = "sample_id",
         val_split: float = 0.2,
         test_split: float = 0.2,
         batch_size: int = 16,
-        max_seq_len: int | None = None,
         random_seed: int = 42,
+        relative_idx: bool = False,
     ):
         self.data = self._load_csv(data_path)
         self.sequence_col = sequence_col
         self.id_col = id_col
+        self.time_point_idx = time_point_idx
+        self.relative_idx = relative_idx
         self.feature_cols = [
             col for col in self.data.columns if col not in [self.sequence_col, self.id_col, "split"]
         ]
@@ -67,15 +64,9 @@ class SequenceLoader:
         for sample_id, group in self.data.groupby(self.id_col):
             sorted_group = group.sort_values(by=self.sequence_col)
             self.sequences[sample_id] = sorted_group[self.feature_cols].values
-        
-        self.max_seq_len = max_seq_len
             
         self._train_ids, self._val_ids, self._test_ids = self._split_data()
     
-    def _compute_max_seq_len(self):
-        """Compute the maximum sequence length in the dataset"""
-        return max(len(seq) for seq in self.sequences.values())
-        
     def get_dataloader(self, dataset_type: str) -> DataLoader:
         """Returns DataLoader for the specified dataset type (train, val, test)"""
         if dataset_type == "train":
@@ -88,7 +79,7 @@ class SequenceLoader:
             raise ValueError(f"Invalid dataset type: {dataset_type}")
             
         subset = {id: self.sequences[id] for id in ids}
-        dataset = TimeSeriesDataset(subset, self.max_seq_len)
+        dataset = PointDataset(subset, self.time_point_idx)
         
         return DataLoader(
             dataset,
@@ -96,7 +87,7 @@ class SequenceLoader:
             shuffle=(dataset_type == "train"),  # Shuffle only for training data
         )
         
-    def _split_data(self) -> tuple[list[int], ...]:
+    def _split_data(self) -> tuple[list, list, list]:
         sample_ids = list(self.sequences.keys())
         train_ids, test_ids = train_test_split(
             sample_ids, test_size=self.test_split, random_state=self.random_seed

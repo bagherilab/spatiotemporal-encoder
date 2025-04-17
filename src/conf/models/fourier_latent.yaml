@@ -1,0 +1,37 @@
+type: AE
+architecture:
+  encoder:
+    - type: FNO
+      n_modes: [4, 4]
+      hidden_channels: 16
+      in_channels: num_channels
+      out_channels: 1
+  
+  decoder_image:
+    - type: Linear
+      in_features: latent_dim
+      out_features: 512
+    - type: BatchNorm1d
+      num_features: 512
+    - type: ReLU
+    
+    - type: Linear
+      in_features: 512
+      out_features: 65536
+
+    - type: Unflatten
+      shape: [16, 64, 64]
+
+    - type: Upsample
+      scale_factor: 2
+      mode: nearest
+
+    - type: FNO
+      n_modes: [16, 16]
+      hidden_channels: 16
+      in_channels: 16
+      out_channels: num_channels
+    - type: Sigmoid
+  
+  decoder_timepoint:
+    - type: ReLU

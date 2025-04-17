@@ -26,6 +26,8 @@ torch-harmonics = "0.7.3"
 boto3 = "^1.36.6"
 pysindy = "^1.7.5"
 tifffile = "^2025.2.18"
+opencv-python = "^4.11.0.86"
+scikit-image = "^0.25.2"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^8.2.2"

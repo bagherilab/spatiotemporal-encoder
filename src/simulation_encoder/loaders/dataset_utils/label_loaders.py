@@ -36,18 +36,10 @@ class CSVLoader(Dataset):
 
     def get_data(
         self,
-        dataset_type: str,
         feature_timepoint: Optional[int] = None,
         response_timepoint: Optional[int] = None,
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
-        if dataset_type == "train":
-            X, y = self._X_train, self._y_train
-        elif dataset_type == "val":
-            X, y = self._X_val, self._y_val
-        elif dataset_type == "test":
-            X, y = self._X_test, self._y_test
-        else:
-            raise ValueError(f"Invalid dataset type: {dataset_type}")
+        X, y = self._X, self._y
 
         if feature_timepoint:
             X = X[X["timepoint"] == feature_timepoint]
@@ -68,12 +60,10 @@ class CSVLoader(Dataset):
         return X.drop(["timepoint", "seed_key"], axis=1), y.drop(["timepoint", "seed_key"], axis=1)
 
     def _load_data(self) -> None:
-        self._X_train, self._y_train = self._load_csv("train")
-        self._X_val, self._y_val = self._load_csv("val")
-        self._X_test, self._y_test = self._load_csv("test")
+        self._X, self._y = self._load_csv("train")
 
-    def _load_csv(self, dataset_type: str) -> tuple[pd.DataFrame, pd.DataFrame]:
-        file_path = os.path.join(self.data_path, f"encoded_data/{dataset_type}.csv")
+    def _load_csv(self) -> tuple[pd.DataFrame, pd.DataFrame]:
+        file_path = os.path.join(self.data_path, f"encoded_data.csv")
         data = pd.read_csv(file_path)
         self.feature_cols = [col for col in data.columns if col.startswith("dim_")]
         X, y = (

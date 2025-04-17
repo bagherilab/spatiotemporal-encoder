@@ -102,7 +102,6 @@ class HyperparameterConfig(BaseModel):
 
 """ Model architecture and type """
 
-
 class LayerConfig(BaseModel):
     type: str = Field(..., description="Name of layer in PyTorch")
     in_features: Optional[Union[int, str]] = None
@@ -118,6 +117,7 @@ class LayerConfig(BaseModel):
     p: Optional[float] = None
     output_padding: Optional[int] = None
     activation: Optional[str] = None
+    output_size: Optional[Union[int, str]] = None
     # Neural operators
     hidden_channels: Optional[Union[int, str]] = None
     n_modes: Optional[list[int]] = None

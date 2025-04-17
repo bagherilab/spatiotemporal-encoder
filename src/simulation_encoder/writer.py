@@ -1,6 +1,6 @@
 import os
 import json
-
+import pandas as pd
 import torch
 
 from simulation_encoder.runner import Runner
@@ -69,7 +69,8 @@ class Writer:
         self._create_dir(dataset_path)
 
         embeddings = Runner._encode_dataset(model, loader)
-        embeddings.to_csv(os.path.join(dataset_path, "encoded_data.csv"), index=False)
+        combined_embeddings = pd.concat(embeddings.values(), ignore_index=True)
+        combined_embeddings.to_csv(os.path.join(dataset_path, "encoded_data.csv"), index=False)
 
     def write_model_state(self, model_name: str, dataset_name: str, model: BaseNN) -> None:
         """Writes the model state to disk under the model_name directory"""

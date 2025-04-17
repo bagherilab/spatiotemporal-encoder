@@ -291,6 +291,7 @@ class Runner:
 
                 encoded_df["timepoint"] = loader.get_timepoints(dataset_type=split)
                 encoded_df["sample_id"] = loader.get_sample_ids(dataset_type=split)
+                encoded_df["split"] = split
 
                 encoded_data[split] = encoded_df
 

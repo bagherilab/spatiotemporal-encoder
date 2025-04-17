@@ -2,7 +2,7 @@ type: AE
 architecture:
   encoder:
     - type: FNO
-      n_modes: [16, 16]
+      n_modes: [12, 12]
       hidden_channels: 16
       in_channels: num_channels
       out_channels: 16
@@ -69,4 +69,4 @@ architecture:
     
     - type: Linear
       in_features: 32
-      out_features: 9
+      out_features: 15

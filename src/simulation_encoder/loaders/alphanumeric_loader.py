@@ -65,17 +65,9 @@ class AlphanumericLoader(Loader):
             group["character"] = character
             group["angle"] = angle
             group["timepoint"] = timepoint
-            group["simulation_id"] = f"{character}_{seed}_{angle}"
+            group["sample_id"] = sample_id
 
-            for augmentation in self.augmentations:
-                ((aug_name, aug),) = augmentation.items()
-                if aug_name == "identity":
-                    continue
-                aug_simulation_id = f"{simulation_id}_{aug_name}"
-                aug_group = dict(group)
-                aug_group["augmentation"] = {aug_name: aug}
-                image_groups[aug_simulation_id] = aug_group
-
+        self._log_missing_images(image_groups)
         return list(image_groups.values())
 
     def _parse_filename(self, filename: str) -> tuple[str, int, int, int]:

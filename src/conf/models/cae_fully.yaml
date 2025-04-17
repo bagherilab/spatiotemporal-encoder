@@ -1,0 +1,142 @@
+type: AE
+architecture:
+  encoder:
+    - type: Conv2d
+      in_channels: num_channels
+      out_channels: 32
+      kernel_size: 3
+      padding: 1
+      stride: 2
+    - type: BatchNorm2d
+      num_features: 32
+    - type: ReLU
+
+    - type: Conv2d
+      in_channels: 32
+      out_channels: 64
+      kernel_size: 3
+      padding: 1
+      stride: 2
+    - type: BatchNorm2d
+      num_features: 64
+    - type: ReLU
+
+    - type: Conv2d
+      in_channels: 64
+      out_channels: 128
+      kernel_size: 3
+      padding: 1
+      stride: 2
+    - type: BatchNorm2d
+      num_features: 128
+    - type: ReLU
+
+    - type: Conv2d
+      in_channels: 128
+      out_channels: 256
+      kernel_size: 3
+      padding: 1
+      stride: 2
+    - type: BatchNorm2d
+      num_features: 256
+    - type: ReLU
+
+    - type: Conv2d
+      in_channels: 256
+      out_channels: 512
+      kernel_size: 3
+      padding: 1
+      stride: 2
+    - type: BatchNorm2d
+      num_features: 512
+    - type: ReLU
+
+    - type: Conv2d
+      in_channels: 512
+      out_channels: latent_dim
+      kernel_size: 1
+      padding: 0
+      stride: 1
+
+    - type: AdaptiveAvgPool2d
+      output_size: 1
+    - type: Flatten
+    
+  decoder_image:
+    - type: Unflatten
+      shape: [16, 1, 1]
+    - type: Conv2d
+      in_channels: 16
+      out_channels: 512
+      kernel_size: 1
+      padding: 0
+      stride: 1
+    - type: BatchNorm2d
+      num_features: 512
+    - type: ReLU
+
+    - type: ConvTranspose2d
+      in_channels: 512
+      out_channels: 256
+      kernel_size: 2
+      stride: 2
+    - type: BatchNorm2d
+      num_features: 256
+    - type: ReLU
+    
+    - type: ConvTranspose2d
+      in_channels: 256
+      out_channels: 128
+      kernel_size: 2
+      stride: 2
+    - type: BatchNorm2d
+      num_features: 128
+    - type: ReLU
+    
+    - type: ConvTranspose2d
+      in_channels: 128
+      out_channels: 64
+      kernel_size: 2
+      stride: 2
+    - type: BatchNorm2d
+      num_features: 64
+    - type: ReLU
+    
+    - type: ConvTranspose2d
+      in_channels: 64
+      out_channels: 32
+      kernel_size: 2
+      stride: 2
+    - type: BatchNorm2d
+      num_features: 32
+    - type: ReLU
+    
+    - type: ConvTranspose2d
+      in_channels: 32
+      out_channels: 16
+      kernel_size: 2
+      stride: 2
+    - type: BatchNorm2d
+      num_features: 16
+    - type: ReLU
+    
+    - type: ConvTranspose2d
+      in_channels: 16
+      out_channels: 8
+      kernel_size: 2
+      stride: 2
+    - type: BatchNorm2d
+      num_features: 8
+    - type: ReLU
+    
+    - type: ConvTranspose2d
+      in_channels: 8
+      out_channels: num_channels
+      kernel_size: 2
+      stride: 2
+    - type: Sigmoid
+
+  decoder_timepoint:
+    - type: Linear
+      in_features: latent_dim
+      out_features: 15
