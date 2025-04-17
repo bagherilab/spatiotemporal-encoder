@@ -10,35 +10,23 @@
 ## Getting started
 
 1. Clone the repo.
-2. Initialize the repository (if you already have a `pyproject.toml` file, you can skip this step):
+
+
+2. Install dependencies.
 
 ```bash
-$ poetry init
+$ poetry install
 ```
 
-3. Install dependencies.
+3. Activate the environment (this is all you need for day-to-day development):
 
 ```bash
-$ 
+$ poetry shell
 ```
 
-4. Activate the environment (this is all you need for day-to-day development):
-
-```bash
-$ 
-```
-
-5. Run the CLI.
-
-```bash
-$ 
-```
 
 ## General commands
 
-The `Makefile` include three commands for working with the project.
-
-- `make clean` will clean all the build and testing files
-- `make build` will run tests, format, lint, and type check your code (you can also just run `tox`)
-- `make docs` will generate documentation
+The `main.py` file is the entry point for the program.
+All configurations are set in the various .yaml files found under the conf folder.
 

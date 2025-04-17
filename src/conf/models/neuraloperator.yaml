@@ -1,0 +1,72 @@
+type: AE
+architecture:
+  encoder:
+    - type: FNO
+      n_modes: [16, 16]
+      hidden_channels: 16
+      in_channels: num_channels
+      out_channels: 16
+    - type: BatchNorm2d
+      num_features: 16
+    - type: GELU
+    
+    - type: MaxPool2d
+      kernel_size: 2
+      stride: 2
+
+    - type: Flatten
+    - type: Linear
+      in_features: 65536
+      out_features: 512
+    - type: BatchNorm1d
+      num_features: 512
+    - type: ReLU
+    
+    - type: Linear
+      in_features: 512
+      out_features: latent_dim
+  
+  decoder_image:
+    - type: Linear
+      in_features: latent_dim
+      out_features: 512
+    - type: BatchNorm1d
+      num_features: 512
+    - type: ReLU
+    
+    - type: Linear
+      in_features: 512
+      out_features: 65536
+
+    - type: Unflatten
+      shape: [16, 64, 64]
+
+    - type: Upsample
+      scale_factor: 2
+      mode: nearest
+
+    - type: FNO
+      n_modes: [16, 16]
+      hidden_channels: 16
+      in_channels: 16
+      out_channels: num_channels
+    - type: Sigmoid
+  
+  decoder_timepoint:
+    - type: Linear
+      in_features: latent_dim
+      out_features: 64
+    - type: BatchNorm1d
+      num_features: 64
+    - type: ReLU
+    
+    - type: Linear
+      in_features: 64
+      out_features: 32
+    - type: BatchNorm1d
+      num_features: 32
+    - type: ReLU
+    
+    - type: Linear
+      in_features: 32
+      out_features: 9

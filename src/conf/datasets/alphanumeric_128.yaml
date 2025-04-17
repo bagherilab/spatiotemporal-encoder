@@ -1,0 +1,23 @@
+loader: alphanumeric
+image_dir: data/alphanumeric_128/images
+label_dir: data/alphanumeric_128/labels
+channels:
+  - image
+batch_size: 32
+val_split: 0.2
+test_split: 0.2
+keys:
+  - "2"
+  - a
+  - b
+  - d
+  - e
+  - i
+  - j
+  - k
+  - p
+  - u
+  - x
+  - z
+augmentations:
+labels:
