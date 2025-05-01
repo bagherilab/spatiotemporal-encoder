@@ -6,7 +6,7 @@ from simulation_encoder.logger import Logger
 from simulation_encoder.loaders.loader import Loader
 
 
-class GastruloidLoader(Loader):
+class RadiationLoader(Loader):
     """
     Loader class for loading labeled images from a directory.
 
@@ -70,6 +70,8 @@ class GastruloidLoader(Loader):
                 **{channel: "" for channel in self.channels},
                 "timepoint": "",
                 "sample_id": "",
+                "dose": "",
+                "radiation_type": "",
                 "augmentation": {"identity": ""},
             }
         )
@@ -78,17 +80,18 @@ class GastruloidLoader(Loader):
             if not file_name.endswith(".png") or not self._in_keys(file_name):
                 continue
 
-            if not any(channel in file_name for channel in self.channels):
-                continue
+            # if not any(channel in file_name for channel in self.channels):
+            #     continue
 
-            channel, array, raft, timepoint = self._parse_filename(file_name)
-            sample_id = f"{array}_{raft}"
+            plate_well, id, dose, radiation_type, timepoint = self._parse_filename(file_name)
+            sample_id = f"{plate_well}_{id}_{radiation_type}"
             simulation_id = f"{sample_id}_{timepoint}"
-
             group = image_groups[simulation_id]
             group["timepoint"] = timepoint
             group["sample_id"] = sample_id
-            group[channel] = os.path.join(self.image_dir, file_name)
+            group["dose"] = dose
+            group["radiation_type"] = radiation_type
+            group["image"] = os.path.join(self.image_dir, file_name)
 
             for transform_dict in self.augmentation_manager.transforms:
                 ((aug_name, aug),) = transform_dict.items()
@@ -102,16 +105,24 @@ class GastruloidLoader(Loader):
         self._log_missing_images(image_groups)
         return list(image_groups.values())
 
-    def _parse_filename(self, filename: str) -> tuple[str, str, int, int]:
-        parts = filename.split("_")
-        modality = parts[0]
-        array = parts[1]
-        raft = int(parts[2])
-        timepoint = int(parts[3].split(".")[0])
+    def _parse_filename(self, filename: str) -> tuple[str, str, float, str, int]:
+        file_chunks = filename.split("_")
+        plate_well = file_chunks[:2]
+        id = file_chunks[2:4]
+        dose = file_chunks[4][:-2]
+        radiation_type = file_chunks[5]
+        timepoint = file_chunks[6].split(".")[0]
 
-        return modality, array, raft, timepoint
+        return (
+            plate_well,
+            id,
+            float(dose),
+            str(radiation_type),
+            int(timepoint),
+        )
 
     def _in_keys(self, file_name: str) -> bool:
         file_chunks = file_name.split("_")
-        prefix = file_chunks[1]
+        prefix = file_chunks[0]
+        
         return prefix in self.keys

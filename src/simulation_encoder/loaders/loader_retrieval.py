@@ -5,6 +5,7 @@ from simulation_encoder.loaders.arcade_loader import ARCADELoader
 from simulation_encoder.loaders.gastruloid_loader import GastruloidLoader
 from simulation_encoder.loaders.alphanumeric_loader import AlphanumericLoader
 from simulation_encoder.loaders.glims_loader import GlimsLoader
+from simulation_encoder.loaders.radiation_loader import RadiationLoader
 
 
 def load_loaders(
@@ -152,6 +153,15 @@ def _create_loader(
         )
     elif loader_type == "GlimsLoader":
         return GlimsLoader(
+            image_dir=image_path,
+            channels=channels,
+            keys=keys,
+            batch_size=1,
+            augmentations=augmentations,
+            indices_file=indices_path,
+        )
+    elif loader_type == "RadiationLoader":
+        return RadiationLoader(
             image_dir=image_path,
             channels=channels,
             keys=keys,
