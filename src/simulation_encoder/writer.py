@@ -13,10 +13,10 @@ from simulation_encoder.dataclass.supervised_results import SupervisedResults
 class Writer:
     """Class for writing information to disk"""
 
-    def __init__(self, results_dir: str = "results/", experiment_name: str = ""):
-        self.experiment_name = experiment_name
+    def __init__(self, results_dir: str = "results/", study_name: str = ""):
+        self.study_name = study_name
         self.results_dir = results_dir
-        self.results_path = os.path.join(results_dir, str(self.experiment_name))
+        self.results_path = os.path.join(results_dir, str(self.study_name))
 
         self._setup()
 

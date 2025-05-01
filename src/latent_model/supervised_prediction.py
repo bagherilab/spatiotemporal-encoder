@@ -11,11 +11,11 @@ from latent_model.models.supervised_model import SupervisedClassifier
 
 RESULTS_DIR = "results"
 DATA_DIR = "data"
-EXPERIMENT_NAME = "arch_simple_cancer"
+STUDY_NAME = "arch_simple_cancer"
 
 def main() -> None:
     """Main function to run supervised emulation using global configuration variables."""
-    conf_name = EXPERIMENT_NAME
+    conf_name = STUDY_NAME
     results_dir = RESULTS_DIR
 
     output_dir = os.path.join(results_dir, conf_name, 'emulation')

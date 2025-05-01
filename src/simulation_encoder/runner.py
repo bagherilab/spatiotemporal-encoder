@@ -137,13 +137,13 @@ class Runner:
             return VAE(**params_dict, logger=self.logger)
         raise ValueError(f"Model type {model_type} not recognized")
 
-    def run_encoder(self, experiment_name: str) -> dict:
+    def run_encoder(self, study_name: str) -> dict:
         """
         Runs the training and evaluation of models
 
         Parameters
         ----------
-        experiment_name : str
+        study_name : str
             Name of the experiment to run
 
         Returns
@@ -155,7 +155,7 @@ class Runner:
             raise ValueError("No loader parameters have been added to runner.")
         if not self.models:
             raise ValueError("No models have been added to runner.")
-        self.logger.set_experiment_name(experiment_name)
+        self.logger.set_study_name(study_name)
 
         results: dict = defaultdict(dict)
 

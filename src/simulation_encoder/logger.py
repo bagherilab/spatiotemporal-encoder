@@ -31,25 +31,25 @@ class Logger:
         level: int = logging.INFO,
         verbose: bool = False,
     ):
-        self.experiment_name = ""
+        self.study_name = ""
         self.model_name = ""
         self.log_dir = log_dir
         self.log_path = os.path.join(log_dir, f"{log_name}.log")
-        self.logger = logging.getLogger(str(self.experiment_name))
+        self.logger = logging.getLogger(str(self.study_name))
         self.verbose = verbose
         self._set_up_logger(format_str, level)
         self._create_log_file()
 
-    def set_experiment_name(self, experiment_name: str) -> None:
+    def set_study_name(self, study_name: str) -> None:
         """
         Sets the name of the experiment.
 
         Parameters
         ----------
-        experiment_name : str
+        study_name : str
             Name of the experiment.
         """
-        self.experiment_name = experiment_name
+        self.study_name = study_name
 
     def set_model_name(self, model_name: str) -> None:
         """
@@ -80,9 +80,9 @@ class Logger:
             Logging level (e.g., "info", "warning").
         """
         if self.model_name:
-            log_msg = f"[{self.experiment_name}][{self.model_name}] {msg}"
-        elif self.experiment_name:
-            log_msg = f"[{self.experiment_name}] {msg}"
+            log_msg = f"[{self.study_name}][{self.model_name}] {msg}"
+        elif self.study_name:
+            log_msg = f"[{self.study_name}] {msg}"
         else:
             log_msg = msg
 

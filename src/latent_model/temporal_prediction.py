@@ -11,11 +11,11 @@ from latent_model.runner import Runner
 
 RESULTS_DIR = "results"
 DATA_DIR = "data"
-EXPERIMENT_NAME = "arch_simple_cancer_v3"
+study_name = "arch_simple_cancer_v3"
 
 
 def main() -> None:
-    results_path = f"{RESULTS_DIR}/{EXPERIMENT_NAME}"
+    results_path = f"{RESULTS_DIR}/{study_name}"
     sequential_loaders = create_loaders(results_path)
     temporal_models = create_models(results_path, sequential_loaders)
 

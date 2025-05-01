@@ -62,7 +62,7 @@ class ExperimentConfig(BaseModel):
 
 
 class MainConfig(BaseModel):
-    experiment_name: str = Field(..., description="Name of the experiment")
+    study_name: str = Field(..., description="Name of the experiment")
     experiments: dict[str, ExperimentConfig] = Field(
         ..., description="Dictionary of experiment configurations"
     )

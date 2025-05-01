@@ -42,15 +42,15 @@ def main() -> None:
         traceback.print_exc()
         raise ValidationError(f"Configuration validation error: {e}") from e
 
-    config_name = main_config.experiment_name  # type: ignore
-    for experiment_name, experiment_config in main_config.experiments.items():  # type: ignore
+    config_name = main_config.study_name  # type: ignore
+    for study_name, experiment_config in main_config.experiments.items():  # type: ignore
         pretrain = experiment_config.general_configs.pretrain
         verbose = experiment_config.general_configs.verbose
 
         logger = Logger(log_name=f"{config_name}", verbose=verbose)
         runner = Runner(pretrain, logger, verbose)
-        writer = Writer(results_dir=f"results/{config_name}", experiment_name=experiment_name)
-        plotter = Plotter(results_dir=f"results/{config_name}", experiment_name=experiment_name)
+        writer = Writer(results_dir=f"results/{config_name}", study_name=study_name)
+        plotter = Plotter(results_dir=f"results/{config_name}", study_name=study_name)
 
         # Loader
         loader_params = create_loader_params(experiment_config)
@@ -65,7 +65,7 @@ def main() -> None:
         runner.add_model_params(model_param_sets)
 
         # Run the encoder
-        encoder_results = runner.run_encoder(experiment_name)
+        encoder_results = runner.run_encoder(study_name)
         handle_encoder_results(encoder_results, runner, writer, plotter, save_all_models=False)
 
     # Emulation
