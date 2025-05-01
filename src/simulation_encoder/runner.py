@@ -9,6 +9,7 @@ from simulation_encoder.loaders.arcade_loader import ARCADELoader
 from simulation_encoder.loaders.gastruloid_loader import GastruloidLoader
 from simulation_encoder.loaders.alphanumeric_loader import AlphanumericLoader
 from simulation_encoder.loaders.glims_loader import GlimsLoader
+from simulation_encoder.loaders.radiation_loader import RadiationLoader
 
 from simulation_encoder.models.ae import AE
 from simulation_encoder.models.vae import VAE
@@ -252,6 +253,11 @@ class Runner:
                 )
             if loader_type.lower() == "glims":
                 return GlimsLoader(
+                    **params_dict,
+                    logger=self.logger,
+                )
+            if loader_type.lower() == "radiation":
+                return RadiationLoader(
                     **params_dict,
                     logger=self.logger,
                 )

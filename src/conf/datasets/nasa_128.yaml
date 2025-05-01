@@ -1,0 +1,29 @@
+loader: radiation
+image_dir: data/nasa_128/images
+label_dir: data/nasa_128/labels
+channels:
+  - image
+batch_size: 32
+val_split: 0.2
+test_split: 0.2
+keys:
+  - P242
+  - P243
+  - P244
+  - P248
+  - P249
+  - P250
+  - P251
+  - P253
+  - P278
+  - P279
+  - P280
+  - P282
+  - P283
+  - P284
+  - P286
+  - P287
+  - P288
+augmentations:
+  # - rotate: 90
+  # - rotate: 180
