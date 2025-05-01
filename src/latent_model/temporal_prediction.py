@@ -75,7 +75,7 @@ def create_models(
 
 
 def create_models_list(input_size: int, output_size: int, classification: bool=False) -> list[TemporalModel]:
-    model_classes = [RNNModel, LSTMModel]
+    model_classes = [LSTMModel]
     hidden_sizes = [32, 64, 128]
     num_layers = [1, 2, 3]
     models = []

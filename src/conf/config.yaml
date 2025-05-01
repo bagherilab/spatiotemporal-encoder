@@ -1,8 +1,8 @@
-experiment_name: arch_simple_cancer
+experiment_name: arch_simple_gastruloid_16_v4
 experiments:
   ae:
     datasets:
-      - vascular_function_128
+      - gastruloid_128
     model:
         architecture: ae_simple
         num_channels: 1
@@ -13,9 +13,9 @@ experiments:
         verbose: true  
   cae:
     datasets:
-      - vascular_function_128
+      - gastruloid_128
     model:
-      architecture: cae_simple
+      architecture: cae
       num_channels: 1
       image_size: 128
       params: grid_optimizers
@@ -24,7 +24,7 @@ experiments:
       verbose: true
   neuralop:
     datasets:
-      - vascular_function_128
+      - gastruloid_128
     model:
       architecture: neuralop_simple
       num_channels: 1
