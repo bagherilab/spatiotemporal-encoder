@@ -26,7 +26,9 @@ def load_yaml(yaml_file: str, config_class: BaseModel) -> BaseModel:
         ) from e
 
 
-def load_hyperparam_yaml(yaml_name: str, yaml_path: str = "src/conf/hyperparams") -> HyperparameterConfig:
+def load_hyperparam_yaml(
+    yaml_name: str, yaml_path: str = "src/conf/hyperparams"
+) -> HyperparameterConfig:
     yaml_file = yaml_name if yaml_name.endswith(".yaml") else yaml_name + ".yaml"
     yaml_path = os.path.join(yaml_path, yaml_file)
     return load_yaml(yaml_path, HyperparameterConfig)
@@ -36,6 +38,7 @@ def load_dataset_yaml(yaml_name: str, yaml_path: str = "src/conf/datasets") -> D
     yaml_file = yaml_name if yaml_name.endswith(".yaml") else yaml_name + ".yaml"
     yaml_path = os.path.join(yaml_path, yaml_file)
     return load_yaml(yaml_path, DatasetParams)
+
 
 def load_study_yaml(yaml_name: str, yaml_path: str = "src/conf/studies") -> StudyConfig:
     yaml_file = yaml_name if yaml_name.endswith(".yaml") else yaml_name + ".yaml"

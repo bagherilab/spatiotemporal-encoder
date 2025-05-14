@@ -192,7 +192,11 @@ class Runner:
         val_loader = loader.get_dataloader(dataset_type="val")
 
         losses, val_losses, grad_norms = model.fit(
-            train_loader, val_loader=val_loader, pretrain=self.pretrain, patience=10, min_delta=0.001
+            train_loader,
+            val_loader=val_loader,
+            pretrain=self.pretrain,
+            patience=10,
+            min_delta=0.001,
         )
 
         self.losses[model_id].add_train_loss(losses)
@@ -266,7 +270,7 @@ class Runner:
         X_val_norm = (X_val - X_train.mean()) / X_train.std()
         y_val_norm = (y_val - y_train.mean()) / y_train.std()
         return X_train_norm, y_train_norm, X_val_norm, y_val_norm
-    
+
     @staticmethod
     def _encode_dataset(model: BaseNN, loader: Loader) -> dict[str, pd.DataFrame]:
         """Encodes the dataset using the model. Final dataframe includes labels and seed keys"""

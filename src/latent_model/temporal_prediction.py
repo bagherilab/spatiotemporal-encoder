@@ -45,7 +45,9 @@ def main() -> None:
                 break
 
 
-def create_loaders(results_path: str, seq_len: int | None = None) -> dict[str, dict[str, SequenceLoader]]:
+def create_loaders(
+    results_path: str, seq_len: int | None = None
+) -> dict[str, dict[str, SequenceLoader]]:
     """Creates data loaders for all of the best performing models in a given encoder result"""
     loaders = {}
     for model_name in os.listdir(results_path):
@@ -74,7 +76,9 @@ def create_models(
     return temporal_models
 
 
-def create_models_list(input_size: int, output_size: int, classification: bool=False) -> list[TemporalModel]:
+def create_models_list(
+    input_size: int, output_size: int, classification: bool = False
+) -> list[TemporalModel]:
     model_classes = [LSTMModel]
     hidden_sizes = [32, 64, 128]
     num_layers = [1, 2, 3]
@@ -87,7 +91,7 @@ def create_models_list(input_size: int, output_size: int, classification: bool=F
             hidden_size=hidden_size,
             num_layers=num_layer,
             output_size=output_size,
-            classification=classification
+            classification=classification,
         )
         models.append(model)
 

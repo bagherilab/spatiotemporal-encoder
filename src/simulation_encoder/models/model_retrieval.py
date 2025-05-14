@@ -121,14 +121,18 @@ def _load_best_models(
             params["optimizer"]["type"] = Adam if params["optimizer"]["type"] == "Adam" else SGD
             num_channels = len(results["channels"])
 
-            model = create_model(model_params, model_base_name, num_channels, num_timepoints, params, dataset_dir)
+            model = create_model(
+                model_params, model_base_name, num_channels, num_timepoints, params, dataset_dir
+            )
 
             best_models[model_type][dataset_name] = model
 
     return best_models
 
 
-def _load_all_models(results_path: str, num_timepoints: int) -> dict[str, dict[str, dict[str, object]]]:
+def _load_all_models(
+    results_path: str, num_timepoints: int
+) -> dict[str, dict[str, dict[str, object]]]:
     """
     Load all models from the results directory structure.
 

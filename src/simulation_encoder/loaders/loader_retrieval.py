@@ -8,7 +8,10 @@ from simulation_encoder.loaders.glims_loader import GlimsLoader
 
 
 def load_loaders(
-    results_path: str, image_base_dir: str, image_size: int = 128, data_labels: list[str] | None = None
+    results_path: str,
+    image_base_dir: str,
+    image_size: int = 128,
+    data_labels: list[str] | None = None,
 ) -> dict[str, Loader]:
     """
     Load data loaders for each dataset based on results path.

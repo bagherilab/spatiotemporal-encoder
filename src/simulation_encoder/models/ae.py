@@ -89,7 +89,7 @@ class AE(BaseNN):
         pred_image = self.decode_image(z)
         pred_timepoint = self.decode_timepoint(z)
         return pred_image, pred_timepoint
-    
+
     def fit(
         self,
         train_loader: DataLoader,

@@ -118,7 +118,9 @@ def create_loader_params(experiment_config: ExperimentConfig) -> dict[str, Datas
     return loader_params
 
 
-def create_model_param_sets(model_config: ModelParamsConfig, num_channels: int) -> list[ModelParams]:
+def create_model_param_sets(
+    model_config: ModelParamsConfig, num_channels: int
+) -> list[ModelParams]:
     """Create the model parameters from model config files and hyperparameter yaml files."""
     model_name = model_config.architecture
     model_yaml = load_model_yaml(model_name)
@@ -186,7 +188,6 @@ def handle_encoder_results(
                     best_val_loss = final_val_loss
                     best_model_info = {
                         "model": model,
-
                         "dataset_name": dataset_name,
                         "losses": losses,
                     }
@@ -200,11 +201,9 @@ def handle_encoder_results(
             "_best_model", best_model_loader, best_model, best_model_info["losses"]
         )
         writer.write_encoded_data(
-            "_best_model", best_model_loader, best_model_dataset_name, best_model 
+            "_best_model", best_model_loader, best_model_dataset_name, best_model
         )
-        writer.write_model_state(
-            "_best_model", best_model_dataset_name, best_model
-        )
+        writer.write_model_state("_best_model", best_model_dataset_name, best_model)
 
 
 if __name__ == "__main__":

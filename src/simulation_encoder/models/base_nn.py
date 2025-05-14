@@ -45,8 +45,12 @@ class BaseNN(ABC, nn.Module):
         optimizer_details = ", ".join([f"{key}={value}" for key, value in optimizer_params.items()])
 
         encoder_params = sum(p.numel() for p in self.encoder.parameters() if p.requires_grad)
-        decoder_image_params = sum(p.numel() for p in self.decoder_image.parameters() if p.requires_grad)
-        decoder_timepoint_params = sum(p.numel() for p in self.decoder_timepoint.parameters() if p.requires_grad)
+        decoder_image_params = sum(
+            p.numel() for p in self.decoder_image.parameters() if p.requires_grad
+        )
+        decoder_timepoint_params = sum(
+            p.numel() for p in self.decoder_timepoint.parameters() if p.requires_grad
+        )
 
         total_params = encoder_params + decoder_image_params + decoder_timepoint_params
 
@@ -92,10 +96,7 @@ class BaseNN(ABC, nn.Module):
         """Validates the network during training."""
         pass
 
-    def _create_layers(
-        self,
-        layer_configs: list[dict]
-    ) -> list[nn.Module]:
+    def _create_layers(self, layer_configs: list[dict]) -> list[nn.Module]:
         layers = []
         for config in layer_configs:
             layer_type: str = config.get("type", "")
@@ -106,7 +107,7 @@ class BaseNN(ABC, nn.Module):
 
             if layer_class is None:
                 raise ValueError(f"Layer type {layer_type} not recognized")
-            
+
             # Dynamically set the number of channels and latent dimension size
             if layer_type == "Conv2d" or layer_type == "ConvTranspose2d":
                 if config.get("in_channels") == "num_channels":

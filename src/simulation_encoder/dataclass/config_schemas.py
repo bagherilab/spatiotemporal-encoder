@@ -54,6 +54,7 @@ class StudyConfig(BaseModel):
         ..., description="Dictionary mapping experiments to their configurations"
     )
 
+
 class MainConfig(BaseModel):
     study_name: str = Field(..., description="Name of the experiment")
     data_quantity_experiment: bool = Field(
@@ -95,6 +96,7 @@ class HyperparameterConfig(BaseModel):
 
 
 """ Model architecture and type """
+
 
 class LayerConfig(BaseModel):
     type: str = Field(..., description="Name of layer in PyTorch")

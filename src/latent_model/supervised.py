@@ -17,7 +17,7 @@ class SupervisedRunner:
     def __init__(self, logger: Logger = None) -> None:
         """
         Initialize the supervised runner.
-        
+
         Parameters
         ----------
         logger : Logger
@@ -28,12 +28,12 @@ class SupervisedRunner:
     def run_emulator(self, conf_name: str) -> Optional[SupervisedResults]:
         """
         Runs emulation for the encoded datasets and returns the results.
-        
+
         Parameters
         ----------
         conf_name : str
             Configuration name
-            
+
         Returns
         -------
         Optional[SupervisedResults]
@@ -54,7 +54,6 @@ class SupervisedRunner:
             labels=["activity", "growth", "symmetry"],
         )
 
-
     def _run_emulation_for_model(
         self,
         models: dict[str, SupervisedRegressor],
@@ -65,7 +64,7 @@ class SupervisedRunner:
     ) -> None:
         """
         Run emulation for a single encoder model.
-        
+
         Parameters
         ----------
         models : Dict[str, SupervisedRegressor]
@@ -89,26 +88,26 @@ class SupervisedRunner:
             for model_type, model in models.items():
                 # Create a fresh model instance for each label
                 regressor = SupervisedRegressor(
-                    model_type=model_type, 
+                    model_type=model_type,
                     logger=self.logger,
-                    eval_metric="r2"  # Use R² score for regression evaluation
+                    eval_metric="r2",  # Use R² score for regression evaluation
                 )
-                
+
                 # Find best hyperparameters
                 best_params = regressor.grid_search(X_train, y_train[label])
-                
+
                 # Normalize data for better model performance
                 X_train_norm, y_train_norm, X_val_norm, y_val_norm = self._normalize_data(
                     X_train, y_train[label], X_val, y_val[label]
                 )
-                
+
                 # Train model with best parameters on normalized data
                 # (Note: grid_search already updates the model with best params)
                 regressor.fit(X_train_norm, y_train_norm)
-                
+
                 # Evaluate model performance
                 r2_score = regressor.evaluate(X_val_norm, y_val_norm, metric="r2")
-                
+
                 # Store results
                 label_result.add_model_result(model_type, best_params, r2_score)
 
@@ -121,7 +120,7 @@ class SupervisedRunner:
     ) -> tuple[pd.DataFrame, pd.Series, pd.DataFrame, pd.Series]:
         """
         Normalize features and targets for better model performance.
-        
+
         Parameters
         ----------
         X_train : pd.DataFrame
@@ -132,7 +131,7 @@ class SupervisedRunner:
             Validation features
         y_val : pd.Series
             Validation targets
-            
+
         Returns
         -------
         Tuple[pd.DataFrame, pd.Series, pd.DataFrame, pd.Series]
@@ -141,40 +140,36 @@ class SupervisedRunner:
         # Normalize features
         X_scaler = StandardScaler()
         X_train_norm = pd.DataFrame(
-            X_scaler.fit_transform(X_train),
-            columns=X_train.columns,
-            index=X_train.index
+            X_scaler.fit_transform(X_train), columns=X_train.columns, index=X_train.index
         )
         X_val_norm = pd.DataFrame(
-            X_scaler.transform(X_val),
-            columns=X_val.columns,
-            index=X_val.index
+            X_scaler.transform(X_val), columns=X_val.columns, index=X_val.index
         )
-        
+
         # Normalize target
         y_scaler = StandardScaler()
         y_train_norm = pd.Series(
             y_scaler.fit_transform(y_train.values.reshape(-1, 1)).flatten(),
             index=y_train.index,
-            name=y_train.name
+            name=y_train.name,
         )
         y_val_norm = pd.Series(
             y_scaler.transform(y_val.values.reshape(-1, 1)).flatten(),
             index=y_val.index,
-            name=y_val.name
+            name=y_val.name,
         )
-        
+
         return X_train_norm, y_train_norm, X_val_norm, y_val_norm
 
     def _get_encoder_models(self, conf_name: str) -> dict[str, list[str]]:
         """
         Get list of encoder model folder names.
-        
+
         Parameters
         ----------
         conf_name : str
             Configuration name
-            
+
         Returns
         -------
         Dict[str, List[str]]
@@ -192,12 +187,12 @@ class SupervisedRunner:
     def _get_encoder_datasets(self, conf_name: str) -> dict[str, Optional[list[str]]]:
         """
         Get list of dataset folder names for each experiment.
-        
+
         Parameters
         ----------
         conf_name : str
             Configuration name
-            
+
         Returns
         -------
         Dict[str, Optional[List[str]]]
@@ -217,12 +212,12 @@ class SupervisedRunner:
     def _initialize_models(self, emulator_models: list[str]) -> dict[str, SupervisedRegressor]:
         """
         Initialize emulator models.
-        
+
         Parameters
         ----------
         emulator_models : List[str]
             List of model types to initialize
-            
+
         Returns
         -------
         Dict[str, SupervisedRegressor]
@@ -231,21 +226,19 @@ class SupervisedRunner:
         models = {}
         for model_type in emulator_models:
             models[model_type] = SupervisedRegressor(
-                model_type=model_type, 
-                logger=self.logger,
-                eval_metric="r2"
+                model_type=model_type, logger=self.logger, eval_metric="r2"
             )
         return models
 
     def _is_model_folder(self, folder_name: str) -> bool:
         """
         Check if folder is a model folder.
-        
+
         Parameters
         ----------
         folder_name : str
             Name of folder to check
-            
+
         Returns
         -------
         bool
@@ -268,7 +261,7 @@ class SupervisedRunner:
     def _log(self, msg: str, level: str = "info") -> None:
         """
         Log a message using the provided logger.
-        
+
         Parameters
         ----------
         msg : str

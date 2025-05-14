@@ -87,10 +87,10 @@ class Plotter:
                 ax.set_yticks([])
                 ax.set_xticklabels([])
                 ax.set_yticklabels([])
-                ax.spines['top'].set_visible(False)
-                ax.spines['right'].set_visible(False)
-                ax.spines['bottom'].set_visible(False)
-                ax.spines['left'].set_visible(False)
+                ax.spines["top"].set_visible(False)
+                ax.spines["right"].set_visible(False)
+                ax.spines["bottom"].set_visible(False)
+                ax.spines["left"].set_visible(False)
 
             # Add row labels
             if row_labels:
@@ -98,7 +98,7 @@ class Plotter:
                     row_labels[i], fontsize=16, rotation=90, labelpad=10, va="center"
                 )
 
-        plt.tick_params(left=False, right=False, bottom=False, labelleft=False,labelbottom=False)
+        plt.tick_params(left=False, right=False, bottom=False, labelleft=False, labelbottom=False)
         plt.show()
 
     def _setup(self) -> None:

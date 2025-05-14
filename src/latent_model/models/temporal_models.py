@@ -91,7 +91,7 @@ class RNNModel(TemporalModel):
         super().__init__(input_size, hidden_size, output_size, num_layers)
         self.rnn = nn.RNN(input_size, hidden_size, num_layers=num_layers, batch_first=True)
         self.fc = nn.Linear(hidden_size, output_size)
-        
+
         if classification:
             self.out_layer = nn.Softmax(dim=-1) if output_size > 1 else nn.Sigmoid()
             self.criterion = nn.CrossEntropyLoss() if output_size > 1 else nn.BCEWithLogitsLoss()
@@ -109,7 +109,9 @@ class RNNModel(TemporalModel):
 
 
 class LSTMModel(TemporalModel):
-    def __init__(self, input_size, hidden_size, output_size, num_layers=1, dropout=0.0, classification=False):
+    def __init__(
+        self, input_size, hidden_size, output_size, num_layers=1, dropout=0.0, classification=False
+    ):
         super().__init__(input_size, hidden_size, output_size, num_layers, dropout)
         self.lstm = nn.LSTM(
             input_size, hidden_size, num_layers=num_layers, batch_first=True, dropout=dropout
