@@ -6,6 +6,7 @@ from typing import Any, Optional
 class DatasetParams:
     loader: str
     image_dir: str
+    image_size: int
     channels: list[str]
     batch_size: int
     val_split: float
@@ -23,5 +24,6 @@ class ModelParams:
     model_type: str
     architecture: dict[str, Any]
     num_channels: int
+    num_timepoints: int
     num_epochs: int
     params: dict[str, Any] = field(default_factory=lambda: {"latent_dim": 2})

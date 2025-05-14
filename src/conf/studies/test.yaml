@@ -1,0 +1,11 @@
+experiments:
+  ae-small:
+    datasets:
+      - gastruloid_processed_128
+    model:
+        architecture: ae_small
+        num_timepoints: 9
+        params: grid_test
+    general_configs:
+        pretrain: false
+        verbose: true

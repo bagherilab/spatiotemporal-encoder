@@ -192,7 +192,7 @@ class Runner:
         val_loader = loader.get_dataloader(dataset_type="val")
 
         losses, val_losses, grad_norms = model.fit(
-            train_loader, val_loader=val_loader, pretrain=self.pretrain, patience=5, min_delta=0.001
+            train_loader, val_loader=val_loader, pretrain=self.pretrain, patience=10, min_delta=0.001
         )
 
         self.losses[model_id].add_train_loss(losses)

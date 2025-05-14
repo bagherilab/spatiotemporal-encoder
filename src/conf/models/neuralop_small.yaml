@@ -5,9 +5,9 @@ architecture:
       n_modes: [16, 16]
       hidden_channels: 16
       in_channels: num_channels
-      out_channels: 16
+      out_channels: 8
     - type: BatchNorm2d
-      num_features: 16
+      num_features: 8
     - type: GELU
     
     - type: MaxPool2d
@@ -16,7 +16,7 @@ architecture:
 
     - type: Flatten
     - type: Linear
-      in_features: 65536
+      in_features: 32768
       out_features: 512
     - type: BatchNorm1d
       num_features: 512
@@ -36,10 +36,10 @@ architecture:
     
     - type: Linear
       in_features: 512
-      out_features: 65536
+      out_features: 32768
 
     - type: Unflatten
-      shape: [16, 64, 64]
+      shape: [8, 64, 64]
 
     - type: Upsample
       scale_factor: 2
@@ -48,7 +48,7 @@ architecture:
     - type: FNO
       n_modes: [16, 16]
       hidden_channels: 16
-      in_channels: 16
+      in_channels: 8
       out_channels: num_channels
     - type: Sigmoid
   
@@ -69,4 +69,4 @@ architecture:
     
     - type: Linear
       in_features: 32
-      out_features: 15
+      out_features: num_timepoints

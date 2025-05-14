@@ -62,7 +62,7 @@ class Runner:
                 best_model = None
                 best_loss = float("inf")
 
-                print(
+                self._log(
                     f"Finding optimal model for {dataset_name} data encoded with {encoder_model_name}"
                 )
                 for model in self.models[encoder_model_name][dataset_name]:

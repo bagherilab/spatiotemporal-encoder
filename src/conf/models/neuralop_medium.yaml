@@ -1,48 +1,31 @@
 type: AE
 architecture:
   encoder:
-    - type: Conv2d
+    - type: FNO
+      n_modes: [16, 16]
+      hidden_channels: 16
       in_channels: num_channels
       out_channels: 16
-      kernel_size: 3
-      padding: 1
-      stride: 1
     - type: BatchNorm2d
       num_features: 16
-    - type: ReLU
-    - type: MaxPool2d
-      kernel_size: 2
-      stride: 2
+    - type: GELU
 
-    - type: Conv2d
+    - type: FNO
+      n_modes: [16, 16]
+      hidden_channels: 16
       in_channels: 16
-      out_channels: 32
-      kernel_size: 3
-      padding: 1
-      stride: 1
+      out_channels: 8
     - type: BatchNorm2d
-      num_features: 32
-    - type: ReLU
-    - type: MaxPool2d
-      kernel_size: 2
-      stride: 2
+      num_features: 8
+    - type: GELU
 
-    - type: Conv2d
-      in_channels: 32
-      out_channels: 64
-      kernel_size: 3
-      padding: 1
-      stride: 1
-    - type: BatchNorm2d
-      num_features: 64
-    - type: ReLU
     - type: MaxPool2d
       kernel_size: 2
       stride: 2
 
     - type: Flatten
     - type: Linear
-      in_features: 16384 
+      in_features: 32768
       out_features: 512
     - type: BatchNorm1d
       num_features: 512
@@ -51,7 +34,7 @@ architecture:
     - type: Linear
       in_features: 512
       out_features: latent_dim
-    
+  
   decoder_image:
     - type: Linear
       in_features: latent_dim
@@ -59,40 +42,31 @@ architecture:
     - type: BatchNorm1d
       num_features: 512
     - type: ReLU
-
+    
     - type: Linear
       in_features: 512
-      out_features: 16384
-    - type: ReLU
+      out_features: 32768
 
     - type: Unflatten
-      shape: [64, 16, 16]
+      shape: [8, 64, 64]
 
-    - type: ConvTranspose2d
-      in_channels: 64
-      out_channels: 32
-      kernel_size: 2
-      stride: 2
-    - type: BatchNorm2d
-      num_features: 32
-    - type: ReLU
+    - type: Upsample
+      scale_factor: 2
+      mode: nearest
 
-    - type: ConvTranspose2d
-      in_channels: 32
+    - type: FNO
+      n_modes: [16, 16]
+      hidden_channels: 8
+      in_channels: 8
       out_channels: 16
-      kernel_size: 2
-      stride: 2
-    - type: BatchNorm2d
-      num_features: 16
-    - type: ReLU
 
-    - type: ConvTranspose2d
+    - type: FNO
+      n_modes: [16, 16]
+      hidden_channels: 16
       in_channels: 16
       out_channels: num_channels
-      kernel_size: 2
-      stride: 2
     - type: Sigmoid
-
+  
   decoder_timepoint:
     - type: Linear
       in_features: latent_dim
@@ -110,4 +84,4 @@ architecture:
     
     - type: Linear
       in_features: 32
-      out_features: 15
+      out_features: num_timepoints

@@ -1,3 +1,5 @@
+from typing import Optional
+
 import pandas as pd
 from sklearn.model_selection import train_test_split
 import torch
@@ -45,8 +47,8 @@ class SequenceLoader:
         data_path: str,
         sequence_col: str = "timepoint",
         id_col: str = "sample_id",
-        val_split: float = 0.2,
-        test_split: float = 0.2,
+        val_split: Optional[float] = 0.2,
+        test_split: Optional[float] = 0.2,
         batch_size: int = 16,
         max_seq_len: int | None = None,
         random_seed: int = 42,
@@ -96,14 +98,23 @@ class SequenceLoader:
             shuffle=(dataset_type == "train"),  # Shuffle only for training data
         )
         
-    def _split_data(self) -> tuple[list[int], ...]:
-        sample_ids = list(self.sequences.keys())
-        train_ids, test_ids = train_test_split(
-            sample_ids, test_size=self.test_split, random_state=self.random_seed
-        )
-        train_ids, val_ids = train_test_split(
-            train_ids, test_size=self.val_split, random_state=self.random_seed
-        )
+    def _split_data(self) -> tuple[list[str], list[str], list[str]]:
+        """ 
+        Will either use splits in encoded_data.csv or will make 
+        new splits if val_split and test_split provided.
+        """
+        if self.val_split is None and self.test_split is None and "split" in self.data.columns:
+            train_ids = self.data[self.data["split"] == "train"][self.id_col].unique().tolist()
+            val_ids = self.data[self.data["split"] == "val"][self.id_col].unique().tolist()
+            test_ids = self.data[self.data["split"] == "test"][self.id_col].unique().tolist()
+        else:
+            sample_ids = list(self.sequences.keys())
+            train_ids, test_ids = train_test_split(
+                sample_ids, test_size=self.test_split or 0.2, random_state=self.random_seed
+            )
+            train_ids, val_ids = train_test_split(
+                train_ids, test_size=self.val_split or 0.2, random_state=self.random_seed
+            )
         return train_ids, val_ids, test_ids
         
     def _load_csv(self, data_path: str) -> pd.DataFrame:

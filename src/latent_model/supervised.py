@@ -54,7 +54,6 @@ class SupervisedRunner:
             labels=["activity", "growth", "symmetry"],
         )
 
-        print(label_datasets)
 
     def _run_emulation_for_model(
         self,

@@ -38,6 +38,7 @@ class AE(BaseNN):
         name: str,
         architecture: dict[str, list[dict[str, Any]]],
         num_channels: int = 1,
+        num_timepoints: int = 1,
         num_epochs: int = 5,
         image_size: int = 128,
         params: dict[str, Any] = {},
@@ -50,6 +51,7 @@ class AE(BaseNN):
         self.name = name
         self.architecture = architecture
         self.num_channels = num_channels
+        self.num_timepoints = num_timepoints
         self.num_epochs = num_epochs
         self.image_size = image_size
         self.params = params
@@ -79,7 +81,7 @@ class AE(BaseNN):
 
         # Chosen arbitrarily
         # Factor to balance image and timepoint loss
-        self.image_loss_factor = 10
+        self.image_loss_lambda = 10
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, ...]:
         """Performs encoding and several decoding heads"""
@@ -93,7 +95,7 @@ class AE(BaseNN):
         train_loader: DataLoader,
         val_loader: Optional[DataLoader] = None,
         pretrain: bool = False,
-        patience: int = 5,
+        patience: int = 10,
         min_delta: float = 0.0,
     ) -> tuple[dict[str, list[float]], dict[str, list[float]], dict[str, list[float]]]:
         """

@@ -8,7 +8,7 @@ from simulation_encoder.loaders.glims_loader import GlimsLoader
 
 
 def load_loaders(
-    results_path: str, image_base_dir: str, data_labels: list[str] | None = None
+    results_path: str, image_base_dir: str, image_size: int = 128, data_labels: list[str] | None = None
 ) -> dict[str, Loader]:
     """
     Load data loaders for each dataset based on results path.
@@ -54,6 +54,7 @@ def load_loaders(
                     loader = _create_loader(
                         experiment_path=results_path,
                         experiment=experiment,
+                        image_size=image_size,
                         dataset_name=dataset_name,
                         dataset_dir=dataset_dir,
                         image_base_dir=image_base_dir,
@@ -73,6 +74,7 @@ def load_loaders(
 def _create_loader(
     experiment_path: str,
     experiment: str,
+    image_size: int,
     dataset_name: str,
     dataset_dir: str,
     image_base_dir: str,
@@ -125,6 +127,7 @@ def _create_loader(
         return ARCADELoader(
             image_dir=image_path,
             channels=channels,
+            image_size=image_size,
             label_dir=label_path,
             keys=keys,
             labels=data_labels,
@@ -136,6 +139,7 @@ def _create_loader(
         return GastruloidLoader(
             image_dir=image_path,
             channels=channels,
+            image_size=image_size,
             keys=keys,
             batch_size=1,
             augmentations=augmentations,

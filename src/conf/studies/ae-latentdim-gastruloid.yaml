@@ -1,0 +1,61 @@
+experiments:
+  ae-1:
+    datasets:
+      - gastruloid_processed_128
+    model:
+        architecture: ae_small
+        num_timepoints: 9
+        params: grid_latentdim1
+    general_configs:
+        pretrain: false
+        verbose: true
+  ae-2:
+    datasets:
+      - gastruloid_processed_128
+    model:
+        architecture: ae_small
+        num_timepoints: 9
+        params: grid_latentdim2
+    general_configs:
+        pretrain: false
+        verbose: true
+  ae-4:
+    datasets:
+      - gastruloid_processed_128
+    model:
+        architecture: ae_small
+        num_timepoints: 9
+        params: grid_latentdim4
+    general_configs:
+        pretrain: false
+        verbose: true
+  ae-8:
+    datasets:
+      - gastruloid_processed_128
+    model:
+        architecture: ae_small
+        num_timepoints: 9
+        params: grid_latentdim8
+    general_configs:
+        pretrain: false
+        verbose: true
+  ae-16:
+    datasets:
+      - gastruloid_processed_128
+    model:
+        architecture: ae_small
+        num_timepoints: 9
+        params: grid_latentdim16
+    general_configs:
+        pretrain: false
+        verbose: true
+  ae-32:
+    datasets:
+      - gastruloid_processed_128
+    model:
+        architecture: ae_small
+        num_timepoints: 9
+        params: grid_latentdim32
+    general_configs:
+        pretrain: false
+        verbose: true

@@ -4,6 +4,13 @@ architecture:
     - type: Flatten
     - type: Linear
       in_features: num_channels
+      out_features: 4096
+    - type: BatchNorm1d
+      num_features: 4096
+    - type: ReLU
+
+    - type: Linear
+      in_features: 4096
       out_features: 2048
     - type: BatchNorm1d
       num_features: 2048
@@ -70,7 +77,6 @@ architecture:
       num_features: 1024
     - type: ReLU
     
-
     - type: Linear
       in_features: 1024
       out_features: 2048
@@ -80,6 +86,13 @@ architecture:
 
     - type: Linear
       in_features: 2048
+      out_features: 4096
+    - type: BatchNorm1d
+      num_features: 4096
+    - type: ReLU
+
+    - type: Linear
+      in_features: 4096
       out_features: num_channels
 
     - type: Unflatten
@@ -102,4 +115,4 @@ architecture:
     
     - type: Linear
       in_features: 32
-      out_features: 15
+      out_features: num_timepoints

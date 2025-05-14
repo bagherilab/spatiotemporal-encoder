@@ -37,6 +37,7 @@ class VAE(BaseNN):
         name: str,
         architecture: dict[str, list[dict[str, Any]]],
         num_channels: int = 1,
+        num_timepoints: int = 1,
         num_epochs: int = 5,
         image_size: int = 128,
         params: dict[str, Any] = {},
@@ -49,6 +50,7 @@ class VAE(BaseNN):
         self.name = name
         self.architecture = architecture
         self.num_channels = num_channels
+        self.num_timepoints = num_timepoints
         self.num_epochs = num_epochs
         self.params = params
         self.logger = logger
@@ -83,7 +85,7 @@ class VAE(BaseNN):
 
         # Chosen arbitrarily
         # Factor to balance image and timepoint loss
-        self.image_loss_factor = 10
+        self.image_loss_lambda = 10
         # Factor to balance reconstruction and KL loss
         self.reconstruction_loss_factor = 1
 
@@ -100,7 +102,7 @@ class VAE(BaseNN):
         train_loader: DataLoader,
         val_loader: Optional[DataLoader] = None,
         pretrain: bool = False,
-        patience: int = 5,
+        patience: int =10,
         min_delta: float = 0.0,
     ) -> tuple[dict[str, list[float]], dict[str, list[float]], dict[str, list[float]]]:
         """
@@ -245,7 +247,7 @@ class VAE(BaseNN):
                 pred_image, pred_timepoint, mu, logvar = self(inputs)
 
                 batch_loss = {
-                    "image": image_criteria(pred_image, inputs) * self.image_loss_factor,
+                    "image": image_criteria(pred_image, inputs) * self.image_loss_lambda,
                     "timepoint": timepoint_criteria(pred_timepoint, labels),
                 }
 
@@ -297,7 +299,7 @@ class VAE(BaseNN):
                     pred_image, pred_timepoint, mu, logvar = self(inputs)
 
                     batch_loss = {
-                        "image": image_criteria(pred_image, inputs) * self.image_loss_factor,
+                        "image": image_criteria(pred_image, inputs) * self.image_loss_lambda,
                         "timepoint": timepoint_criteria(pred_timepoint, labels),
                     }
                     reconstruction_loss, reconstruction_loss_weighted = (

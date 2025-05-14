@@ -20,6 +20,7 @@ class BaseNN(ABC, nn.Module):
         name: str = "",
         architecture: dict[str, list[dict[str, Any]]] = {},
         num_channels: int = 1,
+        num_timepoints: int = 1,
         image_size: int = 128,
         num_epochs: int = 10,
         params: dict[str, Any] = {},
@@ -67,7 +68,7 @@ class BaseNN(ABC, nn.Module):
         train_loader: DataLoader,
         val_loader: Optional[DataLoader] = None,
         pretrain: bool = False,
-        patience: int = 5,
+        patience: int = 10,
         min_delta: float = 0.0,
     ) -> tuple[dict[str, list[float]], dict[str, list[float]], dict[str, list[float]]]:
         """Fits the network over the training data for a number of epochs."""
@@ -93,7 +94,7 @@ class BaseNN(ABC, nn.Module):
 
     def _create_layers(
         self,
-        layer_configs: list[dict],
+        layer_configs: list[dict]
     ) -> list[nn.Module]:
         layers = []
         for config in layer_configs:
@@ -126,6 +127,8 @@ class BaseNN(ABC, nn.Module):
                     config["in_features"] = self.image_size * self.image_size * self.num_channels
                 if config.get("out_features") == "num_channels":
                     config["out_features"] = self.image_size * self.image_size * self.num_channels
+                if config.get("out_features") == "num_timepoints":
+                    config["out_features"] = self.num_timepoints
 
             elif layer_type == "BatchNorm1d":
                 if config.get("num_features") == "latent_dim":

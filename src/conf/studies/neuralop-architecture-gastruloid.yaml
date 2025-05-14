@@ -1,0 +1,21 @@
+experiments:
+  neuralop-medium:
+    datasets:
+      - gastruloid_processed_128
+    model:
+        architecture: neuralop_medium
+        num_timepoints: 9
+        params: grid_optimizers
+    general_configs:
+        pretrain: false
+        verbose: true
+  neuralop-small:
+    datasets:
+      - gastruloid_processed_128
+    model:
+        architecture: neuralop_small
+        num_timepoints: 9
+        params: grid_optimizers
+    general_configs:
+        pretrain: false
+        verbose: true

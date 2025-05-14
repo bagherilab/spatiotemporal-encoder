@@ -1,0 +1,61 @@
+experiments:
+  neuralop-1:
+    datasets:
+      - gastruloid_processed_128
+    model:
+        architecture: neuralop_medium
+        num_timepoints: 9
+        params: grid_latentdim1
+    general_configs:
+        pretrain: false
+        verbose: true
+  neuralop-2:
+    datasets:
+      - gastruloid_processed_128
+    model:
+        architecture: neuralop_medium
+        num_timepoints: 9
+        params: grid_latentdim2
+    general_configs:
+        pretrain: false
+        verbose: true
+  neuralop-4:
+    datasets:
+      - gastruloid_processed_128
+    model:
+        architecture: neuralop_medium
+        num_timepoints: 9
+        params: grid_latentdim4
+    general_configs:
+        pretrain: false
+        verbose: true
+  neuralop-8:
+    datasets:
+      - gastruloid_processed_128
+    model:
+        architecture: neuralop_medium
+        num_timepoints: 9
+        params: grid_latentdim8
+    general_configs:
+        pretrain: false
+        verbose: true
+  neuralop-16:
+    datasets:
+      - gastruloid_processed_128
+    model:
+        architecture: neuralop_medium
+        num_timepoints: 9
+        params: grid_latentdim16
+    general_configs:
+        pretrain: false
+        verbose: true
+  neuralop-32:
+    datasets:
+      - gastruloid_processed_128
+    model:
+        architecture: neuralop_medium
+        num_timepoints: 9
+        params: grid_latentdim32
+    general_configs:
+        pretrain: false
+        verbose: true
