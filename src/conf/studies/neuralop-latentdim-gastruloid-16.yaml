@@ -1,11 +1,11 @@
 experiments:
-  neuralop-32:
+  neuralop-16:
     datasets:
       - gastruloid_processed_128
     model:
         architecture: neuralop_medium
         num_timepoints: 9
-        params: grid_latentdim32
+        params: grid_latentdim16
     general_configs:
         pretrain: false
         verbose: true

@@ -1,15 +1,5 @@
 experiments:
-  cae-1:
-    datasets:
-      - gastruloid_processed_128
-    model:
-        architecture: cae_medium
-        num_timepoints: 9
-        params: grid_latentdim1
-    general_configs:
-        pretrain: false
-        verbose: true
-  cae-2:
+  cae-02:
     datasets:
       - gastruloid_processed_128
     model:
@@ -19,7 +9,7 @@ experiments:
     general_configs:
         pretrain: false
         verbose: true
-  cae-4:
+  cae-04:
     datasets:
       - gastruloid_processed_128
     model:
@@ -29,7 +19,7 @@ experiments:
     general_configs:
         pretrain: false
         verbose: true
-  cae-8:
+  cae-08:
     datasets:
       - gastruloid_processed_128
     model:
