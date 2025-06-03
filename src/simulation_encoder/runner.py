@@ -195,7 +195,7 @@ class Runner:
             train_loader,
             val_loader=val_loader,
             pretrain=self.pretrain,
-            patience=10,
+            patience=7,
             min_delta=0.001,
         )
 

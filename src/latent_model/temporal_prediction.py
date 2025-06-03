@@ -33,9 +33,9 @@ def main() -> None:
             temporal_model = results[model_name][dataset_name]["best_model"]
             loader = sequential_loaders[model_name][dataset_name]
             test_dataloader = loader.get_dataloader("test")
-            original_test_dataloader = encoder_loaders[dataset_name].get_dataloader("test")
+            # original_test_dataloader = encoder_loaders[dataset_name].get_dataloader("test")
 
-            for batch, labels in test_dataloader:
+            for batch, _ in test_dataloader:
                 x_batch = batch[:, :-1, :]
                 y_batch = batch[:, -1, :]
                 y_pred = temporal_model(x_batch)
@@ -46,7 +46,7 @@ def main() -> None:
 
 
 def create_loaders(
-    results_path: str, seq_len: int | None = None
+    results_path: str, seq_len: int | None = None, random_split=True
 ) -> dict[str, dict[str, SequenceLoader]]:
     """Creates data loaders for all of the best performing models in a given encoder result"""
     loaders = {}
@@ -54,9 +54,14 @@ def create_loaders(
         loaders[model_name] = {}
         model_path = f"{results_path}/{model_name}/_best_model"
         for dataset_name in os.listdir(model_path):
-            loaders[model_name][dataset_name] = SequenceLoader(
-                f"{model_path}/{dataset_name}/encoded_data.csv", max_seq_len=seq_len
-            )
+            if random_split:
+                loaders[model_name][dataset_name] = SequenceLoader(
+                    f"{model_path}/{dataset_name}/encoded_data.csv", max_seq_len=seq_len
+                )
+            else:
+                loaders[model_name][dataset_name] = SequenceLoader(
+                    f"{model_path}/{dataset_name}/encoded_data.csv", max_seq_len=seq_len, val_split=None, test_split=None
+                )
     return loaders
 
 
@@ -79,7 +84,7 @@ def create_models(
 def create_models_list(
     input_size: int, output_size: int, classification: bool = False
 ) -> list[TemporalModel]:
-    model_classes = [LSTMModel]
+    model_classes = [RNNModel, LSTMModel]
     hidden_sizes = [32, 64, 128]
     num_layers = [1, 2, 3]
     models = []
