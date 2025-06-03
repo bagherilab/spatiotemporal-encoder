@@ -1,5 +1,5 @@
+import copy
 from typing import Optional, Any
-
 from collections import defaultdict
 
 from tqdm import tqdm
@@ -130,6 +130,7 @@ class AE(BaseNN):
         grad_norms: dict[str, list[float]] = defaultdict(list)
 
         best_val_loss = float("inf")
+        best_weights = None
         epochs_without_improvement = 0
 
         for e in range(self.num_epochs):
@@ -142,19 +143,19 @@ class AE(BaseNN):
                 for loss_type, loss in val_loss.items():
                     val_losses[loss_type].append(loss)
 
-                # Check for early stopping
+                # Early stopping
                 current_val_loss = val_loss["weighted_loss"]
                 if current_val_loss < best_val_loss - min_delta:
                     best_val_loss = current_val_loss
                     epochs_without_improvement = 0
+                    best_weights = copy.deepcopy(self.state_dict())
                 else:
                     epochs_without_improvement += 1
-
-                if epochs_without_improvement >= patience:
-                    self._log(
-                        f"Early stopping at epoch {e+1}. Best validation loss: {round(best_val_loss, 6)}"
-                    )
-                    break
+                    if epochs_without_improvement >= patience:
+                        self._log(
+                            f"Early stopping at epoch {e+1}. Best validation loss: {round(best_val_loss, 6)}"
+                        )
+                        break
 
             encoder_grad_norm = self._get_grad_norm(self.encoder)
             decoder_image_grad_norm = self._get_grad_norm(self.decoder_image)
@@ -166,6 +167,10 @@ class AE(BaseNN):
 
             msg = f"Epoch {e+1}/{self.num_epochs}- Train loss: {round(train_loss['weighted_loss'], 6)} Val loss: {round(val_loss['weighted_loss'], 6)}"
             self._log(msg)
+
+        if best_weights is not None:
+            best_weights.pop("_metadata", None)   
+            self.load_state_dict(best_weights)
 
         return (train_losses, val_losses, grad_norms)
 
