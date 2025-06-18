@@ -1,0 +1,31 @@
+experiments:
+  # ae:
+  #   datasets:
+  #     - gastruloid_processed_128
+  #   model:
+  #       architecture: ae
+  #       num_timepoints: 9
+  #       params: grid_optimizers
+  #   general_configs:
+  #       pretrain: false
+  #       verbose: true
+  # cae:
+  #   datasets:
+  #     - gastruloid_processed_128
+  #   model:
+  #       architecture: cae
+  #       num_timepoints: 9
+  #       params: grid_optimizers
+  #   general_configs:
+  #       pretrain: false
+  #       verbose: true
+  neuralop:
+    datasets:
+      - gastruloid_processed_128
+    model:
+        architecture: neuralop
+        num_timepoints: 9
+        params: grid_optimizers
+    general_configs:
+        pretrain: false
+        verbose: true

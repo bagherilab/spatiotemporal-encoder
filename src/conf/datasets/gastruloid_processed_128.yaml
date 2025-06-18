@@ -12,6 +12,8 @@ keys:
   - array2
   # - array3
   # - array4
+  # - array5
+  # - array6
 augmentations:
   # - rotate: 90
   # - rotate: 180
