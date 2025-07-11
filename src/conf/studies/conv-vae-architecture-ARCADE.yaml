@@ -1,0 +1,13 @@
+experiments:
+  conv-vae-small:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: conv_vae_small
+        num_timepoints: 15
+        params: grid_optimizers
+    general_configs:
+        pretrain: false
+        verbose: true
+        log_dir: "logs/conv_vae_arcade"
+        save_dir: "checkpoints/conv_vae_arcade"
