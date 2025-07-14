@@ -6,12 +6,12 @@ continuous:
     num_samples: 1
 discrete:
   latent_dim:
-    values: [16]
+    values: [2]
   optimizer:
     values:
       - type: "Adam"
         lr: [0.001, 0.0001]
-        betas: [[0.8, 0.99], [0.9, 0.999]]
+        betas: [[0.8, 0.99], [0.9, 0.999]] # lr and betas control number of model combinations trained
       # - type: "SGD"
       #   momentum: [0.0, 0.9]
       #   nesterov: [true, false]
