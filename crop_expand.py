@@ -1,7 +1,7 @@
 import os
 from PIL import Image
 
-def process_images(input_dir, output_dir, target_size=32, final_size=128):
+def process_images(input_dir, output_dir, target_size=64, final_size=128):
     """
     Process images by cropping to target_size x target_size and then resizing to final_size x final_size.
     
@@ -93,7 +93,7 @@ def test_single_image():
         plt.title("Original")
         
         # Crop to 32x32
-        target_size = 32
+        target_size = 64
         width, height = img.size
         left = (width - target_size) // 2
         top = (height - target_size) // 2
