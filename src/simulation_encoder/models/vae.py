@@ -1,11 +1,18 @@
 import copy
 from typing import Optional, Any
 from collections import defaultdict
+import sys
+import os
 
 from tqdm import tqdm
 import torch
 from torch import nn
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
+
+# Add parent directory to path to import custom_losses
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from simulation_encoder.models.losses.custom_losses import edge_aware_mse_loss
 
 from simulation_encoder.logger import Logger
 from simulation_encoder.loaders.loader import Loader
@@ -80,7 +87,7 @@ class VAE(BaseNN):
         self.params["optimizer"]["type"] = optimizer_name
 
         self.criterion = {
-            "image": nn.MSELoss(),
+            "image": edge_aware_mse_loss,  # Using custom edge-aware MSE loss
             "timepoint": nn.CrossEntropyLoss(),
         }
 
@@ -239,8 +246,8 @@ class VAE(BaseNN):
         self.train()  # Sets dropout and batch normalization layers to training mode
 
         optimizer_combined: torch.optim.Optimizer = self.optimizers["combined"]
-        image_criteria: torch.nn.Module = self.criterion["image"]
-        timepoint_criteria: torch.nn.Module = self.criterion["timepoint"]
+        image_criteria = self.criterion["image"]  # Can be callable or nn.Module
+        timepoint_criteria = self.criterion["timepoint"]  # Can be callable or nn.Module
 
         avg_loss: dict[str, float] = defaultdict(float)
 
@@ -293,8 +300,8 @@ class VAE(BaseNN):
         """
         self.eval()  # Sets dropout and batch normalization layers to evaluation mode
 
-        image_criteria = self.criterion["image"]
-        timepoint_criteria = self.criterion["timepoint"]
+        image_criteria = self.criterion["image"]  # Can be callable or nn.Module
+        timepoint_criteria = self.criterion["timepoint"]  # Can be callable or nn.Module
 
         avg_loss: dict[str, float] = defaultdict(float)
         with torch.no_grad():

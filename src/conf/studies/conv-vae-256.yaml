@@ -1,0 +1,13 @@
+experiments:
+  conv-vae-medium:
+    datasets:
+      - vf_256_processed
+    model:
+        architecture: conv_vae_medium
+        num_timepoints: 15
+        params: grid_optimizers
+    general_configs:
+        pretrain: false
+        verbose: true
+        log_dir: "logs/conv_vae_256"
+        save_dir: "checkpoints/conv_vae_256"

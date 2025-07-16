@@ -1,7 +1,7 @@
 import os
 from PIL import Image
 
-def process_images(input_dir, output_dir, target_size=64, final_size=128):
+def process_images(input_dir, output_dir, target_size=128, final_size=256):
     """
     Process images by cropping to target_size x target_size and then resizing to final_size x final_size.
     
@@ -57,59 +57,48 @@ def process_images(input_dir, output_dir, target_size=64, final_size=128):
 
 def main():
     # Define input and output directories
-    base_dir = os.path.join('data', 'vascular_function_128')
-    input_dir = os.path.join(base_dir, 'images')
-    output_dir = os.path.join(base_dir, 'images_processed')
+    input_dir = os.path.join('data', 'vf_256')
+    output_dir = os.path.join('data', 'vf_256_processed')
     
     print(f"Input directory: {input_dir}")
     print(f"Output directory: {output_dir}")
     
     # Process images
-    process_images(input_dir, output_dir, target_size=40)
+    # Process images with target_size=200 to give some margin for cropping
+    process_images(input_dir, output_dir, target_size=128, final_size=128)
 
 
 if __name__ == "__main__":
     main()
 
-def test_single_image(size=64):
-    """Test function to process a single image and display before/after."""
-    from IPython.display import display
+def test_single_image(size=128):
+    """Test function to process a single image and display before/after.
+    Tests on 'C_Lvav_49_150_cells_cancer.png' from vf_256 dataset.
+    """
+    import os
+    from PIL import Image
     import matplotlib.pyplot as plt
     
     # Define paths
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    data_dir = os.path.join(base_dir, "data", "vascular_function_128", "images")
-    output_dir = os.path.join(base_dir, "data", "vascular_function_128", "images_processed")
+    data_dir = os.path.join('data', 'vf_256')
+    output_dir = os.path.join('data', 'vf_256_processed')
     os.makedirs(output_dir, exist_ok=True)
     
-    # Get first image that starts with 'C_'
-    image_extensions = ('.png', '.jpg', '.jpeg', '.bmp', '.tiff')
-    image_files = [f for f in os.listdir(data_dir) 
-                  if f.lower().endswith(image_extensions) and f.split('_')[0] == 'C']
-    
-    if not image_files:
-        print("No matching image files found in the input directory (files should start with 'C_').")
-        return
-    
-    filename = image_files[0]
-    print(f"Testing with image: {filename}")
-    
-    # Process the image
-    img_path = os.path.join(data_dir, filename)
-    output_path = os.path.join(output_dir, f"test_{filename}")
+    # Find our specific test image
+    target_image = 'C_Lvav_49_150_cells_cancer.png'
     
     try:
-        # Open and process the image
-        img = Image.open(img_path)
-        print(f"Original size: {img.size}")
+        # Load the specific test image
+        img_path = os.path.join(data_dir, target_image)
+        img = Image.open(img_path).convert('L')  # Convert to grayscale
         
         # Display original
-        plt.figure(figsize=(10, 5))
+        plt.figure(figsize=(12, 6))
         plt.subplot(1, 2, 1)
-        plt.imshow(img)
-        plt.title("Original")
+        plt.imshow(img, cmap='gray')
+        plt.title(f"Original ({img.size[0]}x{img.size[1]})")
         
-        # Crop to 32x32
+        # Crop to target size (200x200 for vf_256)
         target_size = size
         width, height = img.size
         left = (width - target_size) // 2
@@ -118,24 +107,37 @@ def test_single_image(size=64):
         bottom = top + target_size
         cropped = img.crop((left, top, right, bottom))
         
-        # Resize back to 128x128
+        # Resize to final size (256x256 for vf_256)
         final_size = 128
         resized = cropped.resize((final_size, final_size), Image.LANCZOS)
         
+        # Save the processed image
+        output_path = os.path.join(output_dir, f"processed_{target_image}")
+        resized.save(output_path)
+        
         # Display result
         plt.subplot(1, 2, 2)
-        plt.imshow(resized)
-        plt.title("Processed (32x32 → 128x128)")
+        plt.imshow(resized, cmap='gray')
+        plt.title(f"Processed ({target_size}x{target_size} → {final_size}x{final_size})")
         
         plt.tight_layout()
         plt.show()
         
+        # Print processing info
+        print(f"Processed image saved to: {output_path}")
+        print(f"Original size: {img.size}")
+        print(f"Cropped to: {target_size}x{target_size}")
+        print(f"Resized to: {final_size}x{final_size}")
+        
+    except FileNotFoundError:
+        print(f"Error: Could not find test image at {os.path.join(data_dir, target_image)}")
+        print("Please make sure the vf_256 dataset is properly set up in the data directory.")
     except Exception as e:
         print(f"Error processing image: {str(e)}")
         import traceback
         traceback.print_exc()
 
-
-#test_single_image(40)
+# Uncomment to test
+#test_single_image(128)
 
 # try finding the max up, down, left, and right coords for all the images and crop each image to that size with a little bit of padding to make it a square and then expand to 128x128

@@ -1,0 +1,239 @@
+type: VAE
+architecture:
+  encoder:
+    # Initial downsampling block
+    - type: Conv2d
+      in_channels: num_channels
+      out_channels: 32
+      kernel_size: 3
+      padding: 1
+      stride: 1
+    - type: BatchNorm2d
+      num_features: 32
+    - type: LeakyReLU
+      negative_slope: 0.2
+    - type: Conv2d
+      in_channels: 32
+      out_channels: 32
+      kernel_size: 3
+      padding: 1
+      stride: 1
+    - type: BatchNorm2d
+      num_features: 32
+    - type: LeakyReLU
+      negative_slope: 0.2
+    - type: MaxPool2d
+      kernel_size: 2
+      stride: 2  # 64x64
+
+    # Second downsampling block
+    - type: Conv2d
+      in_channels: 32
+      out_channels: 64
+      kernel_size: 3
+      padding: 1
+      stride: 1
+    - type: BatchNorm2d
+      num_features: 64
+    - type: LeakyReLU
+      negative_slope: 0.2
+    - type: Conv2d
+      in_channels: 64
+      out_channels: 64
+      kernel_size: 3
+      padding: 1
+      stride: 1
+    - type: BatchNorm2d
+      num_features: 64
+    - type: LeakyReLU
+      negative_slope: 0.2
+    - type: MaxPool2d
+      kernel_size: 2
+      stride: 2  # 32x32
+
+    # Third downsampling block
+    - type: Conv2d
+      in_channels: 64
+      out_channels: 128
+      kernel_size: 3
+      padding: 1
+      stride: 1
+    - type: BatchNorm2d
+      num_features: 128
+    - type: LeakyReLU
+      negative_slope: 0.2
+    - type: Conv2d
+      in_channels: 128
+      out_channels: 128
+      kernel_size: 3
+      padding: 1
+      stride: 1
+    - type: BatchNorm2d
+      num_features: 128
+    - type: LeakyReLU
+      negative_slope: 0.2
+    - type: MaxPool2d
+      kernel_size: 2
+      stride: 2  # 16x16
+
+    # Flatten and dense layers
+    - type: Flatten
+    - type: Linear
+      in_features: 32768  # 16*16*128
+      out_features: 1024
+    - type: BatchNorm1d
+      num_features: 1024
+    - type: LeakyReLU
+      negative_slope: 0.2
+    - type: Linear
+      in_features: 1024
+      out_features: 512
+    - type: BatchNorm1d
+      num_features: 512
+    - type: LeakyReLU
+      negative_slope: 0.2
+    - type: Linear
+      in_features: 512
+      out_features: latent_dim
+
+  decoder_image:
+    # Start with dense layers (mirror of encoder's final dense layers)
+    - type: Linear
+      in_features: latent_dim
+      out_features: 512
+    - type: BatchNorm1d
+      num_features: 512
+    - type: LeakyReLU
+      negative_slope: 0.2
+    - type: Linear
+      in_features: 512
+      out_features: 1024
+    - type: BatchNorm1d
+      num_features: 1024
+    - type: LeakyReLU
+      negative_slope: 0.2
+    - type: Linear
+      in_features: 1024
+      out_features: 32768  # 16*16*128
+    - type: BatchNorm1d
+      num_features: 32768
+    - type: LeakyReLU
+      negative_slope: 0.2
+    - type: Unflatten
+      shape: [128, 16, 16]
+
+    # First upsampling block (mirror of encoder's third downsampling block)
+    - type: Conv2d
+      in_channels: 128
+      out_channels: 128
+      kernel_size: 3
+      padding: 1
+      stride: 1
+    - type: BatchNorm2d
+      num_features: 128
+    - type: LeakyReLU
+      negative_slope: 0.2
+    - type: Conv2d
+      in_channels: 128
+      out_channels: 64
+      kernel_size: 3
+      padding: 1
+      stride: 1
+    - type: BatchNorm2d
+      num_features: 64
+    - type: LeakyReLU
+      negative_slope: 0.2
+    - type: ConvTranspose2d
+      in_channels: 64
+      out_channels: 64
+      kernel_size: 4
+      stride: 2
+      padding: 1
+      output_padding: 0  # 32x32
+    - type: BatchNorm2d
+      num_features: 64
+    - type: LeakyReLU
+      negative_slope: 0.2
+
+    # Second upsampling block (mirror of encoder's second downsampling block)
+    - type: Conv2d
+      in_channels: 64
+      out_channels: 64
+      kernel_size: 3
+      padding: 1
+      stride: 1
+    - type: BatchNorm2d
+      num_features: 64
+    - type: LeakyReLU
+      negative_slope: 0.2
+    - type: Conv2d
+      in_channels: 64
+      out_channels: 32
+      kernel_size: 3
+      padding: 1
+      stride: 1
+    - type: BatchNorm2d
+      num_features: 32
+    - type: LeakyReLU
+      negative_slope: 0.2
+    - type: ConvTranspose2d
+      in_channels: 32
+      out_channels: 32
+      kernel_size: 4
+      stride: 2
+      padding: 1
+      output_padding: 0  # 64x64
+    - type: BatchNorm2d
+      num_features: 32
+    - type: LeakyReLU
+      negative_slope: 0.2
+
+    # Final upsampling block (mirror of encoder's first downsampling block)
+    - type: Conv2d
+      in_channels: 32
+      out_channels: 32
+      kernel_size: 3
+      padding: 1
+      stride: 1
+    - type: BatchNorm2d
+      num_features: 32
+    - type: LeakyReLU
+      negative_slope: 0.2
+    - type: Conv2d
+      in_channels: 32
+      out_channels: 32
+      kernel_size: 3
+      padding: 1
+      stride: 1
+    - type: BatchNorm2d
+      num_features: 32
+    - type: LeakyReLU
+      negative_slope: 0.2
+    - type: ConvTranspose2d
+      in_channels: 32
+      out_channels: num_channels
+      kernel_size: 4
+      stride: 2
+      padding: 1
+      output_padding: 0  # 128x128
+    - type: Tanh
+
+  decoder_timepoint:
+    - type: Linear
+      in_features: latent_dim
+      out_features: 64
+    - type: BatchNorm1d
+      num_features: 64
+    - type: LeakyReLU
+      negative_slope: 0.2
+    - type: Linear
+      in_features: 64
+      out_features: 32
+    - type: BatchNorm1d
+      num_features: 32
+    - type: LeakyReLU
+      negative_slope: 0.2
+    
+    - type: Linear
+      in_features: 32
+      out_features: 1

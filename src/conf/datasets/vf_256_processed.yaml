@@ -1,0 +1,28 @@
+loader: ARCADE
+image_dir: data/vf_256_processed/images
+label_dir: data/vascular_function_128/labels
+image_size: 256
+channels:
+  - cancer
+  # - graph
+batch_size: 16
+val_split: 0.2
+test_split: 0.2
+keys:
+  # - CH_Lav
+  # - CH_Lava
+  # - CH_Lvav
+  # - CH_Sav
+  # - CH_Savav
+  - C_Lav
+  - C_Lava
+  - C_Lvav
+  - C_Sav
+  - C_Savav
+augmentations:
+  # - rotate: 90
+  # - rotate: 180
+labels:
+  # - activity
+  # - growth
+  # - symmetry  
