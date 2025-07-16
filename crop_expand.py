@@ -54,7 +54,24 @@ def process_images(input_dir, output_dir, target_size=64, final_size=128):
     
     print("\nImage processing complete!")
 
-def test_single_image():
+
+def main():
+    # Define input and output directories
+    base_dir = os.path.join('data', 'vascular_function_128')
+    input_dir = os.path.join(base_dir, 'images')
+    output_dir = os.path.join(base_dir, 'images_processed')
+    
+    print(f"Input directory: {input_dir}")
+    print(f"Output directory: {output_dir}")
+    
+    # Process images
+    process_images(input_dir, output_dir, target_size=40)
+
+
+if __name__ == "__main__":
+    main()
+
+def test_single_image(size=64):
     """Test function to process a single image and display before/after."""
     from IPython.display import display
     import matplotlib.pyplot as plt
@@ -93,7 +110,7 @@ def test_single_image():
         plt.title("Original")
         
         # Crop to 32x32
-        target_size = 64
+        target_size = size
         width, height = img.size
         left = (width - target_size) // 2
         top = (height - target_size) // 2
@@ -104,7 +121,6 @@ def test_single_image():
         # Resize back to 128x128
         final_size = 128
         resized = cropped.resize((final_size, final_size), Image.LANCZOS)
-        resized.save(output_path)
         
         # Display result
         plt.subplot(1, 2, 2)
@@ -114,14 +130,12 @@ def test_single_image():
         plt.tight_layout()
         plt.show()
         
-        print(f"Processed image saved to: {output_path}")
-        
     except Exception as e:
         print(f"Error processing image: {str(e)}")
         import traceback
         traceback.print_exc()
 
 
-test_single_image()
+#test_single_image(40)
 
 # try finding the max up, down, left, and right coords for all the images and crop each image to that size with a little bit of padding to make it a square and then expand to 128x128
