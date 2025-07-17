@@ -1,5 +1,5 @@
 loader: ARCADE
-image_dir: data/vf_256_processed/images
+image_dir: data/vf_256_processed_jpg/images
 label_dir: data/vascular_function_128/labels
 image_size: 128
 channels:

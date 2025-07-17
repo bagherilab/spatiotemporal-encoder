@@ -1,11 +1,18 @@
 import copy
+import sys
+import os
 from typing import Optional, Any
 from collections import defaultdict
 
 from tqdm import tqdm
 import torch
 from torch import nn
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
+
+# Add parent directory to path to import custom_losses
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from simulation_encoder.models.losses.custom_losses import edge_aware_mse_loss
 
 from simulation_encoder.logger import Logger
 from simulation_encoder.loaders.loader import Loader
@@ -75,7 +82,7 @@ class AE(BaseNN):
         self.params["optimizer"]["type"] = optimizer_name
 
         self.criterion = {
-            "image": nn.MSELoss(),
+            "image": edge_aware_mse_loss,  # Using custom edge-aware MSE loss
             "timepoint": nn.CrossEntropyLoss(),
         }
 
@@ -233,7 +240,7 @@ class AE(BaseNN):
                 pred_image, pred_timepoint = self(inputs)
 
                 batch_loss = {
-                    "image": image_criteria(pred_image, inputs),
+                    "image": image_criteria(pred_image, inputs) * self.image_loss_lambda,
                     "timepoint": timepoint_criteria(pred_timepoint, labels),
                 }
                 _, reconstruction_loss_weighted = self._calc_reconstruction_loss(batch_loss)

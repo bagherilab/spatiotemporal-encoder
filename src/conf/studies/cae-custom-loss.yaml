@@ -1,0 +1,11 @@
+experiments:
+  cae-medium:
+    datasets:
+      - vf_256_processed_jpg
+    model:
+        architecture: cae_medium
+        num_timepoints: 15
+        params: grid_latentdim16
+    general_configs:
+        pretrain: false
+        verbose: true

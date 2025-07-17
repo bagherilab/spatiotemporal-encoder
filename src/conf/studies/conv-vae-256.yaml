@@ -1,7 +1,7 @@
 experiments:
   conv-vae-medium:
     datasets:
-      - vf_256_processed
+      - vf_256_processed_jpg
     model:
         architecture: conv_vae_medium
         num_timepoints: 15
