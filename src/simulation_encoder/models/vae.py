@@ -87,7 +87,7 @@ class VAE(BaseNN):
         self.params["optimizer"]["type"] = optimizer_name
 
         self.criterion = {
-            "image": edge_aware_mse_loss,  # Using custom edge-aware MSE loss
+            "image": nn.MSELoss(), # edge_aware_mse_loss,  # Using custom edge-aware MSE loss
             "timepoint": nn.CrossEntropyLoss(),
         }
 
