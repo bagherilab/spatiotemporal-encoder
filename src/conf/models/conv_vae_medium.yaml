@@ -94,12 +94,40 @@ architecture:
       negative_slope: 0.2
     - type: Linear
       in_features: 512
+      out_features: 256
+    - type: BatchNorm1d
+      num_features: 256
+    - type: LeakyReLU
+      negative_slope: 0.2
+    - type: Linear
+      in_features: 256
+      out_features: 128
+    - type: BatchNorm1d
+      num_features: 128
+    - type: LeakyReLU
+      negative_slope: 0.2
+    - type: Linear
+      in_features: 128
       out_features: latent_dim
 
   decoder_image:
     # Start with dense layers (mirror of encoder's final dense layers)
     - type: Linear
       in_features: latent_dim
+      out_features: 128
+    - type: BatchNorm1d
+      num_features: 128
+    - type: LeakyReLU
+      negative_slope: 0.2
+    - type: Linear
+      in_features: 128
+      out_features: 256
+    - type: BatchNorm1d
+      num_features: 256
+    - type: LeakyReLU
+      negative_slope: 0.2
+    - type: Linear
+      in_features: 256
       out_features: 512
     - type: BatchNorm1d
       num_features: 512
@@ -135,16 +163,16 @@ architecture:
       negative_slope: 0.2
     - type: Conv2d
       in_channels: 128
-      out_channels: 64
+      out_channels: 128
       kernel_size: 3
       padding: 1
       stride: 1
     - type: BatchNorm2d
-      num_features: 64
+      num_features: 128
     - type: LeakyReLU
       negative_slope: 0.2
     - type: ConvTranspose2d
-      in_channels: 64
+      in_channels: 128
       out_channels: 64
       kernel_size: 4
       stride: 2
@@ -168,16 +196,16 @@ architecture:
       negative_slope: 0.2
     - type: Conv2d
       in_channels: 64
-      out_channels: 32
+      out_channels: 64
       kernel_size: 3
       padding: 1
       stride: 1
     - type: BatchNorm2d
-      num_features: 32
+      num_features: 64
     - type: LeakyReLU
       negative_slope: 0.2
     - type: ConvTranspose2d
-      in_channels: 32
+      in_channels: 64
       out_channels: 32
       kernel_size: 4
       stride: 2
