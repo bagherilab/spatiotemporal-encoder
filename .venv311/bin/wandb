@@ -1,4 +1,4 @@
-#!/Users/kokon/research/simulation-encoder/.venv311/bin/python3.11
+#!/Volumes/SamsungT7/patrickfeng/simulation-encoder/.venv311/bin/python3.11
 # -*- coding: utf-8 -*-
 import re
 import sys

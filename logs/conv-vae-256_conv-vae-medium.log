@@ -2,3 +2,31 @@
 2025-07-23 18:12:11,047:root:[conv-vae-256][conv_vae_medium_0] Training model conv_vae_medium_0 on device mps
 2025-07-23 18:12:11,047:root:[conv-vae-256][conv_vae_medium_0] Training on dataset vf_256_processed_jpg
 2025-07-23 18:12:11,047:root:[conv-vae-256][conv_vae_medium_0] Training points - 6000 Testing points - 1500
+2025-07-23 18:35:01,046:root:Creating loader vf_256_processed_jpg with type ARCADE
+2025-07-23 18:35:01,389:root:[conv-vae-256][conv_vae_medium_0] Training model conv_vae_medium_0 on device mps
+2025-07-23 18:35:01,389:root:[conv-vae-256][conv_vae_medium_0] Training on dataset vf_256_processed_jpg
+2025-07-23 18:35:01,389:root:[conv-vae-256][conv_vae_medium_0] Training points - 6000 Testing points - 1500
+2025-07-23 18:36:26,568:root:[conv-vae-256][conv_vae_medium_0] Epoch 1/50- Train loss: 0.697323 Val loss: 0.159609
+2025-07-23 18:37:37,349:root:[conv-vae-256][conv_vae_medium_0] Epoch 2/50- Train loss: 0.138651 Val loss: 0.139428
+2025-07-23 18:38:48,257:root:[conv-vae-256][conv_vae_medium_0] Epoch 3/50- Train loss: 0.133426 Val loss: 0.135697
+2025-07-23 18:39:59,054:root:[conv-vae-256][conv_vae_medium_0] Epoch 4/50- Train loss: 0.130883 Val loss: 0.137081
+2025-07-23 18:41:08,777:root:[conv-vae-256][conv_vae_medium_0] Epoch 5/50- Train loss: 0.129996 Val loss: 0.135939
+2025-07-23 18:42:17,798:root:[conv-vae-256][conv_vae_medium_0] Epoch 6/50- Train loss: 0.128975 Val loss: 0.132275
+2025-07-23 18:43:26,761:root:[conv-vae-256][conv_vae_medium_0] Epoch 7/50- Train loss: 0.128968 Val loss: 0.135782
+2025-07-23 18:44:38,048:root:[conv-vae-256][conv_vae_medium_0] Epoch 8/50- Train loss: 0.128462 Val loss: 0.13315
+2025-07-23 18:45:48,257:root:[conv-vae-256][conv_vae_medium_0] Epoch 9/50- Train loss: 0.128013 Val loss: 0.132044
+2025-07-23 18:46:57,563:root:[conv-vae-256][conv_vae_medium_0] Epoch 10/50- Train loss: 0.127721 Val loss: 0.688011
+2025-07-23 18:48:06,533:root:[conv-vae-256][conv_vae_medium_0] Epoch 11/50- Train loss: 0.142625 Val loss: 0.131244
+2025-07-23 18:49:15,855:root:[conv-vae-256][conv_vae_medium_0] Epoch 12/50- Train loss: 0.127718 Val loss: 0.129706
+2025-07-23 18:50:24,761:root:[conv-vae-256][conv_vae_medium_0] Epoch 13/50- Train loss: 0.126855 Val loss: 0.129836
+2025-07-23 18:51:33,683:root:[conv-vae-256][conv_vae_medium_0] Epoch 14/50- Train loss: 0.126451 Val loss: 0.128987
+2025-07-23 18:52:42,533:root:[conv-vae-256][conv_vae_medium_0] Epoch 15/50- Train loss: 0.126914 Val loss: 0.13284
+2025-07-23 18:53:52,079:root:[conv-vae-256][conv_vae_medium_0] Epoch 16/50- Train loss: 0.12663 Val loss: 0.132394
+2025-07-23 18:55:03,054:root:[conv-vae-256][conv_vae_medium_0] Epoch 17/50- Train loss: 0.126347 Val loss: 0.127788
+2025-07-23 18:56:12,744:root:[conv-vae-256][conv_vae_medium_0] Epoch 18/50- Train loss: 0.12642 Val loss: 0.128451
+2025-07-23 18:57:21,690:root:[conv-vae-256][conv_vae_medium_0] Epoch 19/50- Train loss: 0.125892 Val loss: 0.132859
+2025-07-23 18:58:31,491:root:[conv-vae-256][conv_vae_medium_0] Epoch 20/50- Train loss: 0.126099 Val loss: 0.132837
+2025-07-23 18:59:40,709:root:[conv-vae-256][conv_vae_medium_0] Epoch 21/50- Train loss: 0.126238 Val loss: 0.129485
+2025-07-23 19:00:49,656:root:[conv-vae-256][conv_vae_medium_0] Epoch 22/50- Train loss: 0.125544 Val loss: 0.128963
+2025-07-23 19:01:58,587:root:[conv-vae-256][conv_vae_medium_0] Epoch 23/50- Train loss: 0.1259 Val loss: 0.13111
+2025-07-23 19:03:08,777:root:[conv-vae-256][conv_vae_medium_0] Early stopping at epoch 24. Best validation loss: 0.127788

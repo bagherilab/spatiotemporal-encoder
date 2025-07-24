@@ -35,7 +35,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV=/Users/kokon/research/simulation-encoder/.venv311
+VIRTUAL_ENV=/Volumes/SamsungT7/patrickfeng/simulation-encoder/.venv311
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"
