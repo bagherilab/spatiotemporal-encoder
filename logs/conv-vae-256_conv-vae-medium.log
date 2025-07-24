@@ -1,0 +1,4 @@
+2025-07-23 18:12:10,671:root:Creating loader vf_256_processed_jpg with type ARCADE
+2025-07-23 18:12:11,047:root:[conv-vae-256][conv_vae_medium_0] Training model conv_vae_medium_0 on device mps
+2025-07-23 18:12:11,047:root:[conv-vae-256][conv_vae_medium_0] Training on dataset vf_256_processed_jpg
+2025-07-23 18:12:11,047:root:[conv-vae-256][conv_vae_medium_0] Training points - 6000 Testing points - 1500
