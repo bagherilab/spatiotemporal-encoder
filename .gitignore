@@ -8,6 +8,8 @@ figures/*
 #results_save/*
 archive/
 
+.venv311/*
+
 *.prof
 
 # Editors
