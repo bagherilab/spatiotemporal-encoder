@@ -2,10 +2,10 @@
 data/*
 metadata/*
 figures/*
-logs/*
-results/*
-results_downstream/*
-results_save/*
+#logs/*
+#results/*
+#results_downstream/*
+#results_save/*
 archive/
 
 *.prof
