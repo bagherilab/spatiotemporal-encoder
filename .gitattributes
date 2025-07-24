@@ -1,1 +1,2 @@
+results/conv‑vae‑256/conv‑vae‑medium/_best_model/vf_256_processed_jpg/model_state.pth filter=lfs diff=lfs merge=lfs -text
 results/**/model_state.pth filter=lfs diff=lfs merge=lfs -text
