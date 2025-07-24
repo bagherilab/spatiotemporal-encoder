@@ -1,3 +1,3 @@
-study_name: conv-vae-gastruloid # runs this study when encode script is called
+study_name: conv-vae-256 # runs this study when encode script is called
 data_quantity_experiment: false
 debug: true
