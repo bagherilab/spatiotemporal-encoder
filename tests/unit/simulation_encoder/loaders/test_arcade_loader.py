@@ -5,8 +5,6 @@ import os
 import tempfile
 from PIL import Image
 
-import numpy as np
-
 from simulation_encoder.loaders.arcade_loader import ARCADELoader
 
 

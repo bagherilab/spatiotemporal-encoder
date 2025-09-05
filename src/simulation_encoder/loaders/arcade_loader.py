@@ -6,7 +6,6 @@ import torch
 
 from simulation_encoder.logger import Logger
 from simulation_encoder.loaders.loader import Loader
-from simulation_encoder.loaders.dataset_utils.label_loaders import LabelLoader
 
 
 class ARCADELoader(Loader):
@@ -43,7 +42,6 @@ class ARCADELoader(Loader):
         image_dir: str,
         keys: list[str],
         channels: list[str],
-        image_size: int,
         name: Optional[str] = None,
         batch_size: int = 16,
         val_split: float = 0.2,
@@ -71,7 +69,6 @@ class ARCADELoader(Loader):
             random_seed=random_seed,
         )
 
-        self.label_loader = LabelLoader(label_dir) if label_dir else None
 
     def get_labels(self, label: str, dataset_type: str) -> torch.Tensor:
         """Returns labels for the specified dataset type (train, val, test)"""

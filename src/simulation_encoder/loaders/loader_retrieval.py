@@ -3,15 +3,11 @@ import json
 from simulation_encoder.loaders.loader import Loader
 from simulation_encoder.loaders.arcade_loader import ARCADELoader
 from simulation_encoder.loaders.gastruloid_loader import GastruloidLoader
-from simulation_encoder.loaders.alphanumeric_loader import AlphanumericLoader
-from simulation_encoder.loaders.glims_loader import GlimsLoader
 
 
 def load_loaders(
     results_path: str,
     image_base_dir: str,
-    image_size: int = 128,
-    data_labels: list[str] | None = None,
 ) -> dict[str, Loader]:
     """
     Load data loaders for each dataset based on results path.
@@ -22,8 +18,6 @@ def load_loaders(
         Path to the results directory containing experiment folders.
     image_base_dir : str
         Base directory where the image datasets are stored.
-    data_labels : list[str] | None, default=None
-        List of data labels for the loader.
 
     Returns:
     --------
@@ -57,11 +51,9 @@ def load_loaders(
                     loader = _create_loader(
                         experiment_path=results_path,
                         experiment=experiment,
-                        image_size=image_size,
                         dataset_name=dataset_name,
                         dataset_dir=dataset_dir,
                         image_base_dir=image_base_dir,
-                        data_labels=data_labels,
                     )
 
                     if loader:
@@ -77,11 +69,9 @@ def load_loaders(
 def _create_loader(
     experiment_path: str,
     experiment: str,
-    image_size: int,
     dataset_name: str,
     dataset_dir: str,
     image_base_dir: str,
-    data_labels: list[str] | None = None,
 ) -> Loader:
     """
     Helper function to create a loader instance for a specific dataset.
@@ -98,8 +88,6 @@ def _create_loader(
         Path to the dataset directory (contains results.json).
     image_base_dir : str
         Base directory where the image datasets are stored.
-    data_labels : list[str] | None, default=None
-        List of data labels for the loader.
 
     Returns:
     --------
@@ -130,35 +118,14 @@ def _create_loader(
         return ARCADELoader(
             image_dir=image_path,
             channels=channels,
-            image_size=image_size,
             label_dir=label_path,
             keys=keys,
-            labels=data_labels,
             batch_size=1,
             augmentations=augmentations,
             indices_file=indices_path,
         )
     elif loader_type == "GastruloidLoader":
         return GastruloidLoader(
-            image_dir=image_path,
-            channels=channels,
-            image_size=image_size,
-            keys=keys,
-            batch_size=1,
-            augmentations=augmentations,
-            indices_file=indices_path,
-        )
-    elif loader_type == "AlphanumericLoader":
-        return AlphanumericLoader(
-            image_dir=image_path,
-            channels=channels,
-            keys=keys,
-            batch_size=1,
-            augmentations=augmentations,
-            indices_file=indices_path,
-        )
-    elif loader_type == "GlimsLoader":
-        return GlimsLoader(
             image_dir=image_path,
             channels=channels,
             keys=keys,

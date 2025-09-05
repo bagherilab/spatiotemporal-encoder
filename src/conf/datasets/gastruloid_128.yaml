@@ -1,6 +1,5 @@
 loader: gastruloid
 image_dir: data/gastruloid_128/images
-label_dir: data/gastruloid_128/labels
 image_size: 128
 channels:
   - green
