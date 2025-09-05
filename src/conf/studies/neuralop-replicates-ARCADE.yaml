@@ -1,0 +1,101 @@
+experiments:
+  neuralop-medium00:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: neuralop_medium
+        num_timepoints: 15
+        params: best_neuralop
+    general_configs:
+        pretrain: false
+        verbose: true
+  neuralop-medium01:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: neuralop_medium
+        num_timepoints: 15
+        params: best_neuralop
+    general_configs:
+        pretrain: false
+        verbose: true
+  neuralop-medium02:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: neuralop_medium
+        num_timepoints: 15
+        params: best_neuralop
+    general_configs:
+        pretrain: false
+        verbose: true
+  neuralop-medium03:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: neuralop_medium
+        num_timepoints: 15
+        params: best_neuralop
+    general_configs:
+        pretrain: false
+        verbose: true
+  neuralop-medium04:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: neuralop_medium
+        num_timepoints: 15
+        params: best_neuralop
+    general_configs: 
+        pretrain: false
+        verbose: true
+  neuralop-medium05:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: neuralop_medium
+        num_timepoints: 15
+        params: best_neuralop
+    general_configs:
+        pretrain: false
+        verbose: true
+  neuralop-medium06:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: neuralop_medium
+        num_timepoints: 15
+        params: best_neuralop
+    general_configs:
+        pretrain: false
+        verbose: true
+  neuralop-medium07:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: neuralop_medium
+        num_timepoints: 15
+        params: best_neuralop
+    general_configs:
+        pretrain: false
+        verbose: true
+  neuralop-medium08:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: neuralop_medium
+        num_timepoints: 15
+        params: best_neuralop
+    general_configs:
+        pretrain: false
+        verbose: true
+  neuralop-medium09:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: neuralop_medium
+        num_timepoints: 15
+        params: best_neuralop
+    general_configs:
+        pretrain: false
+        verbose: true

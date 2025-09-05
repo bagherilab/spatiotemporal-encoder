@@ -1,10 +1,7 @@
 import cProfile
 import pstats
 import time
-import os
-
-import traceback
-from pydantic import ValidationError
+from copy import deepcopy
 
 from simulation_encoder.runner import Runner
 from simulation_encoder.writer import Writer
@@ -43,41 +40,52 @@ def main() -> None:
     main_config = load_yaml(CONFIG_YAML, MainConfig)
 
     study_name = main_config.study_name  # type: ignore
+    data_quantity_experiment = main_config.data_quantity_experiment # type: ignore
     study_config = load_study_yaml(study_name)
+
+    fractions = [1.0, 0.75, 0.5, 0.25, 0.1, 0.05] if data_quantity_experiment else [1.0]
 
     for experiment_key, experiment_config in study_config.experiments.items():  # type: ignore
         pretrain = experiment_config.general_configs.pretrain
         verbose = experiment_config.general_configs.verbose
 
-        logger = Logger(log_name=f"{study_name}_{experiment_key}", verbose=verbose)
-        runner = Runner(pretrain, logger, verbose)
-        writer = Writer(results_dir=f"{RESULTS_DIR}/{study_name}", experiment_key=experiment_key)
-        plotter = Plotter(results_dir=f"{RESULTS_DIR}/{study_name}", experiment_key=experiment_key)
-
-        # Loader
+        # Loader params (same for all fractions in this experiment)
         loader_params = create_loader_params(experiment_config)
-        runner.add_loader_params(loader_params)
-        first_dataset_name = next(iter(loader_params))
-        first_dataset_params = loader_params[first_dataset_name]
-        num_input_channels = len(first_dataset_params.channels)
 
+        # Create original loaders *once* for this experiment
+        temp_runner = Runner(pretrain, Logger(log_name="temp", verbose=False), verbose=False)
+        temp_runner.add_loader_params(loader_params)
+        original_loaders = {}
         for dataset_name in loader_params.keys():
-            loader = runner.create_loader(dataset_name)
-            writer.write_train_test_indices(dataset_name, loader.get_indices())
+            loader = temp_runner.create_loader(dataset_name)
+            original_loaders[dataset_name] = loader  # store full dataset version
+            
+        for frac in fractions:
+            frac_key = f"{experiment_key}_frac{int(frac*100)}"
+            logger = Logger(log_name=f"{study_name}_{frac_key}", verbose=verbose)
+            runner = Runner(pretrain, logger, verbose)
+            writer = Writer(results_dir=f"{RESULTS_DIR}/{study_name}", experiment_key=frac_key)
+            plotter = Plotter(results_dir=f"{RESULTS_DIR}/{study_name}", experiment_key=frac_key)
 
-        # Model
-        model_param_sets = create_model_param_sets(experiment_config.model, num_input_channels)
-        runner.add_model_params(model_param_sets)
+            runner.add_loader_params(loader_params)
+            first_dataset_name = next(iter(loader_params))
+            first_dataset_params = loader_params[first_dataset_name]
+            num_input_channels = len(first_dataset_params.channels)
 
-        # Run the encoder
-        encoder_results = runner.run_encoder(study_name)
-        handle_encoder_results(encoder_results, runner, writer, plotter, save_all_models=False)
+            for dataset_name, base_loader in original_loaders.items():
+                loader_copy = base_loader.clone() if hasattr(base_loader, "clone") else deepcopy(base_loader)
+                if frac < 1.0:
+                    loader_copy.subsample_train_indices(frac=frac)
+                writer.write_train_test_indices(dataset_name, loader_copy.get_indices())
+                runner.replace_loader(dataset_name, loader_copy)
 
-    # Emulation
-    # emulation_results = runner.run_emulator(config_name)
-    # if emulation_results:
-    #     writer.write_emulation_results(emulation_results)
+            # Model
+            model_param_sets = create_model_param_sets(experiment_config.model, num_input_channels)
+            runner.add_model_params(model_param_sets)
 
+            # Run
+            encoder_results = runner.run_encoder(study_name)
+            handle_encoder_results(encoder_results, runner, writer, plotter, save_all_models=False)
 
 def create_loader_params(experiment_config: ExperimentConfig) -> dict[str, DatasetParams]:
     """

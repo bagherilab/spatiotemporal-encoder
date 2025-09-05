@@ -144,50 +144,61 @@ def _load_all_models(
     Returns:
     --------
     Dict[str, Dict[str, Dict[str, object]]]
-        Nested dictionary containing the loaded models.
+        Nested dictionary: model_type -> model_name -> dataset_name -> model object
     """
     all_models = {}
     best_model_names = ["best", "best_model", "_best", "_best_model"]
 
-    for experiment in os.listdir(results_path):
-        experiment_path = f"{results_path}/{experiment}"
-        if not os.path.isdir(experiment_path):
-            continue
+    for model_type in os.listdir(results_path):
+        print(model_type)
 
-        all_models[experiment] = {}
+        model_type_path = os.path.join(results_path, model_type)
 
-        for model_name in os.listdir(experiment_path):
-            model_path = f"{experiment_path}/{model_name}"
-            if not os.path.isdir(model_path) or model_name in best_model_names:
+        for model_name in os.listdir(model_type_path):
+            if model_name.lower() in best_model_names:
                 continue
 
-            model_base_name = "_".join(model_name.split("_")[0:-1])
-            model_params = load_model_yaml(model_base_name, yaml_path="conf/models")
-            all_models[experiment][model_name] = {}
+            print(model_name)
 
-            for dataset_name in os.listdir(model_path):
-                dataset_dir = f"{model_path}/{dataset_name}"
+            model_name_path = os.path.join(model_type_path, model_name)
+
+            if not os.path.isdir(model_name_path):
+                continue
+
+            model_base_name = "_".join(model_name.split("_")[:-1])
+
+            try:
+                model_params = load_model_yaml(model_base_name)
+            except FileNotFoundError:
+                continue
+
+            all_models[model_name] = {}
+
+            for dataset_name in os.listdir(model_name_path):
+                dataset_dir = os.path.join(model_name_path, dataset_name)
                 if not os.path.isdir(dataset_dir):
                     continue
 
-                results_file_path = f"{dataset_dir}/results.json"
-                if not os.path.exists(results_file_path):
+                results_path = os.path.join(dataset_dir, "results.json")
+                if not os.path.exists(results_path):
                     continue
 
-                with open(results_file_path) as file:
+                with open(results_path) as file:
                     results = json.load(file)
 
                 params = results["model_params"]
-                params["optimizer"]["type"] = Adam if params["optimizer"]["type"] == "Adam" else SGD
+                opt_type = params["optimizer"]["type"]
+                params["optimizer"]["type"] = Adam if opt_type == "Adam" else SGD
                 num_channels = len(results["channels"])
 
                 model = create_model(
-                    model_params, model_base_name, num_channels, num_timepoints, params, dataset_dir
+                    model_params,
+                    model_base_name,
+                    num_channels,
+                    num_timepoints,
+                    params,
+                    dataset_dir
                 )
-                all_models[experiment][model_name][dataset_name] = model
+                all_models[model_name][dataset_name] = model
 
-    # Sort models alphabetically within each experiment
-    for experiment in all_models:
-        all_models[experiment] = dict(sorted(all_models[experiment].items()))
-
-    return all_models
+        return all_models

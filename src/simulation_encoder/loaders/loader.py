@@ -96,6 +96,16 @@ class Loader(ABC):
         """Returns the train, validation, and test indices"""
         return self._train_indices, self._val_indices, self._test_indices
 
+    def subsample_train_indices(self, frac: float) -> None:
+        """Randomly subsample training indices in-place."""
+        if frac >= 1.0:
+            return
+
+        num_samples = int(len(self._train_indices) * frac)
+        self._train_indices = list(
+            np.random.choice(self._train_indices, num_samples, replace=False)
+        )
+
     def get_timepoints(self, dataset_type: str) -> torch.Tensor:
         """Returns timepoints for the specified dataset type (train, val, test)"""
         indices_attr = f"_{dataset_type}_indices"

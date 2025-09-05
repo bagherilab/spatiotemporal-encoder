@@ -1,51 +1,11 @@
 experiments:
-  neuralop-02:
+  neuralop-medium:
       datasets:
         - vascular_function_128
       model:
           architecture: neuralop_small
           num_timepoints: 15
-          params: grid_latentdim2
+          params: grid_latentdim
       general_configs:
           pretrain: false
           verbose: true
-  neuralop-04:
-    datasets:
-      - vascular_function_128
-    model:
-        architecture: neuralop_small
-        num_timepoints: 15
-        params: grid_latentdim4
-    general_configs:
-        pretrain: false
-        verbose: true
-  neuralop-08:
-    datasets:
-      - vascular_function_128
-    model:
-        architecture: neuralop_small
-        num_timepoints: 15
-        params: grid_latentdim8
-    general_configs:
-        pretrain: false
-        verbose: true
-  neuralop-16:
-    datasets:
-      - vascular_function_128
-    model:
-        architecture: neuralop_small
-        num_timepoints: 15
-        params: grid_latentdim16
-    general_configs:
-        pretrain: false
-        verbose: true
-  neuralop-32:
-    datasets:
-      - vascular_function_128
-    model:
-        architecture: neuralop_small
-        num_timepoints: 15
-        params: grid_latentdim32
-    general_configs:
-        pretrain: false
-        verbose: true

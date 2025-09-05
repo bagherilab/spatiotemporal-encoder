@@ -1,0 +1,101 @@
+experiments:
+  cae-medium00:
+    datasets:
+      - gastruloid_128
+    model:
+        architecture: cae_medium
+        num_timepoints: 9
+        params: best_cae
+    general_configs:
+        pretrain: false
+        verbose: true
+  cae-medium01:
+    datasets:
+      - gastruloid_128
+    model:
+        architecture: cae_medium
+        num_timepoints: 9
+        params: best_cae
+    general_configs:
+        pretrain: false
+        verbose: true
+  cae-medium02:
+    datasets:
+      - gastruloid_128
+    model:
+        architecture: cae_medium
+        num_timepoints: 9
+        params: best_cae
+    general_configs:
+        pretrain: false
+        verbose: true
+  cae-medium03:
+    datasets:
+      - gastruloid_128
+    model:
+        architecture: cae_medium
+        num_timepoints: 9
+        params: best_cae
+    general_configs:
+        pretrain: false
+        verbose: true
+  cae-medium04:
+    datasets:
+      - gastruloid_128
+    model:
+        architecture: cae_medium
+        num_timepoints: 9
+        params: best_cae
+    general_configs: 
+        pretrain: false
+        verbose: true
+  cae-medium05:
+    datasets:
+      - gastruloid_128
+    model:
+        architecture: cae_medium
+        num_timepoints: 9
+        params: best_cae
+    general_configs:
+        pretrain: false
+        verbose: true
+  cae-medium06:
+    datasets:
+      - gastruloid_128
+    model:
+        architecture: cae_medium
+        num_timepoints: 9
+        params: best_cae
+    general_configs:
+        pretrain: false
+        verbose: true
+  cae-medium07:
+    datasets:
+      - gastruloid_128
+    model:
+        architecture: cae_medium
+        num_timepoints: 9
+        params: best_cae
+    general_configs:
+        pretrain: false
+        verbose: true
+  cae-medium08:
+    datasets:
+      - gastruloid_128
+    model:
+        architecture: cae_medium
+        num_timepoints: 9
+        params: best_cae
+    general_configs:
+        pretrain: false
+        verbose: true
+  cae-medium09:
+    datasets:
+      - gastruloid_128
+    model:
+        architecture: cae_medium
+        num_timepoints: 9
+        params: best_cae
+    general_configs:
+        pretrain: false
+        verbose: true

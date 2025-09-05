@@ -1,0 +1,101 @@
+experiments:
+  cae-medium00:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: cae_medium
+        num_timepoints: 15
+        params: best_cae
+    general_configs:
+        pretrain: false
+        verbose: true
+  cae-medium01:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: cae_medium
+        num_timepoints: 15
+        params: best_cae
+    general_configs:
+        pretrain: false
+        verbose: true
+  cae-medium02:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: cae_medium
+        num_timepoints: 15
+        params: best_cae
+    general_configs:
+        pretrain: false
+        verbose: true
+  cae-medium03:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: cae_medium
+        num_timepoints: 15
+        params: best_cae
+    general_configs:
+        pretrain: false
+        verbose: true
+  cae-medium04:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: cae_medium
+        num_timepoints: 15
+        params: best_cae
+    general_configs: 
+        pretrain: false
+        verbose: true
+  cae-medium05:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: cae_medium
+        num_timepoints: 15
+        params: best_cae
+    general_configs:
+        pretrain: false
+        verbose: true
+  cae-medium06:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: cae_medium
+        num_timepoints: 15
+        params: best_cae
+    general_configs:
+        pretrain: false
+        verbose: true
+  cae-medium07:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: cae_medium
+        num_timepoints: 15
+        params: best_cae
+    general_configs:
+        pretrain: false
+        verbose: true
+  cae-medium08:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: cae_medium
+        num_timepoints: 15
+        params: best_cae
+    general_configs:
+        pretrain: false
+        verbose: true
+  cae-medium09:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: cae_medium
+        num_timepoints: 15
+        params: best_cae
+    general_configs:
+        pretrain: false
+        verbose: true

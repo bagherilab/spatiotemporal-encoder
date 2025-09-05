@@ -1,0 +1,101 @@
+experiments:
+  ae-small00:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: ae_small
+        num_timepoints: 15
+        params: best_ae
+    general_configs:
+        pretrain: false
+        verbose: true
+  ae-small01:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: ae_small
+        num_timepoints: 15
+        params: best_ae
+    general_configs:
+        pretrain: false
+        verbose: true
+  ae-small02:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: ae_small
+        num_timepoints: 15
+        params: best_ae
+    general_configs:
+        pretrain: false
+        verbose: true
+  ae-small03:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: ae_small
+        num_timepoints: 15
+        params: best_ae
+    general_configs:
+        pretrain: false
+        verbose: true
+  ae-small04:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: ae_small
+        num_timepoints: 15
+        params: best_ae
+    general_configs: 
+        pretrain: false
+        verbose: true
+  ae-small05:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: ae_small
+        num_timepoints: 15
+        params: best_ae
+    general_configs:
+        pretrain: false
+        verbose: true
+  ae-small06:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: ae_small
+        num_timepoints: 15
+        params: best_ae
+    general_configs:
+        pretrain: false
+        verbose: true
+  ae-small07:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: ae_small
+        num_timepoints: 15
+        params: best_ae
+    general_configs:
+        pretrain: false
+        verbose: true
+  ae-small08:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: ae_small
+        num_timepoints: 15
+        params: best_ae
+    general_configs:
+        pretrain: false
+        verbose: true
+  ae-small09:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: ae_small
+        num_timepoints: 15
+        params: best_ae
+    general_configs:
+        pretrain: false
+        verbose: true

@@ -1,0 +1,101 @@
+experiments:
+  neuralop-medium00:
+    datasets:
+      - gastruloid_128
+    model:
+        architecture: neuralop_medium
+        num_timepoints: 9
+        params: best_neuralop
+    general_configs:
+        pretrain: false
+        verbose: true
+  neuralop-medium01:
+    datasets:
+      - gastruloid_128
+    model:
+        architecture: neuralop_medium
+        num_timepoints: 9
+        params: best_neuralop
+    general_configs:
+        pretrain: false
+        verbose: true
+  neuralop-medium02:
+    datasets:
+      - gastruloid_128
+    model:
+        architecture: neuralop_medium
+        num_timepoints: 9
+        params: best_neuralop
+    general_configs:
+        pretrain: false
+        verbose: true
+  neuralop-medium03:
+    datasets:
+      - gastruloid_128
+    model:
+        architecture: neuralop_medium
+        num_timepoints: 9
+        params: best_neuralop
+    general_configs:
+        pretrain: false
+        verbose: true
+  neuralop-medium04:
+    datasets:
+      - gastruloid_128
+    model:
+        architecture: neuralop_medium
+        num_timepoints: 9
+        params: best_neuralop
+    general_configs: 
+        pretrain: false
+        verbose: true
+  neuralop-medium05:
+    datasets:
+      - gastruloid_128
+    model:
+        architecture: neuralop_medium
+        num_timepoints: 9
+        params: best_neuralop
+    general_configs:
+        pretrain: false
+        verbose: true
+  neuralop-medium06:
+    datasets:
+      - gastruloid_128
+    model:
+        architecture: neuralop_medium
+        num_timepoints: 9
+        params: best_neuralop
+    general_configs:
+        pretrain: false
+        verbose: true
+  neuralop-medium07:
+    datasets:
+      - gastruloid_128
+    model:
+        architecture: neuralop_medium
+        num_timepoints: 9
+        params: best_neuralop
+    general_configs:
+        pretrain: false
+        verbose: true
+  neuralop-medium08:
+    datasets:
+      - gastruloid_128
+    model:
+        architecture: neuralop_medium
+        num_timepoints: 9
+        params: best_neuralop
+    general_configs:
+        pretrain: false
+        verbose: true
+  neuralop-medium09:
+    datasets:
+      - gastruloid_128
+    model:
+        architecture: neuralop_medium
+        num_timepoints: 9
+        params: best_neuralop
+    general_configs:
+        pretrain: false
+        verbose: true

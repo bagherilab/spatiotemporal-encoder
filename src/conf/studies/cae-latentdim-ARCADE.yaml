@@ -1,51 +1,11 @@
 experiments:
-  cae-02:
+  cae-medium:
     datasets:
       - vascular_function_128
     model:
         architecture: cae_medium
         num_timepoints: 15
-        params: grid_latentdim2
-    general_configs:
-        pretrain: false
-        verbose: true
-  cae-04:
-    datasets:
-      - vascular_function_128
-    model:
-        architecture: cae_medium
-        num_timepoints: 15
-        params: grid_latentdim4
-    general_configs:
-        pretrain: false
-        verbose: true
-  cae-08:
-    datasets:
-      - vascular_function_128
-    model:
-        architecture: cae_medium
-        num_timepoints: 15
-        params: grid_latentdim8
-    general_configs:
-        pretrain: false
-        verbose: true
-  cae-16:
-    datasets:
-      - vascular_function_128
-    model:
-        architecture: cae_medium
-        num_timepoints: 15
-        params: grid_latentdim16
-    general_configs:
-        pretrain: false
-        verbose: true
-  cae-32:
-    datasets:
-      - vascular_function_128
-    model:
-        architecture: cae_medium
-        num_timepoints: 15
-        params: grid_latentdim32
+        params: grid_latentdim
     general_configs:
         pretrain: false
         verbose: true

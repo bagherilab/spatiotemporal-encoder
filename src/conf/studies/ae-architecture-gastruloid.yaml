@@ -1,7 +1,7 @@
 experiments:
   ae-small:
     datasets:
-      - gastruloid_processed_128
+      - gastruloid_128
     model:
         architecture: ae_small
         num_timepoints: 9
@@ -11,10 +11,20 @@ experiments:
         verbose: true
   ae-medium:
     datasets:
-      - gastruloid_processed_128
+      - gastruloid_128
     model:
         architecture: ae_medium
         num_timepoints: 9
+        params: grid_optimizers
+    general_configs:
+        pretrain: false
+        verbose: true
+  ae-large:
+    datasets:
+      - gastruloid_128
+    model:
+        architecture: ae_large
+        num_timepoints: 15
         params: grid_optimizers
     general_configs:
         pretrain: false
