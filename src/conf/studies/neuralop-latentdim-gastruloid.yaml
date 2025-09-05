@@ -7,5 +7,4 @@ experiments:
         num_timepoints: 9
         params: grid_latentdim
     general_configs:
-        pretrain: false
         verbose: true

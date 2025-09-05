@@ -7,6 +7,5 @@ experiments:
         num_timepoints: 9
         params: grid_temporal
     general_configs:
-        pretrain: false
         verbose: true
 

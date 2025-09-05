@@ -40,30 +40,29 @@ def main() -> None:
     main_config = load_yaml(CONFIG_YAML, MainConfig)
 
     study_name = main_config.study_name  # type: ignore
-    data_quantity_experiment = main_config.data_quantity_experiment # type: ignore
+    data_quantity_experiment = main_config.data_quantity_experiment  # type: ignore
     study_config = load_study_yaml(study_name)
 
     fractions = [1.0, 0.75, 0.5, 0.25, 0.1, 0.05] if data_quantity_experiment else [1.0]
 
     for experiment_key, experiment_config in study_config.experiments.items():  # type: ignore
-        pretrain = experiment_config.general_configs.pretrain
         verbose = experiment_config.general_configs.verbose
 
         # Loader params (same for all fractions in this experiment)
         loader_params = create_loader_params(experiment_config)
 
         # Create original loaders *once* for this experiment
-        temp_runner = Runner(pretrain, Logger(log_name="temp", verbose=False), verbose=False)
+        temp_runner = Runner(Logger(log_name="temp", verbose=False), verbose=False)
         temp_runner.add_loader_params(loader_params)
         original_loaders = {}
         for dataset_name in loader_params.keys():
             loader = temp_runner.create_loader(dataset_name)
             original_loaders[dataset_name] = loader  # store full dataset version
-            
+
         for frac in fractions:
             frac_key = f"{experiment_key}_frac{int(frac*100)}"
             logger = Logger(log_name=f"{study_name}_{frac_key}", verbose=verbose)
-            runner = Runner(pretrain, logger, verbose)
+            runner = Runner(logger, verbose)
             writer = Writer(results_dir=f"{RESULTS_DIR}/{study_name}", experiment_key=frac_key)
             plotter = Plotter(results_dir=f"{RESULTS_DIR}/{study_name}", experiment_key=frac_key)
 
@@ -73,7 +72,9 @@ def main() -> None:
             num_input_channels = len(first_dataset_params.channels)
 
             for dataset_name, base_loader in original_loaders.items():
-                loader_copy = base_loader.clone() if hasattr(base_loader, "clone") else deepcopy(base_loader)
+                loader_copy = (
+                    base_loader.clone() if hasattr(base_loader, "clone") else deepcopy(base_loader)
+                )
                 if frac < 1.0:
                     loader_copy.subsample_train_indices(frac=frac)
                 writer.write_train_test_indices(dataset_name, loader_copy.get_indices())
@@ -87,7 +88,10 @@ def main() -> None:
             encoder_results = runner.run_encoder(study_name)
             handle_encoder_results(encoder_results, runner, writer, plotter, save_all_models=False)
 
-def create_loader_params(experiment_config: ExperimentConfig) -> dict[str, DatasetParams]:
+
+def create_loader_params(
+    experiment_config: ExperimentConfig,
+) -> dict[str, DatasetParams]:
     """
     Create loader parameter sets from the experiment config.
 
@@ -156,7 +160,11 @@ def create_model_param_sets(
 
 
 def handle_encoder_results(
-    encoder_results: dict, runner: Runner, writer: Writer, plotter: Plotter, save_all_models=False
+    encoder_results: dict,
+    runner: Runner,
+    writer: Writer,
+    plotter: Plotter,
+    save_all_models: bool = False,
 ) -> None:
     """Handles writing and plotting of encoder results"""
     best_model_info = None
@@ -178,7 +186,12 @@ def handle_encoder_results(
             )
 
             plotter.line_plot(
-                model_id, dataset_name, data["grad_norms"], "grad_norms", "Epoch", "Gradient Norm"
+                model_id,
+                dataset_name,
+                data["grad_norms"],
+                "grad_norms",
+                "Epoch",
+                "Gradient Norm",
             )
 
             # Access LossData object for losses

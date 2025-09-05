@@ -46,7 +46,14 @@ class GastruloidLoader(Loader):
         logger: Optional[Logger] = None,
         augmentations: Optional[list[dict[str, Any]]] = None,
         indices_file: Optional[str] = None,
-        dates: Optional[list[str]] = ["250616", "250623", "250630", "250715", "250722", "250729"],
+        dates: Optional[list[str]] = [
+            "250616",
+            "250623",
+            "250630",
+            "250715",
+            "250722",
+            "250729",
+        ],
         random_seed: int = 42,
     ):
         self.name = name
@@ -79,7 +86,7 @@ class GastruloidLoader(Loader):
         for file_name in os.listdir(self.image_dir):
             if not file_name.endswith(".png") or not self._in_keys(file_name):
                 continue
-            
+
             if self.dates:
                 if not self._in_dates(file_name):
                     continue
@@ -121,8 +128,8 @@ class GastruloidLoader(Loader):
     def _in_dates(self, file_name: str) -> bool:
         file_chunks = file_name.split("_")
         date = file_chunks[0]
-        return date in self.dates
-    
+        return date in self.dates  # type: ignore
+
     def _in_keys(self, file_name: str) -> bool:
         file_chunks = file_name.split("_")
         array = file_chunks[2]

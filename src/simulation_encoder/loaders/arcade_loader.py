@@ -69,7 +69,6 @@ class ARCADELoader(Loader):
             random_seed=random_seed,
         )
 
-
     def get_labels(self, label: str, dataset_type: str) -> torch.Tensor:
         """Returns labels for the specified dataset type (train, val, test)"""
         if dataset_type == "train":

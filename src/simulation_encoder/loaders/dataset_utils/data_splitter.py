@@ -8,7 +8,11 @@ class DatasetSplitter:
     """Handles dataset splitting while keeping time series grouped together."""
 
     def __init__(
-        self, data: list[dict[str, Any]], val_split: float, test_split: float, random_seed: int = 42
+        self,
+        data: list[dict[str, Any]],
+        val_split: float,
+        test_split: float,
+        random_seed: int = 42,
     ):
         self.data = data
         self.val_split = val_split

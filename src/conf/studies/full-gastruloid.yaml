@@ -7,7 +7,6 @@ experiments:
   #       num_timepoints: 9
   #       params: best_cae
   #   general_configs:
-  #       pretrain: false
   #       verbose: true
   neuralop-medium-no-time:
     datasets:
@@ -17,5 +16,4 @@ experiments:
         num_timepoints: 9
         params: best_neuralop
     general_configs:
-        pretrain: false
         verbose: true

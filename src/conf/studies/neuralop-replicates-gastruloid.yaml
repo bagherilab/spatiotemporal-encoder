@@ -7,7 +7,6 @@ experiments:
         num_timepoints: 9
         params: best_neuralop
     general_configs:
-        pretrain: false
         verbose: true
   neuralop-medium01:
     datasets:
@@ -17,7 +16,6 @@ experiments:
         num_timepoints: 9
         params: best_neuralop
     general_configs:
-        pretrain: false
         verbose: true
   neuralop-medium02:
     datasets:
@@ -27,7 +25,6 @@ experiments:
         num_timepoints: 9
         params: best_neuralop
     general_configs:
-        pretrain: false
         verbose: true
   neuralop-medium03:
     datasets:
@@ -37,7 +34,6 @@ experiments:
         num_timepoints: 9
         params: best_neuralop
     general_configs:
-        pretrain: false
         verbose: true
   neuralop-medium04:
     datasets:
@@ -47,7 +43,6 @@ experiments:
         num_timepoints: 9
         params: best_neuralop
     general_configs: 
-        pretrain: false
         verbose: true
   neuralop-medium05:
     datasets:
@@ -57,7 +52,6 @@ experiments:
         num_timepoints: 9
         params: best_neuralop
     general_configs:
-        pretrain: false
         verbose: true
   neuralop-medium06:
     datasets:
@@ -67,7 +61,6 @@ experiments:
         num_timepoints: 9
         params: best_neuralop
     general_configs:
-        pretrain: false
         verbose: true
   neuralop-medium07:
     datasets:
@@ -77,7 +70,6 @@ experiments:
         num_timepoints: 9
         params: best_neuralop
     general_configs:
-        pretrain: false
         verbose: true
   neuralop-medium08:
     datasets:
@@ -87,7 +79,6 @@ experiments:
         num_timepoints: 9
         params: best_neuralop
     general_configs:
-        pretrain: false
         verbose: true
   neuralop-medium09:
     datasets:
@@ -97,5 +88,4 @@ experiments:
         num_timepoints: 9
         params: best_neuralop
     general_configs:
-        pretrain: false
         verbose: true

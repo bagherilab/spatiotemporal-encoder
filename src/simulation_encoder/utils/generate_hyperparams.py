@@ -11,7 +11,8 @@ from simulation_encoder.dataclass.config_schemas import (
 
 
 def generate_hyperparameters(
-    continuous_params: HyperparameterRangeConfig, discrete_params: HyperparameterDiscreteConfig
+    continuous_params: HyperparameterRangeConfig,
+    discrete_params: HyperparameterDiscreteConfig,
 ) -> list[dict[str, Any]]:
     """Generates sets of hyperparameters using a grid search over continuous and discrete parameters."""
     continuous_values = _get_continuous_values(continuous_params)

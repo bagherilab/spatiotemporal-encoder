@@ -8,11 +8,8 @@ from simulation_encoder.logger import Logger
 from simulation_encoder.loaders.loader import Loader
 from simulation_encoder.loaders.arcade_loader import ARCADELoader
 from simulation_encoder.loaders.gastruloid_loader import GastruloidLoader
-from simulation_encoder.loaders.alphanumeric_loader import AlphanumericLoader
-from simulation_encoder.loaders.glims_loader import GlimsLoader
 
 from simulation_encoder.models.ae import AE
-from simulation_encoder.models.vae import VAE
 from simulation_encoder.models.base_nn import BaseNN
 
 from simulation_encoder.dataclass.loss_data import LossData
@@ -25,8 +22,6 @@ class Runner:
 
     Parameters
     ----------
-    pretrain : bool
-        Controls if models should be pretrained
     logger : Logger
         Logger for tracking training progress
     verbose : bool
@@ -42,10 +37,7 @@ class Runner:
         Dictionary of model names and their corresponding loss data
     """
 
-    def __init__(
-        self, pretrain: bool = False, logger: Logger = None, verbose: bool = False
-    ) -> None:
-        self.pretrain = pretrain
+    def __init__(self, logger: Logger = None, verbose: bool = False) -> None:
         self.logger = logger
         self.verbose = verbose
 
@@ -134,8 +126,6 @@ class Runner:
 
         if model_type == "AE":
             return AE(**params_dict, logger=self.logger)
-        if model_type == "VAE":
-            return VAE(**params_dict, logger=self.logger)
         raise ValueError(f"Model type {model_type} not recognized")
 
     def run_encoder(self, study_name: str) -> dict:
@@ -186,7 +176,7 @@ class Runner:
                 results[loader_name][model_id] = dataset_results
 
         return results
-    
+
     def replace_loader(self, dataset_name: str, new_loader: DataLoader) -> None:
         self._loader_cache[dataset_name] = new_loader
 
@@ -198,7 +188,6 @@ class Runner:
         losses, val_losses, grad_norms = model.fit(
             train_loader,
             val_loader=val_loader,
-            pretrain=self.pretrain,
             patience=7,
             min_delta=0.001,
         )
@@ -241,32 +230,19 @@ class Runner:
                 **params_dict,
                 logger=self.logger,
             )
-        else:
-            # Only ARCADE loaders have labels currently
-            if "label_dir" in params_dict:
-                del params_dict["label_dir"]
-            if "labels" in params_dict:
-                del params_dict["labels"]
-
-            if loader_type.lower() == "alphanumeric":
-                return AlphanumericLoader(
-                    **params_dict,
-                    logger=self.logger,
-                )
-            if loader_type.lower() == "gastruloid":
-                return GastruloidLoader(
-                    **params_dict,
-                    logger=self.logger,
-                )
-            if loader_type.lower() == "glims":
-                return GlimsLoader(
-                    **params_dict,
-                    logger=self.logger,
-                )
+        elif loader_type.lower() == "gastruloid":
+            return GastruloidLoader(
+                **params_dict,
+                logger=self.logger,
+            )
         raise ValueError(f"Invalid loader type specified: {loader_type}")
 
     def _normalize_data(
-        self, X_train: pd.DataFrame, y_train: pd.Series, X_val: pd.DataFrame, y_val: pd.Series
+        self,
+        X_train: pd.DataFrame,
+        y_train: pd.Series,
+        X_val: pd.DataFrame,
+        y_val: pd.Series,
     ) -> tuple:
         """Normalize the training and validation data"""
         X_train_norm = (X_train - X_train.mean()) / X_train.std()

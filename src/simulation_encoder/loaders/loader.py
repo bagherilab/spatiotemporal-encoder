@@ -203,7 +203,10 @@ class Loader(ABC):
         indices = np.random.choice(total_num_samples, num_samples, replace=False).tolist()
         dataset = Subset(data_loader.dataset, indices)
         return DataLoader(
-            dataset, batch_size=data_loader.batch_size, shuffle=True, collate_fn=Loader._collate_fn
+            dataset,
+            batch_size=data_loader.batch_size,
+            shuffle=True,
+            collate_fn=Loader._collate_fn,
         )
 
     @staticmethod
@@ -228,7 +231,9 @@ class Loader(ABC):
 
     @staticmethod
     def _transform_dataloader(
-        func: Callable[[torch.Tensor], torch.Tensor], data_loader: DataLoader, device: str = "cpu"
+        func: Callable[[torch.Tensor], torch.Tensor],
+        data_loader: DataLoader,
+        device: str = "cpu",
     ) -> DataLoader:
         transformed_data = []
         labels = []
@@ -243,7 +248,10 @@ class Loader(ABC):
 
         dataset = TensorDataset(transformed_data_tensor, labels_tensor)
         return DataLoader(
-            dataset, batch_size=data_loader.batch_size, shuffle=True, collate_fn=Loader._collate_fn
+            dataset,
+            batch_size=data_loader.batch_size,
+            shuffle=True,
+            collate_fn=Loader._collate_fn,
         )
 
     @staticmethod

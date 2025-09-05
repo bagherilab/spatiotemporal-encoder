@@ -7,7 +7,6 @@ experiments:
         num_timepoints: 15
         params: best_ae
     general_configs:
-        pretrain: false
         verbose: true
   ae-small01:
     datasets:
@@ -17,7 +16,6 @@ experiments:
         num_timepoints: 15
         params: best_ae
     general_configs:
-        pretrain: false
         verbose: true
   ae-small02:
     datasets:
@@ -27,7 +25,6 @@ experiments:
         num_timepoints: 15
         params: best_ae
     general_configs:
-        pretrain: false
         verbose: true
   ae-small03:
     datasets:
@@ -37,7 +34,6 @@ experiments:
         num_timepoints: 15
         params: best_ae
     general_configs:
-        pretrain: false
         verbose: true
   ae-small04:
     datasets:
@@ -47,7 +43,6 @@ experiments:
         num_timepoints: 15
         params: best_ae
     general_configs: 
-        pretrain: false
         verbose: true
   ae-small05:
     datasets:
@@ -57,7 +52,6 @@ experiments:
         num_timepoints: 15
         params: best_ae
     general_configs:
-        pretrain: false
         verbose: true
   ae-small06:
     datasets:
@@ -67,7 +61,6 @@ experiments:
         num_timepoints: 15
         params: best_ae
     general_configs:
-        pretrain: false
         verbose: true
   ae-small07:
     datasets:
@@ -77,7 +70,6 @@ experiments:
         num_timepoints: 15
         params: best_ae
     general_configs:
-        pretrain: false
         verbose: true
   ae-small08:
     datasets:
@@ -87,7 +79,6 @@ experiments:
         num_timepoints: 15
         params: best_ae
     general_configs:
-        pretrain: false
         verbose: true
   ae-small09:
     datasets:
@@ -97,5 +88,4 @@ experiments:
         num_timepoints: 15
         params: best_ae
     general_configs:
-        pretrain: false
         verbose: true

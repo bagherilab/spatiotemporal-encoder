@@ -1,7 +1,6 @@
 import unittest
 from unittest.mock import patch
 
-import os
 import tempfile
 
 from simulation_encoder.runner import Runner
@@ -13,7 +12,7 @@ class TestRunner(unittest.TestCase):
         self.runner = Runner(verbose=False)
         self.temp_dir = tempfile.TemporaryDirectory()
 
-    def test_add_models_creates_correct_id(self):
+    def test_add_models_params_creates_correct_id(self):
         model_params = ModelParams(
             name="test_model",
             architecture={
@@ -23,11 +22,12 @@ class TestRunner(unittest.TestCase):
             },
             model_type="CAE",
             num_channels=1,
+            num_timepoints=10,
             num_epochs=2,
             params={"latent_dim": 2},
         )
 
-        self.runner.add_models([model_params])
+        self.runner.add_model_params([model_params])
         model_id = self.runner.models.keys()
 
         self.assertIn("test_model_0", model_id)

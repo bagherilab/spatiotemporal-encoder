@@ -6,7 +6,7 @@ import torch
 from torch.optim import Adam, SGD
 
 from simulation_encoder.models.ae import AE
-from simulation_encoder.models.vae import VAE
+from simulation_encoder.dataclass.param_sets import ModelParams
 from simulation_encoder.models.base_nn import BaseNN
 from simulation_encoder.utils.yaml_utils import load_model_yaml
 
@@ -14,20 +14,16 @@ torch.serialization.add_safe_globals([torch._C._nn.gelu])
 torch.serialization.add_safe_globals([neuralop.layers.spectral_convolution.SpectralConv])
 
 
-def create_model(model_params, model_base_name, num_channels, num_timepoints, params, dataset_dir):
-    # for layer in model_params.architecture.encoder:
-    #     if layer.type == 'AdaptiveAvgPool2d':
-    #         layer.output_size = 1
+def create_model(
+    model_params: ModelParams,
+    model_base_name: str,
+    num_channels: int,
+    num_timepoints: int,
+    params: dict,
+    dataset_dir: str,
+) -> BaseNN:
     if model_params.type == "AE":
         model = AE(
-            name=model_base_name,
-            num_channels=num_channels,
-            num_timepoints=num_timepoints,
-            architecture=model_params.architecture.model_dump(exclude_none=True),
-            params=params,
-        )
-    elif model_params.type == "VAE":
-        model = VAE(
             name=model_base_name,
             num_channels=num_channels,
             num_timepoints=num_timepoints,
@@ -88,7 +84,7 @@ def _load_best_models(
     Dict[str, Dict[str, object]]
         Nested dictionary containing the loaded best models.
     """
-    best_models = {}
+    best_models: dict = {}
 
     for model_type in os.listdir(results_path):
         best_models[model_type] = {}
@@ -122,7 +118,12 @@ def _load_best_models(
             num_channels = len(results["channels"])
 
             model = create_model(
-                model_params, model_base_name, num_channels, num_timepoints, params, dataset_dir
+                model_params,
+                model_base_name,
+                num_channels,
+                num_timepoints,
+                params,
+                dataset_dir,
             )
 
             best_models[model_type][dataset_name] = model
@@ -146,7 +147,7 @@ def _load_all_models(
     Dict[str, Dict[str, Dict[str, object]]]
         Nested dictionary: model_type -> model_name -> dataset_name -> model object
     """
-    all_models = {}
+    all_models: dict = {}
     best_model_names = ["best", "best_model", "_best", "_best_model"]
 
     for model_type in os.listdir(results_path):
@@ -197,8 +198,8 @@ def _load_all_models(
                     num_channels,
                     num_timepoints,
                     params,
-                    dataset_dir
+                    dataset_dir,
                 )
                 all_models[model_name][dataset_name] = model
 
-        return all_models
+    return all_models

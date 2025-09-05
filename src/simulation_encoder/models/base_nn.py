@@ -71,7 +71,6 @@ class BaseNN(ABC, nn.Module):
         self,
         train_loader: DataLoader,
         val_loader: Optional[DataLoader] = None,
-        pretrain: bool = False,
         patience: int = 10,
         min_delta: float = 0.0,
     ) -> tuple[dict[str, list[float]], dict[str, list[float]], dict[str, list[float]]]:

@@ -41,7 +41,11 @@ class Plotter:
         plt.close()
 
     def loss_plot(
-        self, model_name: str, dataset_name: str, train_loss: list[float], val_loss: list[float]
+        self,
+        model_name: str,
+        dataset_name: str,
+        train_loss: list[float],
+        val_loss: list[float],
     ) -> None:
         """Creates a plot of the training and validation loss"""
         plt.figure()
@@ -61,7 +65,7 @@ class Plotter:
         plt.close()
 
     @staticmethod
-    def show_images(image_lists: list[list[torch.Tensor]], row_labels: list[str] = None) -> None:
+    def show_images(image_lists: list[list[torch.Tensor]], row_labels: list[str] = []) -> None:
         """TODO"""
         num_rows = len(image_lists)
         if num_rows == 0:

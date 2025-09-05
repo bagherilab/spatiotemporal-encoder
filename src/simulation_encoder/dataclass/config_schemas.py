@@ -39,7 +39,6 @@ class ModelParamsConfig(BaseModel):
 
 
 class GeneralConfig(BaseModel):
-    pretrain: bool = Field(..., description="Whether to use pretraining")
     verbose: bool = Field(..., description="Whether to print verbose logs")
 
 
@@ -85,7 +84,8 @@ class HyperparameterRangeConfig(BaseModel):
 
 class HyperparameterDiscreteConfig(BaseModel):
     values: Union[list[Union[int, float]], list[dict[str, Any]]] = Field(
-        ..., description="List of discrete hyperparameter values or optimizer configurations"
+        ...,
+        description="List of discrete hyperparameter values or optimizer configurations",
     )
 
 

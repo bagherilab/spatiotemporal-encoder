@@ -7,7 +7,6 @@ experiments:
         num_timepoints: 15
         params: grid_optimizers
     general_configs:
-        pretrain: false
         verbose: true
   cae-medium:
     datasets:
@@ -17,5 +16,4 @@ experiments:
         num_timepoints: 15
         params: grid_optimizers
     general_configs:
-        pretrain: false
         verbose: true

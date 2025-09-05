@@ -7,7 +7,6 @@ experiments:
         num_timepoints: 9
         params: grid_optimizers
     general_configs:
-        pretrain: false
         verbose: true
   neuralop-medium:
     datasets:
@@ -17,7 +16,6 @@ experiments:
         num_timepoints: 9
         params: grid_optimizers
     general_configs:
-        pretrain: false
         verbose: true
   neuralop-small:
     datasets:
@@ -27,5 +25,4 @@ experiments:
         num_timepoints: 9
         params: grid_optimizers
     general_configs:
-        pretrain: false
         verbose: true
