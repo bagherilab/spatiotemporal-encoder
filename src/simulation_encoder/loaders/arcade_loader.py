@@ -46,15 +46,12 @@ class ARCADELoader(Loader):
         batch_size: int = 16,
         val_split: float = 0.2,
         test_split: float = 0.2,
-        labels: list[str] = [],
-        label_dir: Optional[str] = None,
         logger: Optional[Logger] = None,
         augmentations: Optional[list[dict[str, Any]]] = [],
         indices_file: Optional[str] = None,
         random_seed: int = 42,
     ):
         self.name = name
-        self.labels = labels
 
         super().__init__(
             image_dir=image_dir,
@@ -68,31 +65,6 @@ class ARCADELoader(Loader):
             logger=logger,
             random_seed=random_seed,
         )
-
-    def get_labels(self, label: str, dataset_type: str) -> torch.Tensor:
-        """Returns labels for the specified dataset type (train, val, test)"""
-        if dataset_type == "train":
-            indices = self._train_indices
-        elif dataset_type == "val":
-            indices = self._val_indices
-        elif dataset_type == "test":
-            indices = self._test_indices
-        else:
-            raise ValueError(f"Invalid dataset type: {dataset_type}")
-
-        try:
-            labels = [self.get_label(idx, label) for idx in indices]
-            return torch.tensor(labels, requires_grad=False)
-        except ValueError:
-            raise ValueError(f"Invalid target name: {label}")
-
-    def get_label(self, idx: int, label_name: str) -> float:
-        """Returns labels the group at index `idx`"""
-        if label_name in self.labels:
-            label = self.groups[idx]["labels"][label_name]
-            return 0.0 if label == "nan" else label
-
-        raise ValueError(f"Invalid label name: {label_name}")
 
     def _retrieve_data(self) -> list[dict[str, Any]]:
         """Returns groups of images based on the filename format."""
@@ -122,14 +94,6 @@ class ARCADELoader(Loader):
             group["timepoint"] = timepoint_day
             group["sample_id"] = sample_id
             group[image_type] = os.path.join(self.image_dir, file_name)
-
-            if self.labels and self.label_loader:
-                for label in self.labels:
-                    if label not in group["labels"]:
-                        key = f"{context}_{vasc_type}"
-                        group["labels"][label] = self.label_loader.get_labels(
-                            label.upper(), key, float(timepoint_day), seed
-                        )
 
         self._log_missing_images(image_groups)
         return list(image_groups.values())
