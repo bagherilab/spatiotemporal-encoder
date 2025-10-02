@@ -20,6 +20,7 @@ class DatasetConfig(BaseModel):
     keys: list[str] = Field(..., description="List of keys")
     augmentations: Optional[dict] = None
     labels: Optional[list[str]] = None
+    sequence: bool = False
 
     @model_validator(mode="before")
     def check_split_ratios(cls, values: dict) -> dict:

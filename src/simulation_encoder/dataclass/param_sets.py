@@ -16,6 +16,7 @@ class DatasetParams:
     labels: Optional[list[str]] = None
     label_dir: Optional[str] = None
     augmentations: Optional[dict] = None
+    sequence: bool = False
 
 
 @dataclass
@@ -27,3 +28,4 @@ class ModelParams:
     num_timepoints: int
     num_epochs: int
     params: dict[str, Any] = field(default_factory=lambda: {"latent_dim": 2})
+    sequence: bool = False

@@ -30,12 +30,14 @@ class Loader(ABC):
         indices_file: Optional[str],
         logger: Optional[Logger],
         random_seed: int,
+        sequence: bool = False,
     ):
         self.image_dir = image_dir
         self.keys = keys
         self.channels = channels
         self.batch_size = batch_size
         self.logger = logger
+        self.sequence = sequence
 
         self.augmentation_manager = AugmentationsManager(augmentations)
         self.data = self._retrieve_data()
@@ -66,6 +68,18 @@ class Loader(ABC):
         """Number of channels in the images"""
         return len(self.channels)
 
+    @property
+    def max_sequence_length(self) -> int:
+        """Maximum sequence length in the dataset"""
+        if not self.sequence:
+            return 1
+        
+        max_len = 0
+        for item in self.data:
+            if 'timepoints' in item:
+                max_len = max(max_len, len(item["timepoints"]))
+        return max_len
+
     @abstractmethod
     def _retrieve_data(self) -> list[dict[str, Any]]:
         """Returns groups of images based on the filename format."""
@@ -83,7 +97,7 @@ class Loader(ABC):
             raise ValueError(f"Invalid dataset type: {dataset_type}")
 
         dataset = ImageDataset(
-            self.image_dir, self.data, self.channels, self.augmentation_manager, indices
+            self.image_dir, self.data, self.channels, self.augmentation_manager, indices, self.sequence
         )
         return DataLoader(
             dataset,
@@ -112,6 +126,10 @@ class Loader(ABC):
         if not hasattr(self, indices_attr):
             raise ValueError(f"Invalid dataset type: {dataset_type}")
         indices = getattr(self, indices_attr)
+
+        if self.sequence:
+            return torch.full((len(indices),), -1, dtype=torch.long)
+
         timepoints = [int(self._get_data_feature(idx, "timepoint")) for idx in indices]
         return torch.tensor(timepoints, requires_grad=False)
 

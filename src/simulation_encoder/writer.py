@@ -36,6 +36,8 @@ class Writer:
             "loader": dataset.__class__.__name__,
             "dataset": dataset_name,
             "channels": dataset.channels,
+            "sequence": dataset.sequence,
+            "max_sequence_length": dataset.max_sequence_length,
             "model_params": model.params,
             "data_augmentations": augmentations,
             "data_keys": dataset.keys,

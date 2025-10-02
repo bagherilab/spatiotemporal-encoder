@@ -46,9 +46,13 @@ class ARCADELoader(Loader):
         batch_size: int = 16,
         val_split: float = 0.2,
         test_split: float = 0.2,
+        image_size: int = 128,
+        labels: str = "",
+        label_dir: str = "",
         logger: Optional[Logger] = None,
         augmentations: Optional[list[dict[str, Any]]] = [],
         indices_file: Optional[str] = None,
+        sequence: bool = False,
         random_seed: int = 42,
     ):
         self.name = name

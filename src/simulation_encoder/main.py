@@ -69,7 +69,15 @@ def main() -> None:
             runner.add_loader_params(loader_params)
             first_dataset_name = next(iter(loader_params))
             first_dataset_params = loader_params[first_dataset_name]
+
+            # Create a temporary loader to get sequence length
+            temp_runner_for_seq_len = Runner(Logger(log_name="temp_seq", verbose=False), verbose=False)
+            temp_runner_for_seq_len.add_loader_params({first_dataset_name: first_dataset_params})
+            temp_loader = temp_runner_for_seq_len.create_loader(first_dataset_name)
+
             num_input_channels = len(first_dataset_params.channels)
+            if first_dataset_params.sequence:
+                num_input_channels *= temp_loader.max_sequence_length
 
             for dataset_name, base_loader in original_loaders.items():
                 loader_copy = (
@@ -81,11 +89,17 @@ def main() -> None:
                 runner.replace_loader(dataset_name, loader_copy)
 
             # Model
-            model_param_sets = create_model_param_sets(experiment_config.model, num_input_channels)
+            model_param_sets = create_model_param_sets(
+                experiment_config.model, num_input_channels, first_dataset_params.sequence
+            )
             runner.add_model_params(model_param_sets)
 
             # Run
+            start_time = time.time()
             encoder_results = runner.run_encoder(study_name)
+            end_time = time.time()
+            execution_time = end_time - start_time
+            print(f"Execution time: {execution_time:.2f} seconds")
             handle_encoder_results(encoder_results, runner, writer, plotter, save_all_models=False)
 
 
@@ -124,6 +138,7 @@ def create_loader_params(
             augmentations=dataset_config.augmentations,
             labels=dataset_config.labels,
             name=dataset_name,
+            sequence=dataset_config.sequence, # type: ignore
         )
         loader_params[dataset_name] = dataset_params
 
@@ -131,7 +146,7 @@ def create_loader_params(
 
 
 def create_model_param_sets(
-    model_config: ModelParamsConfig, num_channels: int
+    model_config: ModelParamsConfig, num_channels: int, sequence: bool
 ) -> list[ModelParams]:
     """Create the model parameters from model config files and hyperparameter yaml files."""
     model_name = model_config.architecture
@@ -153,6 +168,7 @@ def create_model_param_sets(
             num_timepoints=model_config.num_timepoints,
             num_epochs=num_epochs,
             params=param_set,
+            sequence=sequence,
         )
         model_param_sets.append(model_params)
 

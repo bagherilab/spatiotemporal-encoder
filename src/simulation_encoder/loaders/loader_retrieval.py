@@ -100,6 +100,7 @@ def _create_loader(
     channels = results["channels"]
     keys = results["data_keys"]
     augmentations = results["data_augmentations"]
+    sequence = results.get("sequence", False)
 
     loader_type = results["loader"]
 
@@ -132,6 +133,7 @@ def _create_loader(
             batch_size=1,
             augmentations=augmentations,
             indices_file=indices_path,
+            sequence=sequence,
         )
     else:
         raise ValueError(f"Unknown loader type: {loader_type}")

@@ -42,6 +42,7 @@ class AE(BaseNN):
         image_size: int = 128,
         params: dict[str, Any] = {},
         logger: Optional[Logger] = None,
+        sequence: bool = False,
     ):
         super().__init__()
 
@@ -55,16 +56,19 @@ class AE(BaseNN):
         self.image_size = image_size
         self.params = params
         self.logger = logger
+        self.sequence = sequence
         self.latent_dim = params.get("latent_dim", 32)
         self.loss_weights = {
             "image": params.get("image_loss_weight", 1.0),
-            "timepoint": params.get("timepoint_loss_weight", 1.0),
         }
         self.encoder = nn.Sequential(*self._create_layers(self.architecture["encoder"].copy()))
         self.decoder_image = nn.Sequential(*self._create_layers(self.architecture["decoder_image"]))
-        self.decoder_timepoint = nn.Sequential(
-            *self._create_layers(self.architecture["decoder_timepoint"])
-        )
+        
+        if not self.sequence:
+            self.decoder_timepoint = nn.Sequential(
+                *self._create_layers(self.architecture["decoder_timepoint"])
+            )
+            self.loss_weights["timepoint"] = params.get("timepoint_loss_weight", 1.0)
 
         optimizer_config = params.get("optimizer", {})
         optimizer_type = optimizer_config.pop("type")
@@ -75,8 +79,9 @@ class AE(BaseNN):
 
         self.criterion = {
             "image": nn.MSELoss(),
-            "timepoint": nn.CrossEntropyLoss(),
         }
+        if not self.sequence:
+            self.criterion["timepoint"] = nn.CrossEntropyLoss()
 
         # Chosen arbitrarily
         # Factor to balance image and timepoint loss
@@ -86,8 +91,10 @@ class AE(BaseNN):
         """Performs encoding and several decoding heads"""
         z = self.encode(x)
         pred_image = self.decode_image(z)
-        pred_timepoint = self.decode_timepoint(z)
-        return pred_image, pred_timepoint
+        if not self.sequence:
+            pred_timepoint = self.decode_timepoint(z)
+            return pred_image, pred_timepoint
+        return (pred_image,)
 
     def fit(
         self,
@@ -151,11 +158,12 @@ class AE(BaseNN):
 
             encoder_grad_norm = self._get_grad_norm(self.encoder)
             decoder_image_grad_norm = self._get_grad_norm(self.decoder_image)
-            decoder_timepoint_grad_norm = self._get_grad_norm(self.decoder_timepoint)
-
             grad_norms["encoder"].append(encoder_grad_norm.item())
             grad_norms["decoder_image"].append(decoder_image_grad_norm.item())
-            grad_norms["decoder_timepoint"].append(decoder_timepoint_grad_norm.item())
+            
+            if not self.sequence:
+                decoder_timepoint_grad_norm = self._get_grad_norm(self.decoder_timepoint)
+                grad_norms["decoder_timepoint"].append(decoder_timepoint_grad_norm.item())
 
             msg = f"Epoch {e+1}/{self.num_epochs}- Train loss: {round(train_loss['weighted_loss'], 6)} Val loss: {round(val_loss['weighted_loss'], 6)}"
             self._log(msg)
@@ -214,7 +222,9 @@ class AE(BaseNN):
 
         optimizer_combined: torch.optim.Optimizer = self.optimizers["combined"]
         image_criteria: torch.nn.Module = self.criterion["image"]
-        timepoint_criteria: torch.nn.Module = self.criterion["timepoint"]
+        
+        if not self.sequence:
+            timepoint_criteria: torch.nn.Module = self.criterion["timepoint"]
 
         avg_loss: dict[str, float] = defaultdict(float)
 
@@ -222,12 +232,19 @@ class AE(BaseNN):
             for inputs, labels in pbar:
                 inputs, labels = inputs.to(self.device), labels.to(self.device)
                 optimizer_combined.zero_grad()
-                pred_image, pred_timepoint = self(inputs)
+                
+                if self.sequence:
+                    (pred_image,) = self(inputs)
+                    batch_loss = {
+                        "image": image_criteria(pred_image, inputs),
+                    }
+                else:
+                    pred_image, pred_timepoint = self(inputs)
+                    batch_loss = {
+                        "image": image_criteria(pred_image, inputs),
+                        "timepoint": timepoint_criteria(pred_timepoint, labels),
+                    }
 
-                batch_loss = {
-                    "image": image_criteria(pred_image, inputs),
-                    "timepoint": timepoint_criteria(pred_timepoint, labels),
-                }
                 _, reconstruction_loss_weighted = self._calc_reconstruction_loss(batch_loss)
 
                 reconstruction_loss_weighted.backward()  # type: ignore
@@ -259,19 +276,27 @@ class AE(BaseNN):
         self.eval()  # Sets dropout and batch normalization layers to evaluation mode
 
         image_criteria = self.criterion["image"]
-        timepoint_criteria = self.criterion["timepoint"]
+        if not self.sequence:
+            timepoint_criteria = self.criterion["timepoint"]
 
         avg_loss: dict[str, float] = defaultdict(float)
         with torch.no_grad():
             with tqdm(val_loader, desc="Validation", unit="batch", ncols=120) as pbar:
                 for inputs, labels in pbar:
                     inputs, labels = inputs.to(self.device), labels.to(self.device)
-                    pred_image, pred_timepoint = self(inputs)
+                    
+                    if self.sequence:
+                        (pred_image,) = self(inputs)
+                        batch_loss = {
+                            "image": image_criteria(pred_image, inputs),
+                        }
+                    else:
+                        pred_image, pred_timepoint = self(inputs)
+                        batch_loss = {
+                            "image": image_criteria(pred_image, inputs),
+                            "timepoint": timepoint_criteria(pred_timepoint, labels),
+                        }
 
-                    batch_loss = {
-                        "image": image_criteria(pred_image, inputs),
-                        "timepoint": timepoint_criteria(pred_timepoint, labels),
-                    }
                     reconstruciton_loss, reconstruciton_loss_weighted = (
                         self._calc_reconstruction_loss(batch_loss)
                     )
@@ -292,7 +317,10 @@ class AE(BaseNN):
         x.requires_grad = True
 
         try:
-            pred_image, _ = self(x)
+            if self.sequence:
+                (pred_image,) = self(x)
+            else:
+                pred_image, _ = self(x)
             loss_image = image_criteria(pred_image, x)
             loss_image.backward()
 

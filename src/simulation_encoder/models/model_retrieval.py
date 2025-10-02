@@ -21,6 +21,7 @@ def create_model(
     num_timepoints: int,
     params: dict,
     dataset_dir: str,
+    sequence: bool = False,
 ) -> BaseNN:
     if model_params.type == "AE":
         model = AE(
@@ -29,6 +30,7 @@ def create_model(
             num_timepoints=num_timepoints,
             architecture=model_params.architecture.model_dump(exclude_none=True),
             params=params,
+            sequence=sequence,
         )
     else:
         raise ValueError("Model type not supported")
@@ -37,7 +39,7 @@ def create_model(
     trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"Loading model {model_base_name} ({trainable:.2e} parameters)")
     state_dict.pop("_metadata", None)
-    model.load_state_dict(state_dict)
+    model.load_state_dict(state_dict, strict=False)
 
     return model
 
@@ -116,6 +118,8 @@ def _load_best_models(
             params = results["model_params"]
             params["optimizer"]["type"] = Adam if params["optimizer"]["type"] == "Adam" else SGD
             num_channels = len(results["channels"])
+            if results.get("sequence", False):
+                num_channels *= results.get("max_sequence_length", 1)
 
             model = create_model(
                 model_params,
@@ -124,6 +128,7 @@ def _load_best_models(
                 num_timepoints,
                 params,
                 dataset_dir,
+                results.get("sequence", False),
             )
 
             best_models[model_type][dataset_name] = model
@@ -191,6 +196,8 @@ def _load_all_models(
                 opt_type = params["optimizer"]["type"]
                 params["optimizer"]["type"] = Adam if opt_type == "Adam" else SGD
                 num_channels = len(results["channels"])
+                if results.get("sequence", False):
+                    num_channels *= results.get("max_sequence_length", 1)
 
                 model = create_model(
                     model_params,
@@ -199,6 +206,7 @@ def _load_all_models(
                     num_timepoints,
                     params,
                     dataset_dir,
+                    results.get("sequence", False),
                 )
                 all_models[model_name][dataset_name] = model
 

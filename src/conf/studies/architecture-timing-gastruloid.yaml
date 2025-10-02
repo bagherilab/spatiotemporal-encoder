@@ -1,4 +1,13 @@
 experiments:
+  # ae-small:
+  #   datasets:
+  #     - gastruloid_128
+  #   model:
+  #       architecture: ae_small
+  #       num_timepoints: 9
+  #       params: best_ae
+  #   general_configs:
+  #       verbose: true
   cae-medium:
     datasets:
       - gastruloid_128

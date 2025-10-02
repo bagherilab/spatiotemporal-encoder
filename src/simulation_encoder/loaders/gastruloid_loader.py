@@ -43,18 +43,24 @@ class GastruloidLoader(Loader):
         batch_size: int = 16,
         val_split: float = 0.2,
         test_split: float = 0.2,
+        image_size: int = 128,
+        labels: str = "",
+        label_dir: str = "",
         logger: Optional[Logger] = None,
         augmentations: Optional[list[dict[str, Any]]] = None,
         indices_file: Optional[str] = None,
         dates: Optional[list[str]] = [
-            "250616",
-            "250623",
-            "250630",
-            "250715",
-            "250722",
-            "250729",
+            "250224",
+            # "250609",
+            # "250616",
+            # "250623",
+            # "250630",
+            # "250715",
+            # "250722",
+            # "250729",
         ],
         random_seed: int = 42,
+        sequence: bool = False,
     ):
         self.name = name
         self.dates = dates
@@ -70,10 +76,14 @@ class GastruloidLoader(Loader):
             indices_file=indices_file,
             logger=logger,
             random_seed=random_seed,
+            sequence=sequence,
         )
 
     def _retrieve_data(self) -> list[dict[str, Any]]:
         """Returns groups of images based on the filename format."""
+        if self.sequence:
+            return self._retrieve_data_sequence()
+
         image_groups: dict[str, Any] = defaultdict(
             lambda: {
                 **{channel: "" for channel in self.channels},
@@ -114,6 +124,61 @@ class GastruloidLoader(Loader):
 
         self._log_missing_images(image_groups)
         return list(image_groups.values())
+
+    def _retrieve_data_sequence(self) -> list[dict[str, Any]]:
+        """Returns groups of images based on the filename format as sequences."""
+        image_sequences: dict[str, Any] = defaultdict(
+            lambda: {
+                **{channel: [] for channel in self.channels},
+                "timepoints": [],
+                "sample_id": "",
+                "augmentation": {"identity": ""},
+            }
+        )
+
+        raw_data = defaultdict(list)
+        for file_name in os.listdir(self.image_dir):
+            if not file_name.endswith(".png") or not self._in_keys(file_name):
+                continue
+
+            if self.dates:
+                if not self._in_dates(file_name):
+                    continue
+
+            if not any(channel in file_name for channel in self.channels):
+                continue
+            
+            raw_data[file_name] = self._parse_filename(file_name)
+
+        sorted_files = sorted(raw_data.items(), key=lambda item: (item[1][0], item[1][2], item[1][3], item[1][4]))
+
+        for file_name, (date, channel, array, raft, timepoint) in sorted_files:
+            sample_id = f"{date}_{array}_{raft}"
+            sequence = image_sequences[sample_id]
+            sequence["sample_id"] = sample_id
+            
+            if timepoint not in sequence["timepoints"]:
+                sequence["timepoints"].append(timepoint)
+            
+            sequence[channel].append(os.path.join(self.image_dir, file_name))
+
+        # Pad missing channels
+        for sample_id, sequence in image_sequences.items():
+            max_len = max(len(v) for k, v in sequence.items() if isinstance(v, list))
+            for ch in self.channels:
+                while len(sequence[ch]) < max_len:
+                    sequence[ch].append("")
+
+        self._log_missing_images_sequence(image_sequences)
+        return list(image_sequences.values())
+
+    def _log_missing_images_sequence(self, image_sequences: dict[str, Any]) -> None:
+        """Log missing images for each channel in sequences."""
+        for sample_id, sequence in image_sequences.items():
+            for channel in self.channels:
+                missing_count = sequence[channel].count("")
+                if missing_count > 0:
+                    self._log(f"Sample {sample_id} missing {missing_count} images for channel {channel}", "warning")
 
     def _parse_filename(self, filename: str) -> tuple[str, str, str, int, int]:
         parts = filename.split("_")
