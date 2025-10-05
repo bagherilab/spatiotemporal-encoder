@@ -9,6 +9,7 @@ results_save/*
 archive/
 
 *.prof
+*.ipynb
 
 # Editors
 .vscode/
