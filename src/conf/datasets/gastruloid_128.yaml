@@ -3,7 +3,7 @@ image_dir: data/gastruloid_128/images
 image_size: 128
 channels:
   - green
-batch_size: 30
+batch_size: 32
 val_split: 0.2
 test_split: 0.2
 keys:

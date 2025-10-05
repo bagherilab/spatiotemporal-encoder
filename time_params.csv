@@ -1,7 +1,7 @@
 model,train_time,num_params
 ae_arcade,420.1,34966361
-cae_arcade,507.4,
+cae_arcade,507.4,8703082
 neuralop_arcade,1510.0,34103162
-ae_gastruloid,310.8,
-cae_gastruloid,332.6,
-neuralop_gastruloid,2032.9,
+ae_gastruloid,310.8,0
+cae_gastruloid,332.6,0
+neuralop_gastruloid,2032.9,0
