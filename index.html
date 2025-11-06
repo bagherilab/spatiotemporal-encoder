@@ -6,8 +6,8 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Simulation encoder repository &mdash; SANDBOX VERSION NUMBER X.X.X documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+  <title>Spatiotemporal encoder repository &mdash; SANDBOX VERSION NUMBER X.X.X documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
@@ -61,7 +61,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Simulation encoder repository</li>
+      <li class="breadcrumb-item active">Spatiotemporal encoder repository</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -73,42 +73,154 @@
              
   <div class="toctree-wrapper compound">
 </div>
-<section id="simulation-encoder-repository">
-<h1>Simulation encoder repository<a class="headerlink" href="#simulation-encoder-repository" title="Link to this heading"></a></h1>
-<a class="reference external image-reference" href="https://github.com/bagherilab/simulation-encoder/actions?query=workflow%3Abuild"><img alt="Build Status" src="https://github.com/bagherilab/simulation-encoder/workflows/build/badge.svg" />
+<section id="spatiotemporal-encoder-repository">
+<h1>Spatiotemporal encoder repository<a class="headerlink" href="#spatiotemporal-encoder-repository" title="Link to this heading"></a></h1>
+<a class="reference external image-reference" href="https://github.com/bagherilab/spatiotemporal-encoder/actions?query=workflow%3Abuild"><img alt="Build Status" src="https://github.com/bagherilab/spatiotemporal-encoder/workflows/build/badge.svg" />
 </a>
 <a class="reference external image-reference" href="https://codecov.io/gh/bagherilab/simulation-encoder"><img alt="Codecov" src="https://codecov.io/gh/bagherilab/simulation-encoder/graph/badge.svg?token=nZSUf47ltR" />
 </a>
-<a class="reference external image-reference" href="https://github.com/bagherilab/simulation-encoder/actions?query=workflow%3Alint"><img alt="Lint Status" src="https://github.com/bagherilab/simulation-encoder/workflows/lint/badge.svg" />
+<a class="reference external image-reference" href="https://github.com/bagherilab/spatiotemporal-encoder/actions?query=workflow%3Alint"><img alt="Lint Status" src="https://github.com/bagherilab/spatiotemporal-encoder/workflows/lint/badge.svg" />
 </a>
-<a class="reference external image-reference" href="https://bagherilab.github.io/simulation-encoder/"><img alt="Documentation" src="https://github.com/bagherilab/simulation-encoder/workflows/documentation/badge.svg" />
+<a class="reference external image-reference" href="https://bagherilab.github.io/spatiotemporal-encoder/"><img alt="Documentation" src="https://github.com/bagherilab/spatiotemporal-encoder/workflows/documentation/badge.svg" />
 </a>
 <a class="reference external image-reference" href="https://github.com/psf/black"><img alt="Code style" src="https://img.shields.io/badge/code%20style-black-000000.svg" />
 </a>
-<section id="getting-started">
-<h2>Getting started<a class="headerlink" href="#getting-started" title="Link to this heading"></a></h2>
-<ol class="arabic simple">
-<li><p>Clone the repo.</p></li>
-<li><p>Install dependencies.</p></li>
-</ol>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$
-</pre></div>
-</div>
-<ol class="arabic simple">
-<li><p>Activate the environment (this is all you need for day-to-day development):</p></li>
-</ol>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$
-</pre></div>
-</div>
+<p><span class="xref std std-ref">Description</span> | <span class="xref std std-ref">Installation</span> | <span class="xref std std-ref">Usage</span></p>
+<section id="description">
+<h2>Description<a class="headerlink" href="#description" title="Link to this heading"></a></h2>
+<p>Spatiotemporal encoder is a machine learning tool for rapidly developing and testing neural network autoencoder architectures on timelapse imaging data.
+This project was developed as part of the research described in the manuscript “Architectural bias in feature learning: Fourier Neural Operators vs. Convolutional Neural Networks for biological images”.</p>
 </section>
-<section id="general-commands">
-<h2>General commands<a class="headerlink" href="#general-commands" title="Link to this heading"></a></h2>
-<p>The <code class="docutils literal notranslate"><span class="pre">Makefile</span></code> include three commands for working with the project.</p>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
+<p>Package and dependency management for this project is done with Poetry.
+To install dependencies, navigate to the project folder in the command line and run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>poetry<span class="w"> </span>install
+</pre></div>
+</div>
+<p>If you do not have poetry installed, refer to the documantation they provide <a class="reference external" href="https://python-poetry.org">here</a>.</p>
+</section>
+<section id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Link to this heading"></a></h2>
+<p>Once dependencies are installed, add your data file (currently only <code class="docutils literal notranslate"><span class="pre">csv</span></code> files are supported) to the data folder.
+Next, there are several config files that inform the program on operating details.
+All config files are located inside of the <code class="docutils literal notranslate"><span class="pre">src/conf</span></code> directory.</p>
+<section id="main-config">
+<h3>Main config<a class="headerlink" href="#main-config" title="Link to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">config.yaml</span></code> file outlines high-level experimental details, incluing:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">clean</span></code> will clean all the build and testing files</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">build</span></code> will run tests, format, lint, and type check your code (you can also just run <code class="docutils literal notranslate"><span class="pre">tox</span></code>)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">docs</span></code> will generate documentation</p></li>
+<li><p>The study name, which should be the same as the corresponding <code class="docutils literal notranslate"><span class="pre">study</span> <span class="pre">config</span></code>.</p></li>
+<li><p>Whether the experiment is a quantity experiment to test the effects of different amounts of training data (<code class="docutils literal notranslate"><span class="pre">quantity_experiment</span></code>)</p></li>
 </ul>
+</section>
+<section id="study-configs">
+<h3>Study configs<a class="headerlink" href="#study-configs" title="Link to this heading"></a></h3>
+<p>Inside the <code class="docutils literal notranslate"><span class="pre">conf/studies</span></code> directory, config files can be specified for any study the user wants run.
+Examples can be found in the directory, but they must include:</p>
+<ul>
+<li><p>A list of studies (<code class="docutils literal notranslate"><span class="pre">experiments</span></code>) to run</p></li>
+<li><p>At least one experiment in the format</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">experiments</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">[</span><span class="nv">experiment name</span><span class="p p-Indicator">]:</span>
+<span class="w">      </span><span class="nt">datasets</span><span class="p">:</span>
+<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">dataset name</span><span class="p p-Indicator">]</span>
+<span class="w">      </span><span class="nt">model</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">architecture</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">model name</span><span class="p p-Indicator">]</span>
+<span class="w">          </span><span class="nt">num_timepoints</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">num timepoins per sample</span><span class="p p-Indicator">]</span>
+<span class="w">          </span><span class="nt">params</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">parameter set name</span><span class="p p-Indicator">]</span>
+<span class="w">      </span><span class="nt">general_configs</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">verbose</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">true/false</span><span class="p p-Indicator">]</span>
+</pre></div>
+</div>
+</li>
+<li><p>The datasets, architecture, and parameter set names must match their corresponding config files</p></li>
+</ul>
+</section>
+<section id="dataset-configs">
+<h3>Dataset configs<a class="headerlink" href="#dataset-configs" title="Link to this heading"></a></h3>
+<p>Inside the <code class="docutils literal notranslate"><span class="pre">conf/datasets</span></code> directory, dataset configs can be used to specify the dataset location and hyperparameters.</p>
+<p>Examples can be found in the directory, but they must include:</p>
+<ul>
+<li><p>The loader responsible to managing the data. The primary difference between the loaders is parsing any image metadata from the file name.</p></li>
+<li><p>The image directory where the jpg/png files can be found.</p></li>
+<li><p>The hyperparameters associated with the dataset in the following format:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">loader</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">loader name</span><span class="p p-Indicator">]</span>
+<span class="nt">image_dir</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">image path</span><span class="p p-Indicator">]</span>
+<span class="nt">image_size</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">num pixels in image side length</span><span class="p p-Indicator">]</span>
+<span class="nt">channels</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">image channels model should consider</span><span class="p p-Indicator">]</span>
+<span class="nt">batch_size</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">batch size</span><span class="p p-Indicator">]</span>
+<span class="nt">val_split</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">data fraction to use for validation</span><span class="p p-Indicator">]</span>
+<span class="nt">test_split</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">data fraction to use for testing</span><span class="p p-Indicator">]</span>
+<span class="nt">keys</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">key in image names to include in study</span><span class="p p-Indicator">]</span>
+<span class="nt">augmentations</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">rotate</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">degree of rotation</span><span class="p p-Indicator">]</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="model-configs">
+<h3>Model configs<a class="headerlink" href="#model-configs" title="Link to this heading"></a></h3>
+<p>Inside the <code class="docutils literal notranslate"><span class="pre">conf/models</span></code> directory, model configs can be used to specify the model architecture.
+This allows quick model development without modifying any python code.</p>
+<p>Examples can be found in the directory, but they must include:</p>
+<ul>
+<li><p>The type of model to construct. Currently only vanilla autoencoders (<code class="docutils literal notranslate"><span class="pre">AE</span></code>) are compatible.</p></li>
+<li><p>The architecture and layers of the encoder, spatial decoder (<code class="docutils literal notranslate"><span class="pre">decoder_image</span></code>), and temporal decoder (<code class="docutils literal notranslate"><span class="pre">decoder_timepoint</span></code>) in the following format:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AE</span>
+<span class="nt">architecture</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">encoder</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">layer type</span><span class="p p-Indicator">]</span>
+<span class="w">        </span><span class="p p-Indicator">[</span><span class="nv">layer parameters</span><span class="p p-Indicator">]</span>
+<span class="w">    </span><span class="nt">decoder_image</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">layer type</span><span class="p p-Indicator">]</span>
+<span class="w">        </span><span class="p p-Indicator">[</span><span class="nv">layer parameters</span><span class="p p-Indicator">]</span>
+<span class="w">    </span><span class="nt">decoder_timepoint</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">layer type</span><span class="p p-Indicator">]</span>
+<span class="w">        </span><span class="p p-Indicator">[</span><span class="nv">layer parameters</span><span class="p p-Indicator">]</span>
+</pre></div>
+</div>
+</li>
+<li><p>Most existing pytorch layers should be compatible with this yaml format.</p></li>
+</ul>
+</section>
+<section id="hyperparameters-configs">
+<h3>Hyperparameters configs<a class="headerlink" href="#hyperparameters-configs" title="Link to this heading"></a></h3>
+<p>Inside the <code class="docutils literal notranslate"><span class="pre">conf/hyperparams</span></code> directory, configs can be used to specify the model hyperparameters.</p>
+<p>Examples can be found in the directory, but they must include:</p>
+<ul>
+<li><p>Either a single value or range of image decoder loss wieghts (<code class="docutils literal notranslate"><span class="pre">image_loss_weight</span></code>). This will determing how much the spatial information is prioritized over temporal information in the encodings.</p></li>
+<li><p>A list of dimensionality sizes to test, determining the size of the learned latent dimension.</p></li>
+<li><p>Other optimzer parameters in the following format:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">num_epochs</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">num epochs</span><span class="p p-Indicator">]</span>
+<span class="nt">continuous</span><span class="p">:</span>
+<span class="nt">image_loss_weight</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">range</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">lower bound</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">upper bound</span><span class="p p-Indicator">]</span>
+<span class="w">    </span><span class="nt">search</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">linear</span>
+<span class="w">    </span><span class="nt">num_samples</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">number of samples</span><span class="p p-Indicator">]</span>
+<span class="nt">discrete</span><span class="p">:</span>
+<span class="nt">latent_dim</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">values</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">dimensionality values</span><span class="p p-Indicator">]</span>
+<span class="nt">optimizer</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">values</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">Adam/SGD</span><span class="p p-Indicator">]</span>
+<span class="w">        </span><span class="nt">lr</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">learning rate</span><span class="p p-Indicator">]</span>
+</pre></div>
+</div>
+</li>
+</ul>
+<p>Once config files have been updated, start the Poetry virtual environment:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>poetry<span class="w"> </span>shell
+</pre></div>
+</div>
+<p>Finally, experiments can be run manually by running the <code class="docutils literal notranslate"><span class="pre">main.py</span></code> file</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>python<span class="w"> </span>src/simulation_encoder/main.py
+</pre></div>
+</div>
+<p>Results and logs will be recorded, and the best performing model in each experiment will have it’s weights saved in a <code class="docutils literal notranslate"><span class="pre">.pth</span></code> file in the corresponding results folder.</p>
+</section>
 </section>
 </section>
 <section id="indices-and-tables">
