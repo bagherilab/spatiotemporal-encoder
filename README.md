@@ -15,7 +15,7 @@ This version of the code is under active development. For a stable version of th
 ## Description
 
 Spatiotemporal encoder is a machine learning tool for rapidly developing and testing neural network autoencoder architectures on timelapse imaging data. 
-This project was developed as part of the research described in the manuscript "Architectural bias in feature learning: Fourier Neural Operators vs. Convolutional Neural Networks for biological images".
+This project was developed as part of the research described in the manuscript "Fourier neural operator vs. convolutional neural network-based feature learning for biological image analysis".
 
 ## Installation
 
