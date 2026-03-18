@@ -10,6 +10,9 @@ from simulation_encoder.dataclass.loss_data import LossData
 from simulation_encoder.dataclass.supervised_results import SupervisedResults
 
 
+ENCODED_DATA_FILENAME = "encoded_data.csv"
+
+
 class Writer:
     """Class for writing information to disk"""
 
@@ -76,7 +79,9 @@ class Writer:
 
         embeddings = Runner._encode_dataset(model, loader)
         combined_embeddings = pd.concat(embeddings.values(), ignore_index=True)
-        combined_embeddings.to_csv(os.path.join(dataset_path, "encoded_data.csv"), index=False)
+        combined_embeddings.to_csv(
+            os.path.join(dataset_path, ENCODED_DATA_FILENAME), index=False
+        )
 
     def write_model_state(self, model_name: str, dataset_name: str, model: BaseNN) -> None:
         """Writes the model state to disk under the model_name directory"""

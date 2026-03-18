@@ -5,15 +5,15 @@ experiments:
     model:
         architecture: cae_medium
         num_timepoints: 9
-        params: best_cae
+        params: grid_optimizers
     general_configs:
         verbose: true
-  neuralop-medium:
-    datasets:
-      - gastruloid_128
-    model:
-        architecture: neuralop_medium
-        num_timepoints: 9
-        params: best_neuralop
-    general_configs:
-        verbose: true
+  # neuralop-medium:
+  #   datasets:
+  #     - gastruloid_128
+  #   model:
+  #       architecture: neuralop_medium
+  #       num_timepoints: 9
+  #       params: best_neuralop
+  #   general_configs:
+  #       verbose: true

@@ -2,8 +2,6 @@ import copy
 from collections import defaultdict
 from copy import deepcopy
 import pandas as pd
-from torch.utils.data import DataLoader
-
 from simulation_encoder.logger import Logger
 from simulation_encoder.loaders.loader import Loader
 from simulation_encoder.loaders.arcade_loader import ARCADELoader
@@ -177,7 +175,7 @@ class Runner:
 
         return results
 
-    def replace_loader(self, dataset_name: str, new_loader: DataLoader) -> None:
+    def replace_loader(self, dataset_name: str, new_loader: Loader) -> None:
         self._loader_cache[dataset_name] = new_loader
 
     def _train_model(self, model_id: str, model: BaseNN, loader: Loader) -> tuple:

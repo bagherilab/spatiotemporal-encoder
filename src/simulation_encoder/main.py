@@ -2,6 +2,7 @@ import cProfile
 import pstats
 import time
 from copy import deepcopy
+from pathlib import Path
 
 from simulation_encoder.runner import Runner
 from simulation_encoder.writer import Writer
@@ -23,8 +24,9 @@ from simulation_encoder.utils.yaml_utils import (
     load_yaml,
 )
 
-CONFIG_YAML = "src/conf/config.yaml"
-STUDIES_DIR = "src/conf/studies"
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+CONFIG_YAML = _PROJECT_ROOT / "src" / "conf" / "config.yaml"
+STUDIES_DIR = _PROJECT_ROOT / "src" / "conf" / "studies"
 RESULTS_DIR = "results"
 
 
@@ -37,11 +39,11 @@ def main() -> None:
     hyperparameter yaml files. The runner object is created with the dataset and model parameters,
     and the run method is called to start the simulation encoder."""
 
-    main_config = load_yaml(CONFIG_YAML, MainConfig)
+    main_config = load_yaml(str(CONFIG_YAML), MainConfig)
 
     study_name = main_config.study_name  # type: ignore
     data_quantity_experiment = main_config.data_quantity_experiment  # type: ignore
-    study_config = load_study_yaml(study_name)
+    study_config = load_study_yaml(study_name, yaml_path=str(STUDIES_DIR))
 
     fractions = [1.0, 0.75, 0.5, 0.25, 0.1, 0.05] if data_quantity_experiment else [1.0]
 
@@ -49,7 +51,7 @@ def main() -> None:
         verbose = experiment_config.general_configs.verbose
 
         # Loader params (same for all fractions in this experiment)
-        loader_params = create_loader_params(experiment_config)
+        loader_params = create_loader_params(experiment_config, _PROJECT_ROOT)
 
         # Create original loaders *once* for this experiment
         temp_runner = Runner(Logger(log_name="temp", verbose=False), verbose=False)
@@ -90,7 +92,10 @@ def main() -> None:
 
             # Model
             model_param_sets = create_model_param_sets(
-                experiment_config.model, num_input_channels, first_dataset_params.sequence
+                experiment_config.model,
+                num_input_channels,
+                first_dataset_params.sequence,
+                _PROJECT_ROOT,
             )
             runner.add_model_params(model_param_sets)
 
@@ -105,6 +110,7 @@ def main() -> None:
 
 def create_loader_params(
     experiment_config: ExperimentConfig,
+    project_root: Path,
 ) -> dict[str, DatasetParams]:
     """
     Create loader parameter sets from the experiment config.
@@ -113,6 +119,8 @@ def create_loader_params(
     ----------
     experiment_config : ExperimentConfig
         Experiment configuration containing dataset information
+    project_root : Path
+        Project root directory for resolving config paths
 
     Returns
     -------
@@ -120,11 +128,12 @@ def create_loader_params(
         Dictionary mapping dataset names to their parameter sets
     """
     loader_params = {}
+    datasets_dir = project_root / "src" / "conf" / "datasets"
 
-    dataset_names = experiment_config.datasets
-
-    for dataset_name in dataset_names:
-        dataset_config = load_dataset_yaml(dataset_name)
+    for dataset_name in experiment_config.datasets:
+        dataset_config = load_dataset_yaml(
+            dataset_name, yaml_path=str(datasets_dir)
+        )
         dataset_params = DatasetParams(
             loader=dataset_config.loader,
             image_dir=dataset_config.image_dir,
@@ -146,13 +155,20 @@ def create_loader_params(
 
 
 def create_model_param_sets(
-    model_config: ModelParamsConfig, num_channels: int, sequence: bool
+    model_config: ModelParamsConfig,
+    num_channels: int,
+    sequence: bool,
+    project_root: Path,
 ) -> list[ModelParams]:
     """Create the model parameters from model config files and hyperparameter yaml files."""
     model_name = model_config.architecture
-    model_yaml = load_model_yaml(model_name)
+    models_dir = project_root / "src" / "conf" / "models"
+    hyperparams_dir = project_root / "src" / "conf" / "hyperparams"
 
-    model_params = load_hyperparam_yaml(model_config.params)
+    model_yaml = load_model_yaml(model_name, yaml_path=str(models_dir))
+    model_params = load_hyperparam_yaml(
+        model_config.params, yaml_path=str(hyperparams_dir)
+    )
     num_epochs = model_params.num_epochs
     continuous_params = model_params.continuous
     discrete_params = model_params.discrete
