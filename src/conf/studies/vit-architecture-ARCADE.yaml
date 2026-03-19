@@ -1,0 +1,11 @@
+experiments:
+  vit-small:
+    datasets:
+      - vascular_function_128
+    model:
+        architecture: vit_small
+        num_timepoints: 15
+        params: grid_optimizers
+    general_configs:
+        pretrain: false
+        verbose: true 

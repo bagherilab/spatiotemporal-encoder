@@ -1,11 +1,11 @@
 experiments:
-  neuralop-16:
+  vit-small:
     datasets:
       - gastruloid_128
     model:
-        architecture: neuralop_medium
+        architecture: vit_small
         num_timepoints: 9
-        params: grid_latentdim16
+        params: grid_optimizers
     general_configs:
         pretrain: false
-        verbose: true
+        verbose: true 

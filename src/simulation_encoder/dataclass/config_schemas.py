@@ -110,7 +110,7 @@ class LayerConfig(BaseModel):
     # Convolutional layers
     kernel_size: Optional[int] = None
     stride: Optional[int] = None
-    shape: Optional[list[int]] = None
+    shape: Optional[list[Union[int, str]]] = None
     scale_factor: Optional[int] = None
     padding: Optional[Union[int, str]] = None
     p: Optional[float] = None
@@ -120,6 +120,14 @@ class LayerConfig(BaseModel):
     n_modes: Optional[list[int]] = None
     projection_channels: Optional[int] = None
     lifting_channels: Optional[int] = None
+    # Vision Transformer
+    patch_size: Optional[int] = None
+    embed_dim: Optional[int] = None
+    depth: Optional[int] = None
+    num_heads: Optional[int] = None
+    mlp_ratio: Optional[float] = None
+    dropout: Optional[float] = None
+    pool: Optional[str] = None
 
     @model_validator(mode="before")
     def check_layers(cls, values: dict) -> dict:

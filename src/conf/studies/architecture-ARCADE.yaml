@@ -1,40 +1,40 @@
 experiments:
   ae:
     datasets:
-      - gastruloid_128
+      - vascular_function_128
     model:
         architecture: ae_small
-        num_timepoints: 9
+        num_timepoints: 15
         params: grid_optimizers
     general_configs:
         pretrain: false
         verbose: true
   cae:
     datasets:
-      - gastruloid_128
+      - vascular_function_128
     model:
         architecture: cae_small
-        num_timepoints: 9
+        num_timepoints: 15
         params: grid_optimizers
     general_configs:
         pretrain: false
         verbose: true
   neuralop:
     datasets:
-      - gastruloid_128
+      - vascular_function_128
     model:
         architecture: neuralop_small
-        num_timepoints: 9
+        num_timepoints: 15
         params: grid_optimizers
     general_configs:
         pretrain: false
         verbose: true
   vit:
     datasets:
-      - gastruloid_128
+      - vascular_function_128
     model:
         architecture: vit_small
-        num_timepoints: 9
+        num_timepoints: 15
         params: grid_optimizers
     general_configs:
         pretrain: false

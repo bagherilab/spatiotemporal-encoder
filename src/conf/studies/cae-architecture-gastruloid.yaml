@@ -1,7 +1,7 @@
 experiments:
   cae-small:
     datasets:
-      - gastruloid_processed_128
+      - gastruloid_128
     model:
         architecture: cae_small
         num_timepoints: 9
@@ -11,7 +11,7 @@ experiments:
         verbose: true
   cae-medium:
     datasets:
-      - gastruloid_processed_128
+      - gastruloid_128
     model:
         architecture: cae_medium
         num_timepoints: 9

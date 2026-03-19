@@ -1,7 +1,7 @@
 experiments:
   neuralop-large:
     datasets:
-      - gastruloid_processed_128
+      - gastruloid_128
     model:
         architecture: neuralop_large
         num_timepoints: 9
@@ -11,7 +11,7 @@ experiments:
         verbose: true
   neuralop-large-no-time:
     datasets:
-      - gastruloid_processed_128
+      - gastruloid_128
     model:
         architecture: neuralop_large
         num_timepoints: 9

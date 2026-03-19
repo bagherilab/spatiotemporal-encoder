@@ -51,7 +51,7 @@ class Runner:
         self.models: dict[str, ModelParams] = {}
         self.loader_params: dict[str, DatasetParams] = {}
 
-        # Cache for created loaders
+        # Cache for created loaders to prevent reinitialization
         self._loader_cache: dict[str, Loader] = {}
 
         self.losses: dict[str, LossData] = {}
@@ -139,7 +139,7 @@ class Runner:
 
     def run_encoder(self, study_name: str) -> dict:
         """
-        Runs the training and evaluation of models
+        Runs the training and evaluation of autoencoder pipeline
 
         Parameters
         ----------

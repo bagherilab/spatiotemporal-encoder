@@ -78,17 +78,20 @@ class GastruloidLoader(Loader):
         for file_name in os.listdir(self.image_dir):
             if not file_name.endswith(".png") or not self._in_keys(file_name):
                 continue
-
+            
+            if not file_name.startswith("250224"):
+                continue
+            
             if not any(channel in file_name for channel in self.channels):
                 continue
 
-            channel, array, raft, timepoint = self._parse_filename(file_name)
+            date, channel, array, raft, timepoint = self._parse_filename(file_name)
             sample_id = f"{array}_{raft}"
             simulation_id = f"{sample_id}_{timepoint}"
 
             group = image_groups[simulation_id]
             group["timepoint"] = timepoint
-            group["sample_id"] = f"{array}_{raft}"
+            group["sample_id"] = sample_id
             group[channel] = os.path.join(self.image_dir, file_name)
 
             for transform_dict in self.augmentation_manager.transforms:
@@ -103,16 +106,20 @@ class GastruloidLoader(Loader):
         self._log_missing_images(image_groups)
         return list(image_groups.values())
 
-    def _parse_filename(self, filename: str) -> tuple[str, str, int, int]:
+    def _parse_filename(self, filename: str) -> tuple[str, str, str, int, int]:
+        """Parse date_channel_array_raft_timepoint.png -> (date, channel, array, raft, timepoint)."""
         parts = filename.split("_")
-        modality = parts[0]
-        array = parts[1]
-        raft = int(parts[2])
-        timepoint = int(parts[3].split(".")[0])
-
-        return modality, array, raft, timepoint
+        date = parts[0]
+        channel = parts[1]
+        array = parts[2]
+        raft = int(parts[3])
+        timepoint = int(parts[4].split(".")[0])
+        return date, channel, array, raft, timepoint
 
     def _in_keys(self, file_name: str) -> bool:
+        """True if the file's array identifier (3rd segment) is in self.keys."""
         file_chunks = file_name.split("_")
-        prefix = file_chunks[1]
-        return prefix in self.keys
+        if len(file_chunks) < 3:
+            return False
+        array = file_chunks[2]
+        return array in self.keys
