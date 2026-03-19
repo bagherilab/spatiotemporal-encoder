@@ -2,23 +2,13 @@ type: AE
 architecture:
   encoder:
     - type: Flatten
-    - type: Linear
-      in_features: num_channels
-      out_features: 2048
-    - type: BatchNorm1d
-      num_features: 2048
-    - type: ReLU
-    - type: Dropout
-      p: 0.2
 
     - type: Linear
-      in_features: 2048
+      in_features: num_channels
       out_features: 1024
     - type: BatchNorm1d
       num_features: 1024
     - type: ReLU
-    - type: Dropout
-      p: 0.2
     
     - type: Linear
       in_features: 1024
@@ -26,8 +16,6 @@ architecture:
     - type: BatchNorm1d
       num_features: 512
     - type: ReLU
-    - type: Dropout
-      p: 0.2
     
     - type: Linear
       in_features: 512
@@ -35,8 +23,6 @@ architecture:
     - type: BatchNorm1d
       num_features: 256
     - type: ReLU
-    - type: Dropout
-      p: 0.2
     
     - type: Linear
       in_features: 256
@@ -44,8 +30,6 @@ architecture:
     - type: BatchNorm1d
       num_features: 128
     - type: ReLU
-    - type: Dropout
-      p: 0.2
     
     - type: Linear
       in_features: 128
@@ -58,8 +42,6 @@ architecture:
     - type: BatchNorm1d
       num_features: 128
     - type: ReLU
-    - type: Dropout
-      p: 0.2
     
     - type: Linear
       in_features: 128
@@ -67,8 +49,6 @@ architecture:
     - type: BatchNorm1d
       num_features: 256
     - type: ReLU
-    - type: Dropout
-      p: 0.2
     
     - type: Linear
       in_features: 256
@@ -76,30 +56,18 @@ architecture:
     - type: BatchNorm1d
       num_features: 512
     - type: ReLU
-    - type: Dropout
-      p: 0.2
-
+    
     - type: Linear
       in_features: 512
       out_features: 1024
     - type: BatchNorm1d
       num_features: 1024
     - type: ReLU
-    - type: Dropout
-      p: 0.2
-
+    
     - type: Linear
       in_features: 1024
-      out_features: 2048
-    - type: BatchNorm1d
-      num_features: 2048
-    - type: ReLU
-    - type: Dropout
-      p: 0.2
+      out_features: num_channels      
 
-    - type: Linear
-      in_features: 2048
-      out_features: num_channels
     - type: Unflatten
     - type: Sigmoid
 
@@ -110,8 +78,6 @@ architecture:
     - type: BatchNorm1d
       num_features: 64
     - type: ReLU
-    - type: Dropout
-      p: 0.2
     
     - type: Linear
       in_features: 64
@@ -119,9 +85,7 @@ architecture:
     - type: BatchNorm1d
       num_features: 32
     - type: ReLU
-    - type: Dropout
-      p: 0.2
     
     - type: Linear
       in_features: 32
-      out_features: 9
+      out_features: num_timepoints

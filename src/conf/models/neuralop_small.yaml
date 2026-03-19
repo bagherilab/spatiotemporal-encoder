@@ -3,20 +3,22 @@ architecture:
   encoder:
     - type: FNO
       n_modes: [16, 16]
-      hidden_channels: 16
+      hidden_channels: 64
       in_channels: num_channels
-      out_channels: 8
+      out_channels: 64
     - type: BatchNorm2d
-      num_features: 8
+      num_features: 64
     - type: GELU
     
     - type: MaxPool2d
       kernel_size: 2
       stride: 2
 
+    - type: AdaptiveAvgPool2d
+      output_size: 1
     - type: Flatten
     - type: Linear
-      in_features: 32768
+      in_features: 64
       out_features: 512
     - type: BatchNorm1d
       num_features: 512
