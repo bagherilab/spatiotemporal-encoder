@@ -7,6 +7,7 @@ results/*
 results_downstream/*
 results_save/*
 archive/
+legacy/
 
 *.prof
 *.ipynb
