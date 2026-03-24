@@ -128,6 +128,7 @@ class LayerConfig(BaseModel):
     mlp_ratio: Optional[float] = None
     dropout: Optional[float] = None
     pool: Optional[str] = None
+    out_dim: Optional[Union[int, str]] = None
 
     @model_validator(mode="before")
     def check_layers(cls, values: dict) -> dict:

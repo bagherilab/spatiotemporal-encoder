@@ -62,7 +62,10 @@ class VAE(BaseNN):
             "timepoint": params.get("timepoint_loss_weight", 1.0),
         }
 
-        self.encoder = nn.Sequential(*self._create_layers(self.architecture["encoder"].copy()))
+        enc_extra = self._encoder_extra_placeholders(self.architecture["encoder"])
+        self.encoder = nn.Sequential(
+            *self._create_layers(self.architecture["encoder"].copy(), enc_extra)
+        )
         self.fc_mu = nn.Linear(self.architecture["encoder"][-1]["out_features"], self.latent_dim)
         self.fc_logvar = nn.Linear(
             self.architecture["encoder"][-1]["out_features"], self.latent_dim

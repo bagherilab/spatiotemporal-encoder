@@ -42,34 +42,36 @@ class TransformerBlock(nn.Module):
 
 class VisionTransformer(nn.Module):
     def __init__(
-        self, 
-        image_size=128, 
-        patch_size=16, 
-        in_channels=3, 
-        embed_dim=192, 
-        depth=6, 
-        num_heads=3, 
-        mlp_ratio=4.0, 
-        dropout=0.0, 
-        latent_dim=128,
-        pool='mean'
+        self,
+        image_size=128,
+        patch_size=16,
+        in_channels=3,
+        embed_dim=192,
+        depth=6,
+        num_heads=3,
+        mlp_ratio=4.0,
+        dropout=0.0,
+        out_dim=128,
+        pool="mean",
     ):
         super().__init__()
         self.patch_embed = PatchEmbedding(in_channels, embed_dim, image_size, patch_size)
         num_patches = self.patch_embed.num_patches
-        
+
         # Positional embedding
         self.pos_embed = nn.Parameter(torch.zeros(1, num_patches, embed_dim))
         nn.init.trunc_normal_(self.pos_embed, std=0.02)
-        
-        self.blocks = nn.ModuleList([
-            TransformerBlock(embed_dim, num_heads, mlp_ratio, dropout)
-            for _ in range(depth)
-        ])
-        
+
+        self.blocks = nn.ModuleList(
+            [
+                TransformerBlock(embed_dim, num_heads, mlp_ratio, dropout)
+                for _ in range(depth)
+            ]
+        )
+
         self.norm = nn.LayerNorm(embed_dim)
         self.pool = pool
-        self.head = nn.Linear(embed_dim, latent_dim)
+        self.head = nn.Linear(embed_dim, out_dim)
 
     def forward(self, x):
         # 1. Patchify
@@ -158,16 +160,16 @@ def build_vision_transformer(config: dict[str, Any], context: dict[str, int]) ->
     """
     Build a VisionTransformerEncoder from a layer config and context.
 
-    Context must contain: in_channels, image_size, latent_dim.
+    Context must contain: in_channels, image_size, out_dim.
     Config may contain: patch_size, embed_dim, depth, num_heads, mlp_ratio, dropout, pool.
     """
     in_channels = context["in_channels"]
     image_size = context["image_size"]
-    latent_dim = context["latent_dim"]
+    out_dim = context["out_dim"]
     return VisionTransformer(
         in_channels=in_channels,
         image_size=image_size,
-        latent_dim=latent_dim,
+        out_dim=out_dim,
         patch_size=config.get("patch_size", 16),
         embed_dim=config.get("embed_dim", 192),
         depth=config.get("depth", 6),

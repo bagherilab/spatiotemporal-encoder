@@ -61,7 +61,10 @@ class AE(BaseNN):
             "image": params.get("image_loss_weight", 1.0),
             "timepoint": params.get("timepoint_loss_weight", 1.0),
         }
-        self.encoder = nn.Sequential(*self._create_layers(self.architecture["encoder"].copy()))
+        enc_extra = self._encoder_extra_placeholders(self.architecture["encoder"])
+        self.encoder = nn.Sequential(
+            *self._create_layers(self.architecture["encoder"].copy(), enc_extra)
+        )
         self.decoder_image = nn.Sequential(*self._create_layers(self.architecture["decoder_image"]))
         self.decoder_timepoint = nn.Sequential(
             *self._create_layers(self.architecture["decoder_timepoint"])

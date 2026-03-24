@@ -98,16 +98,72 @@ class BaseNN(ABC, nn.Module):
         """Validates the network during training."""
         pass
 
-    def _resolve_placeholders(self, config: dict[str, Any]) -> dict[str, Any]:
-        """Resolve placeholder strings in a layer config. Does not mutate the original."""
+    def _base_placeholder_values(self) -> dict[str, Any]:
         flat_size = self.image_size * self.image_size * self.num_channels
-        values = {
+        return {
             "num_channels": self.num_channels,
             "latent_dim": self.latent_dim,
             "num_timepoints": self.num_timepoints,
             "image_size": self.image_size,
             "num_channels_flat": flat_size,
         }
+
+    def _resolve_vision_transformer_head_dim(self, raw_config: dict[str, Any]) -> int:
+        """
+        Width of the ViT linear head (config key ``out_dim``, or legacy ``latent_dim``).
+        Used to expose ``vit_encoder_proj_dim`` for BatchNorm/Linear layers that follow ViT.
+        """
+        r = deepcopy(raw_config)
+        values = self._base_placeholder_values()
+        if r.get("type") != "VisionTransformer":
+            raise ValueError("Expected VisionTransformer layer config")
+
+        def replace_key(key: str) -> None:
+            val = r.get(key)
+            if val in values:
+                r[key] = values[val]
+
+        replace_key("in_channels")
+        replace_key("image_size")
+        if "out_dim" not in r:
+            if "latent_dim" in r:
+                r["out_dim"] = r.pop("latent_dim")
+            else:
+                r["out_dim"] = self.latent_dim
+        else:
+            r.pop("latent_dim", None)
+        replace_key("out_dim")
+        out = r["out_dim"]
+        if isinstance(out, str) and out in values:
+            out = values[out]
+        if not isinstance(out, int):
+            raise TypeError(
+                "VisionTransformer out_dim must resolve to int, "
+                f"got {out!r} in config {raw_config!r}"
+            )
+        return out
+
+    def _encoder_extra_placeholders(
+        self, encoder_configs: list[dict[str, Any]]
+    ) -> dict[str, int]:
+        """
+        Placeholders derived from the encoder YAML, e.g. ViT head width for post-ViT layers.
+
+        ``vit_encoder_proj_dim`` matches the first VisionTransformer block's head output size.
+        """
+        for cfg in encoder_configs:
+            if cfg.get("type") == "VisionTransformer":
+                dim = self._resolve_vision_transformer_head_dim(cfg)
+                return {"vit_encoder_proj_dim": dim}
+        return {}
+
+    def _resolve_placeholders(
+        self,
+        config: dict[str, Any],
+        extra_placeholders: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any]:
+        """Resolve placeholder strings in a layer config. Does not mutate the original."""
+        values = {**self._base_placeholder_values(), **(extra_placeholders or {})}
         resolved = deepcopy(config)
         layer_type = resolved.get("type", "")
 
@@ -138,10 +194,18 @@ class BaseNN(ABC, nn.Module):
         elif layer_type == "VisionTransformer":
             replace("in_channels")
             replace("image_size")
-            replace("latent_dim")
+
+            if "out_dim" not in resolved:
+                if "latent_dim" in resolved:
+                    resolved["out_dim"] = resolved.pop("latent_dim")
+                else:
+                    resolved["out_dim"] = self.latent_dim
+            else:
+                resolved.pop("latent_dim", None)
+            replace("out_dim")
             resolved.setdefault("in_channels", self.num_channels)
             resolved.setdefault("image_size", self.image_size)
-            resolved.setdefault("latent_dim", self.latent_dim)
+            resolved.setdefault("out_dim", self.latent_dim)
         elif layer_type == "VisionTransformerDecoder":
             replace("latent_dim")
             replace("image_size")
@@ -172,9 +236,13 @@ class BaseNN(ABC, nn.Module):
 
         return resolved
 
-    def _build_layer(self, config: dict[str, Any]) -> nn.Module:
+    def _build_layer(
+        self,
+        config: dict[str, Any],
+        extra_placeholders: Optional[dict[str, Any]] = None,
+    ) -> nn.Module:
         """Build a single layer from a resolved config. Dispatches by layer type."""
-        resolved = self._resolve_placeholders(config)
+        resolved = self._resolve_placeholders(config, extra_placeholders)
         layer_type: str = resolved.get("type", "")
 
         if layer_type in NEURALOP_LAYER_TYPES:
@@ -188,7 +256,7 @@ class BaseNN(ABC, nn.Module):
             context = {
                 "in_channels": resolved.get("in_channels", self.num_channels),
                 "image_size": resolved.get("image_size", self.image_size),
-                "latent_dim": resolved.get("latent_dim", self.latent_dim),
+                "out_dim": resolved.get("out_dim", self.latent_dim),
             }
             return build_vision_transformer(resolved, context)
 
@@ -216,11 +284,15 @@ class BaseNN(ABC, nn.Module):
         kwargs = {k: v for k, v in resolved.items() if k != "type"}
         return layer_class(**kwargs)
 
-    def _create_layers(self, layer_configs: list[dict[str, Any]]) -> list[nn.Module]:
+    def _create_layers(
+        self,
+        layer_configs: list[dict[str, Any]],
+        extra_placeholders: Optional[dict[str, Any]] = None,
+    ) -> list[nn.Module]:
         """Build a list of modules from a list of layer configs (for encoder/decoder)."""
         layers: list[nn.Module] = []
         for config in layer_configs:
-            layer = self._build_layer(config)
+            layer = self._build_layer(config, extra_placeholders)
             layers.append(layer)
         return layers
 

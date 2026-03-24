@@ -11,12 +11,12 @@ architecture:
       pool: mean
       in_channels: num_channels
       image_size: image_size
-      latent_dim: 512
+      out_dim: 512
     - type: BatchNorm1d
-      num_features: 512
+      num_features: vit_encoder_proj_dim
     - type: ReLU
     - type: Linear
-      in_features: 512
+      in_features: vit_encoder_proj_dim
       out_features: latent_dim
 
   decoder_image:
