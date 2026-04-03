@@ -11,6 +11,7 @@ legacy/
 
 *.prof
 *.ipynb
+!figure_notebook.ipynb
 
 # Editors
 .vscode/
