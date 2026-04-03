@@ -70,7 +70,9 @@ class VAE(BaseNN):
         self.fc_logvar = nn.Linear(
             self.architecture["encoder"][-1]["out_features"], self.latent_dim
         )
-        self.decoder_image = nn.Sequential(*self._create_layers(self.architecture["decoder_image"]))
+        self.decoder_image = nn.Sequential(
+            *self._create_layers(self.architecture["decoder_image"], enc_extra)
+        )
         self.decoder_timepoint = nn.Sequential(
             *self._create_layers(self.architecture["decoder_timepoint"])
         )

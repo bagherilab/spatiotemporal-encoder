@@ -33,24 +33,6 @@ class SupervisedModel:
         logger: Optional[Any] = None,
         eval_metric: str = "default",
     ):
-        """
-        Initialize a supervised learning model.
-
-        Parameters
-        ----------
-        model_type : str
-            Type of model to use (e.g., "logistic_regression", "linear_regression")
-        model_class : Type[BaseEstimator]
-            Scikit-learn estimator class to use
-        param_grid : Dict[str, List[Any]]
-            Grid of hyperparameters to search over
-        params : Optional[Dict[str, Any]]
-            Parameters to initialize the model with, overriding defaults
-        logger : Optional[Any]
-            Logger object for tracking training progress
-        eval_metric : str
-            Evaluation metric for model selection
-        """
         self.model_type = model_type
         self.logger = logger
         self.eval_metric = eval_metric
@@ -61,13 +43,6 @@ class SupervisedModel:
     def fit(self, X: pd.DataFrame | np.ndarray, y: pd.Series | np.ndarray) -> None:
         """
         Fit the model to the training data.
-
-        Parameters
-        ----------
-        X : Union[pd.DataFrame, np.ndarray]
-            Feature matrix
-        y : Union[pd.Series, np.ndarray]
-            Target vector
         """
         self._log(f"Fitting {self.model_type} model")
         self.model.fit(X, y)
@@ -76,16 +51,6 @@ class SupervisedModel:
     def predict(self, X: pd.DataFrame | np.ndarray) -> np.ndarray:
         """
         Make predictions using the trained model.
-
-        Parameters
-        ----------
-        X : Union[pd.DataFrame, np.ndarray]
-            Feature matrix
-
-        Returns
-        -------
-        np.ndarray
-            Predicted values
         """
         return self.model.predict(X)
 
@@ -94,27 +59,12 @@ class SupervisedModel:
     ) -> Optional[dict]:
         """
         Perform a grid search to find the best hyperparameters.
-
-        Parameters
-        ----------
-        X : Union[pd.DataFrame, np.ndarray]
-            Feature matrix
-        y : Union[pd.Series, np.ndarray]
-            Target vector
-        cv_folds : int
-            Number of cross-validation folds
-
-        Returns
-        -------
-        Optional[dict]
-            Dictionary with the best hyperparameters found, or None if no valid parameters were found
         """
         param_grid = ParameterGrid(self.param_grid)
         best_score = -np.inf
         best_params: Optional[dict] = None
         n_models = len(param_grid)
 
-        # Use appropriate cross-validation strategy based on the task type
         if hasattr(self, "is_classification") and self.is_classification:
             kf = StratifiedKFold(n_splits=cv_folds)
         else:
@@ -255,20 +205,20 @@ class SupervisedClassifier(SupervisedModel):
                     "C": [0.1, 1, 10],
                     "kernel": ["rbf", "poly"],
                     "degree": [2, 3],
-                    "probability": [True],
+                    "max_iter": [1000],
                 },
             },
-            # "mlp": {
-            #     "model": MLPClassifier,
-            #     "param_grid": {
-            #         "hidden_layer_sizes": [(50,), (100,), (50, 50)],
-            #         "activation": ["relu"],
-            #         "solver": ["adam"],
-            #         "alpha": [0.0001, 0.001, 0.01],
-            #         "learning_rate": ["constant", "adaptive"],
-            #         "max_iter": [500],
-            #     },
-            # },
+            "mlp": {
+                "model": MLPClassifier,
+                "param_grid": {
+                    "hidden_layer_sizes": [(50,), (100,)],
+                    "activation": ["relu"],
+                    "solver": ["adam"],
+                    "alpha": [0.0001, 0.001, 0.01],
+                    "learning_rate": ["constant", "adaptive"],
+                    "max_iter": [500],
+                },
+            },
         }
 
         if model_type not in default_param_grids:
@@ -438,7 +388,11 @@ class SupervisedRegressor(SupervisedModel):
                 "model": LinearRegression,
                 "param_grid": {
                     "fit_intercept": [True, False],
-                    "normalize": [True, False] if hasattr(LinearRegression, "normalize") else {},
+                    **(
+                        {"normalize": [True, False]}
+                        if hasattr(LinearRegression, "normalize")
+                        else {}
+                    ),
                 },
             },
             "elastic_net": {
@@ -447,38 +401,38 @@ class SupervisedRegressor(SupervisedModel):
                     "alpha": [0.1, 1.0, 10.0],
                     "l1_ratio": [0.1, 0.5, 0.7, 0.9],
                     "selection": ["cyclic", "random"],
-                    "max_iter": [1000, 3000],
+                    "max_iter": [1000],
                 },
             },
             "random_forest": {
                 "model": RandomForestRegressor,
                 "param_grid": {
-                    "n_estimators": [10, 50, 100],
-                    "max_depth": [None, 10, 20],
-                    "min_samples_split": [2, 5, 10],
-                    "min_samples_leaf": [1, 2, 4],
+                    "n_estimators": [10, 50],
+                    "max_depth": [10, 20],
+                    "min_samples_split": [2, 5],
+                    "min_samples_leaf": [2, 4],
                 },
             },
             "svr": {
                 "model": SVR,
                 "param_grid": {
                     "C": [0.1, 1.0, 10.0],
-                    "kernel": ["linear", "poly", "rbf"],
-                    "gamma": ["scale", "auto", 0.1, 1.0],
+                    "kernel": ["poly", "rbf"],
+                    "gamma": ["scale", "auto"],
                     "epsilon": [0.1, 0.2, 0.5],
                 },
             },
-            # "mlp": {
-            #     "model": MLPRegressor,
-            #     "param_grid": {
-            #         "hidden_layer_sizes": [(50,), (100,), (50, 50)],
-            #         "activation": ["relu", "tanh"],
-            #         "solver": ["adam", "sgd"],
-            #         "alpha": [0.0001, 0.001, 0.01],
-            #         "learning_rate": ["constant", "adaptive"],
-            #         "max_iter": [500, 1000],
-            #     },
-            # },
+            "mlp": {
+                "model": MLPRegressor,
+                "param_grid": {
+                    "hidden_layer_sizes": [(50,), (100,)],
+                    "activation": ["relu", "tanh"],
+                    "solver": ["adam"],
+                    "alpha": [0.0001, 0.01],
+                    "learning_rate": ["constant", "adaptive"],
+                    "max_iter": [500],
+                },
+            },
         }
 
         if model_type not in default_param_grids:

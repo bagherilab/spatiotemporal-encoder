@@ -3,6 +3,7 @@ from typing import Any
 import torch
 from torch import nn
 
+
 class PatchEmbedding(nn.Module):
     def __init__(self, in_channels, embed_dim, image_size, patch_size):
         super().__init__()
@@ -17,28 +18,30 @@ class PatchEmbedding(nn.Module):
         x = x.permute(0, 2, 3, 1).reshape(B, H_p * W_p, E)
         return x
 
+
 class TransformerBlock(nn.Module):
     def __init__(self, embed_dim, num_heads, mlp_ratio=4.0, dropout=0.0):
         super().__init__()
         self.norm1 = nn.LayerNorm(embed_dim)
         self.attn = nn.MultiheadAttention(embed_dim, num_heads, dropout=dropout, batch_first=True)
         self.norm2 = nn.LayerNorm(embed_dim)
-        
+
         hidden_dim = int(embed_dim * mlp_ratio)
         self.mlp = nn.Sequential(
             nn.Linear(embed_dim, hidden_dim),
             nn.GELU(),
             nn.Dropout(dropout),
             nn.Linear(hidden_dim, embed_dim),
-            nn.Dropout(dropout)
+            nn.Dropout(dropout),
         )
 
     def forward(self, x):
         norm_x = self.norm1(x)
         attn_out, _ = self.attn(norm_x, norm_x, norm_x)
-        x = (x + attn_out)
-        x = (x + self.mlp(self.norm2(x)))
+        x = x + attn_out
+        x = x + self.mlp(self.norm2(x))
         return x
+
 
 class VisionTransformer(nn.Module):
     def __init__(
@@ -63,10 +66,7 @@ class VisionTransformer(nn.Module):
         nn.init.trunc_normal_(self.pos_embed, std=0.02)
 
         self.blocks = nn.ModuleList(
-            [
-                TransformerBlock(embed_dim, num_heads, mlp_ratio, dropout)
-                for _ in range(depth)
-            ]
+            [TransformerBlock(embed_dim, num_heads, mlp_ratio, dropout) for _ in range(depth)]
         )
 
         self.norm = nn.LayerNorm(embed_dim)
@@ -74,34 +74,35 @@ class VisionTransformer(nn.Module):
         self.head = nn.Linear(embed_dim, out_dim)
 
     def forward(self, x):
-        # 1. Patchify
-        x = self.patch_embed(x) # (B, N, E)
-        
-        # 2. Positional encoding
+        # Patchify
+        x = self.patch_embed(x)  # (B, N, E)
+        # Positional encoding
         x = (x + self.pos_embed).contiguous()
-        
-        # 3. Transformer Layers
+        # Transformer Layers
         for block in self.blocks:
             x = block(x)
-            
-        # 4. Final Norm
+        # Final Norm
         x = self.norm(x)
-        
-        # 5. Pooling
-        if self.pool == 'mean':
+        # Pooling
+        if self.pool == "mean":
             x = x.mean(dim=1)
-        else: # CLS or Max
+        else:  # CLS or Max
             x = x[:, 0]
-            
-        # 6. Latent Projection
-        # Use .contiguous() here so the Decoder's Unflatten layer gets a clean tensor
+        # Latent Projection
         return self.head(x).contiguous()
 
 
 class VisionTransformerDecoder(nn.Module):
     """
-    Decoder that mirrors the ViT encoder: expand latent to patch sequence,
-    transformer blocks, then unpatchify to image (B, C, H, W).
+    Decoder: latent vector -> patch sequence -> transformer -> unpatchify to (B, C, H, W).
+
+    ``token_init`` controls how the latent maps to N patch tokens:
+
+    - ``dense`` (default): ``Linear(latent_dim, N * embed_dim)`` — expressive but
+      ~``latent_dim * N * embed_dim`` parameters (often much larger than the encoder).
+    - ``broadcast``: ``Linear(latent_dim, embed_dim)`` then broadcast to ``(B, N, embed_dim)``
+      plus ``pos_embed`` — parameter count on the order of the encoder's pooled head
+      ``Linear(embed_dim, out_dim)``, symmetric with pool-then-project on the encoder.
     """
 
     def __init__(
@@ -115,6 +116,7 @@ class VisionTransformerDecoder(nn.Module):
         num_heads: int = 3,
         mlp_ratio: float = 4.0,
         dropout: float = 0.0,
+        token_init: str = "dense",
     ):
         super().__init__()
         self.patch_size = patch_size
@@ -123,15 +125,23 @@ class VisionTransformerDecoder(nn.Module):
         H_p = image_size // patch_size
         W_p = image_size // patch_size
         self.num_patches = H_p * W_p
+        self.token_init = token_init
 
-        self.proj_in = nn.Linear(latent_dim, self.num_patches * embed_dim)
+        if token_init == "dense":
+            self.proj_in = nn.Linear(latent_dim, self.num_patches * embed_dim)
+        elif token_init == "broadcast":
+            self.proj_in = nn.Linear(latent_dim, embed_dim)
+        else:
+            raise ValueError(
+                f"token_init must be 'dense' or 'broadcast', got {token_init!r}"
+            )
+
         self.pos_embed = nn.Parameter(torch.zeros(1, self.num_patches, embed_dim))
         nn.init.trunc_normal_(self.pos_embed, std=0.02)
 
-        self.blocks = nn.ModuleList([
-            TransformerBlock(embed_dim, num_heads, mlp_ratio, dropout)
-            for _ in range(depth)
-        ])
+        self.blocks = nn.ModuleList(
+            [TransformerBlock(embed_dim, num_heads, mlp_ratio, dropout) for _ in range(depth)]
+        )
         self.norm = nn.LayerNorm(embed_dim)
         self.unpatchify = nn.ConvTranspose2d(
             embed_dim, in_channels, kernel_size=patch_size, stride=patch_size
@@ -140,8 +150,10 @@ class VisionTransformerDecoder(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # x: (B, latent_dim)
         B = x.shape[0]
-        x = self.proj_in(x)  # (B, num_patches * embed_dim)
-        x = x.reshape(B, self.num_patches, self.embed_dim)
+        if self.token_init == "dense":
+            x = self.proj_in(x).reshape(B, self.num_patches, self.embed_dim)
+        else:
+            x = self.proj_in(x).unsqueeze(1).expand(-1, self.num_patches, -1)
         x = (x + self.pos_embed).contiguous()
 
         for block in self.blocks:
@@ -180,14 +192,13 @@ def build_vision_transformer(config: dict[str, Any], context: dict[str, int]) ->
     )
 
 
-def build_vision_transformer_decoder(
-    config: dict[str, Any], context: dict[str, int]
-) -> nn.Module:
+def build_vision_transformer_decoder(config: dict[str, Any], context: dict[str, int]) -> nn.Module:
     """
     Build a VisionTransformerDecoder from a layer config and context.
 
     Context must contain: latent_dim, image_size, in_channels.
-    Config may contain: patch_size, embed_dim, depth, num_heads, mlp_ratio, dropout.
+    Config may contain: patch_size, embed_dim, depth, num_heads, mlp_ratio, dropout,
+    token_init (``dense`` | ``broadcast``).
     """
     latent_dim = context["latent_dim"]
     image_size = context["image_size"]
@@ -202,4 +213,5 @@ def build_vision_transformer_decoder(
         num_heads=config.get("num_heads", 3),
         mlp_ratio=config.get("mlp_ratio", 4.0),
         dropout=config.get("dropout", 0.0),
+        token_init=config.get("token_init", "dense"),
     )

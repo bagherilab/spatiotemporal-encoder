@@ -65,7 +65,9 @@ class AE(BaseNN):
         self.encoder = nn.Sequential(
             *self._create_layers(self.architecture["encoder"].copy(), enc_extra)
         )
-        self.decoder_image = nn.Sequential(*self._create_layers(self.architecture["decoder_image"]))
+        self.decoder_image = nn.Sequential(
+            *self._create_layers(self.architecture["decoder_image"], enc_extra)
+        )
         self.decoder_timepoint = nn.Sequential(
             *self._create_layers(self.architecture["decoder_timepoint"])
         )
@@ -172,7 +174,7 @@ class AE(BaseNN):
             self._log(msg)
 
         if best_weights is not None:
-            best_weights.pop("_metadata", None)   
+            best_weights.pop("_metadata", None)
             self.load_state_dict(best_weights)
 
         return (train_losses, val_losses, grad_norms)

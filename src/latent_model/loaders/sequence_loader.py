@@ -3,6 +3,8 @@ from sklearn.model_selection import train_test_split
 import torch
 from torch.utils.data import DataLoader, Dataset
 
+from latent_model.loaders.encoded_csv_splits import train_val_test_ids_from_encoded_csv
+
 
 class TimeSeriesDataset(Dataset):
     """Dataset for time-series or otherwise ordered data with padding at sequence beginnings"""
@@ -49,12 +51,20 @@ class SequenceLoader:
         data_path: str,
         sequence_col: str = "timepoint",
         id_col: str = "sample_id",
-        val_split: float = 0.2,
-        test_split: float = 0.2,
+        val_split: float | None = None,
+        test_split: float | None = None,
         batch_size: int = 16,
         max_seq_len: int | None = None,
         random_seed: int = 42,
+        split_mode: str = "csv",
     ):
+        """
+        Parameters
+        ----------
+        split_mode
+            ``\"csv\"``: use ``split`` column in the CSV (encoder train/val/test).
+            ``\"random\"``: ignore ``split`` and redraw stratified train/val/test.
+        """
         self.data = self._load_csv(data_path)
         self.sequence_col = sequence_col
         self.id_col = id_col
@@ -66,11 +76,13 @@ class SequenceLoader:
         self.test_split = test_split
         self.batch_size = batch_size
         self.random_seed = random_seed
+        self.split_mode = split_mode
 
         self.sequences = {}
         for sample_id, group in self.data.groupby(self.id_col):
+            sid = str(sample_id)
             sorted_group = group.sort_values(by=self.sequence_col)
-            self.sequences[sample_id] = sorted_group[self.feature_cols].values
+            self.sequences[sid] = sorted_group[self.feature_cols].values
 
         self.max_seq_len = max_seq_len
 
@@ -101,7 +113,10 @@ class SequenceLoader:
         )
 
     def _split_data(self) -> tuple[list[str], list[str], list[str]]:
-        """Random train/val/test split over all sample ids (ignores any ``split`` column in the CSV)."""
+        if self.split_mode == "csv":
+            tr, va, te = train_val_test_ids_from_encoded_csv(self.data)
+            return tr, va, te
+
         sample_ids = list(self.sequences.keys())
         train_ids, test_ids = train_test_split(
             sample_ids, test_size=self.test_split, random_state=self.random_seed

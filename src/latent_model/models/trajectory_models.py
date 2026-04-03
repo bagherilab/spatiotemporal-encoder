@@ -68,7 +68,9 @@ class TemporalModel(ABC, nn.Module):
     ) -> float:
         """Full-sequence input; one class label per trajectory (``classification=True`` models only)."""
         if not getattr(self, "classification", False):
-            raise TypeError("Use RNNModel/LSTMModel(..., classification=True) for sequence classification")
+            raise TypeError(
+                "Use RNNModel/LSTMModel(..., classification=True) for sequence classification"
+            )
         self.train()
         criterion = self.criterion
         optimizer = self.optimizer
@@ -96,7 +98,9 @@ class TemporalModel(ABC, nn.Module):
         device: torch.device,
     ) -> float:
         if not getattr(self, "classification", False):
-            raise TypeError("Use RNNModel/LSTMModel(..., classification=True) for sequence classification")
+            raise TypeError(
+                "Use RNNModel/LSTMModel(..., classification=True) for sequence classification"
+            )
         self.eval()
         criterion = self.criterion
         total = 0.0

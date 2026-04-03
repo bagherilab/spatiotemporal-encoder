@@ -41,9 +41,7 @@ class BaseNN(ABC, nn.Module):
         """Generate a string representation of the model with key parameters."""
         optimizer_type = self.optimizers["combined"].__class__.__name__
         optimizer_params = self.params.get("optimizer", {})
-        optimizer_details = ", ".join(
-            [f"{key}={value}" for key, value in optimizer_params.items()]
-        )
+        optimizer_details = ", ".join([f"{key}={value}" for key, value in optimizer_params.items()])
 
         encoder_params = sum(p.numel() for p in self.encoder.parameters() if p.requires_grad)
         decoder_image_params = sum(
@@ -52,9 +50,7 @@ class BaseNN(ABC, nn.Module):
         decoder_timepoint_params = sum(
             p.numel() for p in self.decoder_timepoint.parameters() if p.requires_grad
         )
-        total_params = (
-            encoder_params + decoder_image_params + decoder_timepoint_params
-        )
+        total_params = encoder_params + decoder_image_params + decoder_timepoint_params
 
         return (
             f"Model: {self.name}\n"
@@ -143,9 +139,7 @@ class BaseNN(ABC, nn.Module):
             )
         return out
 
-    def _encoder_extra_placeholders(
-        self, encoder_configs: list[dict[str, Any]]
-    ) -> dict[str, int]:
+    def _encoder_extra_placeholders(self, encoder_configs: list[dict[str, Any]]) -> dict[str, int]:
         """
         Placeholders derived from the encoder YAML, e.g. ViT head width for post-ViT layers.
 
@@ -224,8 +218,7 @@ class BaseNN(ABC, nn.Module):
             shape = resolved.get("shape")
             if shape is not None:
                 resolved["shape"] = tuple(
-                    values.get(s, s) if isinstance(s, str) else s
-                    for s in shape
+                    values.get(s, s) if isinstance(s, str) else s for s in shape
                 )
             else:
                 resolved["shape"] = (

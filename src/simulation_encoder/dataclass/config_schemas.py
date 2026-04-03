@@ -129,6 +129,11 @@ class LayerConfig(BaseModel):
     dropout: Optional[float] = None
     pool: Optional[str] = None
     out_dim: Optional[Union[int, str]] = None
+    latent_dim: Optional[Union[int, str]] = None
+    image_size: Optional[Union[int, str]] = None
+    mode: Optional[str] = None
+    align_corners: Optional[bool] = None
+    token_init: Optional[str] = None
 
     @model_validator(mode="before")
     def check_layers(cls, values: dict) -> dict:

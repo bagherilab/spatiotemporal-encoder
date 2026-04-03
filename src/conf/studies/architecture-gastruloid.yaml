@@ -1,29 +1,29 @@
 experiments:
-  ae:
-    datasets:
-      - gastruloid_128
-    model:
-        architecture: ae_small
-        num_timepoints: 9
-        params: grid_optimizers
-    general_configs:
-        pretrain: false
-        verbose: true
-  cae:
-    datasets:
-      - gastruloid_128
-    model:
-        architecture: cae_small
-        num_timepoints: 9
-        params: grid_optimizers
-    general_configs:
-        pretrain: false
-        verbose: true
+  # ae:
+  #   datasets:
+  #     - gastruloid_128
+  #   model:
+  #       architecture: ae_small_mirror
+  #       num_timepoints: 9
+  #       params: grid_optimizers
+  #   general_configs:
+  #       pretrain: false
+  #       verbose: true
+  # cae:
+  #   datasets:
+  #     - gastruloid_128
+  #   model:
+  #       architecture: cae_small_mirror
+  #       num_timepoints: 9
+  #       params: grid_optimizers
+  #   general_configs:
+  #       pretrain: false
+  #       verbose: true
   neuralop:
     datasets:
       - gastruloid_128
     model:
-        architecture: neuralop_small
+        architecture: neuralop_small_mirror
         num_timepoints: 9
         params: grid_optimizers
     general_configs:
@@ -33,7 +33,7 @@ experiments:
     datasets:
       - gastruloid_128
     model:
-        architecture: vit_small
+        architecture: vit_small_mirror
         num_timepoints: 9
         params: grid_optimizers
     general_configs:

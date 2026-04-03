@@ -10,7 +10,8 @@ import seaborn as sns
 import torch
 
 from notebook_utils.embedding_helpers import (
-    load_encoded_latents_and_timepoints,
+    load_encoded_latents,
+    load_encoded_metadata,
     timepoint_decoder_true_pred,
 )
 
@@ -91,11 +92,10 @@ def plot_figure2c_timepoint_parity(
     y_true: np.ndarray,
     y_pred: np.ndarray,
     figsize: tuple[float, float] = (8.0, 8.0),
-    spine_linewidth: float = 1.0,
     base_dot_size: float = 36.0,
     count_size_power: float = 1.0,
     save_path: str | Path | None = None,
-    ) -> tuple[plt.Figure, plt.Axes]:
+) -> tuple[plt.Figure, plt.Axes]:
     """
     Parity plot: predicted vs true timepoint class indices (decoder argmax vs loader labels).
     """
@@ -115,8 +115,8 @@ def plot_figure2c_timepoint_parity(
         s=sizes,
         ax=ax,
         color="#83ABCF",
-        alpha=0.9,
-        linewidth=1.0,
+        alpha=1.0,
+        linewidth=1.5,
         edgecolor="#6F96B8",
         legend=False,
     )
@@ -137,9 +137,9 @@ def plot_figure2c_timepoint_parity(
     ax.set_aspect("equal", adjustable="box")
     ax.grid(False)
     ax.tick_params(axis="both", which="both", length=0, labelbottom=False, labelleft=False)
+    ax.set_frame_on(False)
     for side in ("left", "bottom", "top", "right"):
-        sp = ax.spines[side]
-        sp.set_linewidth(spine_linewidth)
+        ax.spines[side].set_visible(False)
     if save_path is not None:
         output_path = Path(save_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -203,15 +203,13 @@ def collect_timepoint_parity_data(
     all_models: dict[str, dict[str, torch.nn.Module]],
     split: str = "test",
     device: torch.device | str = "cpu",
-    normalize: bool = False,
     ) -> dict[str, dict[str, dict[str, np.ndarray]]]:
     """
     True vs predicted timepoint class index per model/dataset.
     """
-    latents, true_tp = load_encoded_latents_and_timepoints(
-        results_dir, all_models=all_models, split=split, normalize=normalize
-    )
-    return timepoint_decoder_true_pred(all_models, latents, true_tp, device=device)
+    embeddings = load_encoded_latents(results_dir, all_models=all_models, split=split)
+    true_tp, _ = load_encoded_metadata(results_dir, all_models=all_models, split=split)
+    return timepoint_decoder_true_pred(all_models, embeddings, true_tp, device=device)
 
 class _CpuBatchDataLoader:
     """Iterates like a DataLoader but moves all tensors in each batch to CPU."""
