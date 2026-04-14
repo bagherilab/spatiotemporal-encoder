@@ -5,7 +5,7 @@ figures/*
 logs/*
 results_working/*
 results/*
-results_downstream/legacy/
+results_downstream/
 archive/
 legacy/
 
