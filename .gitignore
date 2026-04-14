@@ -3,15 +3,25 @@ data/*
 metadata/*
 figures/*
 logs/*
+results_working/*
 results/*
-results_downstream/*
-results_save/*
+results_downstream/legacy/
 archive/
 legacy/
 
+# Legacy files
+src/simulation_encoder/vae.py
+src/simulation_encoder/rbm.py
+src/conf/models/legacy/
+src/conf/hyperparams/legacy/
+src/conf/studies/legacy/
+src/conf/datasets/legacy/
+
+notebook_utils/
+scripts/
+
 *.prof
 *.ipynb
-!figure_notebook.ipynb
 
 # Editors
 .vscode/
