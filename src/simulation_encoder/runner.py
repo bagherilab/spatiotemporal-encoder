@@ -51,7 +51,7 @@ class Runner:
         self.models: dict[str, ModelParams] = {}
         self.loader_params: dict[str, DatasetParams] = {}
 
-        # Cache for created loaders
+        # Cache for created loaders to prevent reinitialization
         self._loader_cache: dict[str, Loader] = {}
 
         self.losses: dict[str, LossData] = {}
@@ -137,13 +137,13 @@ class Runner:
             return VAE(**params_dict, logger=self.logger)
         raise ValueError(f"Model type {model_type} not recognized")
 
-    def run_encoder(self, experiment_name: str) -> dict:
+    def run_encoder(self, study_name: str) -> dict:
         """
-        Runs the training and evaluation of models
+        Runs the training and evaluation of autoencoder pipeline
 
         Parameters
         ----------
-        experiment_name : str
+        study_name : str
             Name of the experiment to run
 
         Returns
@@ -155,7 +155,7 @@ class Runner:
             raise ValueError("No loader parameters have been added to runner.")
         if not self.models:
             raise ValueError("No models have been added to runner.")
-        self.logger.set_experiment_name(experiment_name)
+        self.logger.set_study_name(study_name)
 
         results: dict = defaultdict(dict)
 
@@ -192,7 +192,11 @@ class Runner:
         val_loader = loader.get_dataloader(dataset_type="val")
 
         losses, val_losses, grad_norms = model.fit(
-            train_loader, val_loader=val_loader, pretrain=self.pretrain, patience=5, min_delta=0.001
+            train_loader,
+            val_loader=val_loader,
+            pretrain=self.pretrain,
+            patience=7,
+            min_delta=0.001,
         )
 
         self.losses[model_id].add_train_loss(losses)
@@ -266,7 +270,7 @@ class Runner:
         X_val_norm = (X_val - X_train.mean()) / X_train.std()
         y_val_norm = (y_val - y_train.mean()) / y_train.std()
         return X_train_norm, y_train_norm, X_val_norm, y_val_norm
-    
+
     @staticmethod
     def _encode_dataset(model: BaseNN, loader: Loader) -> dict[str, pd.DataFrame]:
         """Encodes the dataset using the model. Final dataframe includes labels and seed keys"""

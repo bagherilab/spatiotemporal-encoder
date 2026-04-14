@@ -1,5 +1,5 @@
+import copy
 from typing import Optional, Any
-
 from collections import defaultdict
 
 from tqdm import tqdm
@@ -11,6 +11,7 @@ from simulation_encoder.logger import Logger
 from simulation_encoder.loaders.loader import Loader
 from simulation_encoder.models.rbm import RBM, CRBM
 from simulation_encoder.models.base_nn import BaseNN
+from simulation_encoder.models.saliency_maps import reconstruction_saliency_map
 
 
 class AE(BaseNN):
@@ -38,6 +39,7 @@ class AE(BaseNN):
         name: str,
         architecture: dict[str, list[dict[str, Any]]],
         num_channels: int = 1,
+        num_timepoints: int = 1,
         num_epochs: int = 5,
         image_size: int = 128,
         params: dict[str, Any] = {},
@@ -50,6 +52,7 @@ class AE(BaseNN):
         self.name = name
         self.architecture = architecture
         self.num_channels = num_channels
+        self.num_timepoints = num_timepoints
         self.num_epochs = num_epochs
         self.image_size = image_size
         self.params = params
@@ -59,8 +62,13 @@ class AE(BaseNN):
             "image": params.get("image_loss_weight", 1.0),
             "timepoint": params.get("timepoint_loss_weight", 1.0),
         }
-        self.encoder = nn.Sequential(*self._create_layers(self.architecture["encoder"].copy()))
-        self.decoder_image = nn.Sequential(*self._create_layers(self.architecture["decoder_image"]))
+        enc_extra = self._encoder_extra_placeholders(self.architecture["encoder"])
+        self.encoder = nn.Sequential(
+            *self._create_layers(self.architecture["encoder"].copy(), enc_extra)
+        )
+        self.decoder_image = nn.Sequential(
+            *self._create_layers(self.architecture["decoder_image"], enc_extra)
+        )
         self.decoder_timepoint = nn.Sequential(
             *self._create_layers(self.architecture["decoder_timepoint"])
         )
@@ -79,7 +87,7 @@ class AE(BaseNN):
 
         # Chosen arbitrarily
         # Factor to balance image and timepoint loss
-        self.image_loss_factor = 10
+        self.image_loss_lambda = 10
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, ...]:
         """Performs encoding and several decoding heads"""
@@ -87,13 +95,13 @@ class AE(BaseNN):
         pred_image = self.decode_image(z)
         pred_timepoint = self.decode_timepoint(z)
         return pred_image, pred_timepoint
-    
+
     def fit(
         self,
         train_loader: DataLoader,
         val_loader: Optional[DataLoader] = None,
         pretrain: bool = False,
-        patience: int = 5,
+        patience: int = 10,
         min_delta: float = 0.0,
     ) -> tuple[dict[str, list[float]], dict[str, list[float]], dict[str, list[float]]]:
         """
@@ -128,6 +136,7 @@ class AE(BaseNN):
         grad_norms: dict[str, list[float]] = defaultdict(list)
 
         best_val_loss = float("inf")
+        best_weights = None
         epochs_without_improvement = 0
 
         for e in range(self.num_epochs):
@@ -140,19 +149,19 @@ class AE(BaseNN):
                 for loss_type, loss in val_loss.items():
                     val_losses[loss_type].append(loss)
 
-                # Check for early stopping
+                # Early stopping
                 current_val_loss = val_loss["weighted_loss"]
                 if current_val_loss < best_val_loss - min_delta:
                     best_val_loss = current_val_loss
                     epochs_without_improvement = 0
+                    best_weights = copy.deepcopy(self.state_dict())
                 else:
                     epochs_without_improvement += 1
-
-                if epochs_without_improvement >= patience:
-                    self._log(
-                        f"Early stopping at epoch {e+1}. Best validation loss: {round(best_val_loss, 6)}"
-                    )
-                    break
+                    if epochs_without_improvement >= patience:
+                        self._log(
+                            f"Early stopping at epoch {e+1}. Best validation loss: {round(best_val_loss, 6)}"
+                        )
+                        break
 
             encoder_grad_norm = self._get_grad_norm(self.encoder)
             decoder_image_grad_norm = self._get_grad_norm(self.decoder_image)
@@ -164,6 +173,10 @@ class AE(BaseNN):
 
             msg = f"Epoch {e+1}/{self.num_epochs}- Train loss: {round(train_loss['weighted_loss'], 6)} Val loss: {round(val_loss['weighted_loss'], 6)}"
             self._log(msg)
+
+        if best_weights is not None:
+            best_weights.pop("_metadata", None)
+            self.load_state_dict(best_weights)
 
         return (train_losses, val_losses, grad_norms)
 
@@ -230,7 +243,6 @@ class AE(BaseNN):
                     "timepoint": timepoint_criteria(pred_timepoint, labels),
                 }
                 _, reconstruction_loss_weighted = self._calc_reconstruction_loss(batch_loss)
-
                 reconstruction_loss_weighted.backward()  # type: ignore
                 optimizer_combined.step()
 
@@ -286,27 +298,16 @@ class AE(BaseNN):
         return avg_loss
 
     def get_saliency_map(self, x: torch.Tensor) -> torch.Tensor:
-        """Calculates the saliency map of the input tensor"""
-        self.eval()
-
-        image_criteria = self.criterion["image"]
-        x.requires_grad = True
-
-        try:
-            pred_image, _ = self(x)
-            loss_image = image_criteria(pred_image, x)
-            loss_image.backward()
-
-            if x.grad is not None:
-                saliency_map, _ = torch.max(x.grad.data.abs(), dim=1)  # type: ignore
-            else:
-                raise RuntimeError("Gradient is None")
-
-        except RuntimeError as e:
-            print(f"Error during saliency map computation: {e}")
-            saliency_map = torch.zeros_like(x[:, 0, :, :])
-
-        return saliency_map
+        """
+        Grad-CAM for the reconstruction loss. Uses the last spatial layer before bottleneck in the encoder.
+        """
+        return reconstruction_saliency_map(
+            self,
+            self.encoder,
+            x,
+            self.criterion["image"],
+            lambda t: self(t)[0],
+        )
 
     def pretrain_encoder_rbm(
         self,
@@ -314,7 +315,7 @@ class AE(BaseNN):
         rbm_epochs: int = 5,
         rbm_lr: float = 0.01,
         data_fraction: float = 0.2,
-    ) -> None:
+        ) -> None:
         """
         Pretrains the encoder using a Restricted Boltzmann Machine.
 
@@ -401,7 +402,7 @@ class AE(BaseNN):
 
     def _calc_reconstruction_loss(
         self, losses: dict[str, torch.Tensor]
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+        ) -> tuple[torch.Tensor, torch.Tensor]:
         """Calculates the combined loss from individual losses and weights"""
         combined_loss = torch.Tensor(sum([losses[key] for key in losses.keys()])).detach()
         combined_loss_weighted = torch.Tensor(

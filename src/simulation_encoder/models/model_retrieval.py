@@ -14,7 +14,15 @@ torch.serialization.add_safe_globals([torch._C._nn.gelu])
 torch.serialization.add_safe_globals([neuralop.layers.spectral_convolution.SpectralConv])
 
 
-def create_model(model_params, model_base_name, num_channels, params, dataset_dir):
+def create_model(
+    model_params,
+    model_base_name,
+    num_channels,
+    num_timepoints,
+    params,
+    dataset_dir,
+    map_location: str | torch.device | None = None,
+):
     # for layer in model_params.architecture.encoder:
     #     if layer.type == 'AdaptiveAvgPool2d':
     #         layer.output_size = 1
@@ -22,6 +30,7 @@ def create_model(model_params, model_base_name, num_channels, params, dataset_di
         model = AE(
             name=model_base_name,
             num_channels=num_channels,
+            num_timepoints=num_timepoints,
             architecture=model_params.architecture.model_dump(exclude_none=True),
             params=params,
         )
@@ -29,23 +38,33 @@ def create_model(model_params, model_base_name, num_channels, params, dataset_di
         model = VAE(
             name=model_base_name,
             num_channels=num_channels,
+            num_timepoints=num_timepoints,
             architecture=model_params.architecture.model_dump(exclude_none=True),
             params=params,
         )
     else:
         raise ValueError("Model type not supported")
 
-    print(f"Loading model {model_base_name}")
-    state_dict = torch.load(f"{dataset_dir}/model_state.pth", weights_only=True)
+    target = torch.device("cpu") if map_location is None else torch.device(map_location)
+    state_dict = torch.load(
+        f"{dataset_dir}/model_state.pth",
+        weights_only=True,
+        map_location=torch.device("cpu"),
+    )
+    trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"Loading model {model_base_name} ({trainable:.2e} parameters)")
     state_dict.pop("_metadata", None)
     model.load_state_dict(state_dict)
+    model.to(target)
 
     return model
 
 
 def load_models(
     results_path: str,
+    num_timepoints: int = 1,
     best_models_flag: bool = False,
+    map_location: str | torch.device | None = None,
 ) -> dict[str, dict[str, dict | BaseNN]]:
     """
     Unified function to load models from files.
@@ -56,6 +75,10 @@ def load_models(
         Path to the directory containing experiment results.
     best_models_flag : bool, default=False
         If True, only load the best models. If False, load all models.
+    map_location : str, torch.device, or None, default=None
+        Device for the returned model (e.g. ``"cpu"``, ``"cuda"``, ``"mps"``).
+        Checkpoints are always deserialized on CPU first so CUDA-trained weights
+        load without a GPU; weights are then moved to this device.
 
     Returns:
     --------
@@ -63,13 +86,16 @@ def load_models(
         Nested dictionary containing the loaded models.
     """
     if best_models_flag:
-        return _load_best_models(results_path)
+        return _load_best_models(results_path, num_timepoints, map_location=map_location)
     else:
-        return _load_all_models(results_path)
+        return _load_all_models(results_path, num_timepoints, map_location=map_location)
 
 
 def _load_best_models(
-    results_path: str, best_model_name: str = "_best_model"
+    results_path: str,
+    num_timepoints: int,
+    best_model_name: str = "_best_model",
+    map_location: str | torch.device | None = None,
 ) -> dict[str, dict[str, object]]:
     """
     Load only the best models from each experiment.
@@ -97,7 +123,7 @@ def _load_best_models(
                 continue
 
             model_base_name = "_".join(model_name.split("_")[0:-1])
-            model_params = load_model_yaml(model_base_name, yaml_path="src/conf/models")
+            model_params = load_model_yaml(model_base_name)
             break
 
         if model_base_name is None:
@@ -117,14 +143,26 @@ def _load_best_models(
             params["optimizer"]["type"] = Adam if params["optimizer"]["type"] == "Adam" else SGD
             num_channels = len(results["channels"])
 
-            model = create_model(model_params, model_base_name, num_channels, params, dataset_dir)
+            model = create_model(
+                model_params,
+                model_base_name,
+                num_channels,
+                num_timepoints,
+                params,
+                dataset_dir,
+                map_location=map_location,
+            )
 
             best_models[model_type][dataset_name] = model
 
     return best_models
 
 
-def _load_all_models(results_path: str) -> dict[str, dict[str, dict[str, object]]]:
+def _load_all_models(
+    results_path: str,
+    num_timepoints: int,
+    map_location: str | torch.device | None = None,
+) -> dict[str, dict[str, dict[str, object]]]:
     """
     Load all models from the results directory structure.
 
@@ -174,7 +212,13 @@ def _load_all_models(results_path: str) -> dict[str, dict[str, dict[str, object]
                 num_channels = len(results["channels"])
 
                 model = create_model(
-                    model_params, model_base_name, num_channels, params, dataset_dir
+                    model_params,
+                    model_base_name,
+                    num_channels,
+                    num_timepoints,
+                    params,
+                    dataset_dir,
+                    map_location=map_location,
                 )
                 all_models[experiment][model_name][dataset_name] = model
 

@@ -1,6 +1,7 @@
 import cProfile
 import pstats
 import time
+import os
 
 import traceback
 from pydantic import ValidationError
@@ -20,11 +21,14 @@ from simulation_encoder.utils.generate_hyperparams import generate_hyperparamete
 from simulation_encoder.utils.yaml_utils import (
     load_model_yaml,
     load_dataset_yaml,
+    load_study_yaml,
     load_hyperparam_yaml,
     load_yaml,
 )
 
 CONFIG_YAML = "src/conf/config.yaml"
+STUDIES_DIR = "src/conf/studies"
+RESULTS_DIR = "results"
 
 
 def main() -> None:
@@ -36,36 +40,37 @@ def main() -> None:
     hyperparameter yaml files. The runner object is created with the dataset and model parameters,
     and the run method is called to start the simulation encoder."""
 
-    try:
-        main_config = load_yaml(CONFIG_YAML, MainConfig)
-    except ValidationError as e:
-        traceback.print_exc()
-        raise ValidationError(f"Configuration validation error: {e}") from e
+    main_config = load_yaml(CONFIG_YAML, MainConfig)
 
-    config_name = main_config.experiment_name  # type: ignore
-    for experiment_name, experiment_config in main_config.experiments.items():  # type: ignore
+    study_name = main_config.study_name  # type: ignore
+    study_config = load_study_yaml(study_name)
+
+    for experiment_key, experiment_config in study_config.experiments.items():  # type: ignore
         pretrain = experiment_config.general_configs.pretrain
         verbose = experiment_config.general_configs.verbose
 
-        logger = Logger(log_name=f"{config_name}", verbose=verbose)
+        logger = Logger(log_name=f"{study_name}_{experiment_key}", verbose=verbose)
         runner = Runner(pretrain, logger, verbose)
-        writer = Writer(results_dir=f"results/{config_name}", experiment_name=experiment_name)
-        plotter = Plotter(results_dir=f"results/{config_name}", experiment_name=experiment_name)
+        writer = Writer(results_dir=f"{RESULTS_DIR}/{study_name}", experiment_key=experiment_key)
+        plotter = Plotter(results_dir=f"{RESULTS_DIR}/{study_name}", experiment_key=experiment_key)
 
         # Loader
         loader_params = create_loader_params(experiment_config)
         runner.add_loader_params(loader_params)
+        first_dataset_name = next(iter(loader_params))
+        first_dataset_params = loader_params[first_dataset_name]
+        num_input_channels = len(first_dataset_params.channels)
 
         for dataset_name in loader_params.keys():
             loader = runner.create_loader(dataset_name)
             writer.write_train_test_indices(dataset_name, loader.get_indices())
 
         # Model
-        model_param_sets = create_model_param_sets(experiment_config.model)
+        model_param_sets = create_model_param_sets(experiment_config.model, num_input_channels)
         runner.add_model_params(model_param_sets)
 
         # Run the encoder
-        encoder_results = runner.run_encoder(experiment_name)
+        encoder_results = runner.run_encoder(study_name)
         handle_encoder_results(encoder_results, runner, writer, plotter, save_all_models=False)
 
     # Emulation
@@ -98,6 +103,7 @@ def create_loader_params(experiment_config: ExperimentConfig) -> dict[str, Datas
             loader=dataset_config.loader,
             image_dir=dataset_config.image_dir,
             label_dir=dataset_config.label_dir,
+            image_size=dataset_config.image_size,
             channels=dataset_config.channels,
             batch_size=dataset_config.batch_size,
             val_split=dataset_config.val_split,
@@ -112,10 +118,11 @@ def create_loader_params(experiment_config: ExperimentConfig) -> dict[str, Datas
     return loader_params
 
 
-def create_model_param_sets(model_config: ModelParamsConfig) -> list[ModelParams]:
+def create_model_param_sets(
+    model_config: ModelParamsConfig, num_channels: int
+) -> list[ModelParams]:
     """Create the model parameters from model config files and hyperparameter yaml files."""
     model_name = model_config.architecture
-    num_channels = model_config.num_channels
     model_yaml = load_model_yaml(model_name)
 
     model_params = load_hyperparam_yaml(model_config.params)
@@ -131,6 +138,7 @@ def create_model_param_sets(model_config: ModelParamsConfig) -> list[ModelParams
             model_type=model_yaml.type,  # type: ignore
             architecture=model_yaml.architecture.model_dump(exclude_none=True),  # type: ignore
             num_channels=num_channels,
+            num_timepoints=model_config.num_timepoints,
             num_epochs=num_epochs,
             params=param_set,
         )
@@ -180,7 +188,6 @@ def handle_encoder_results(
                     best_val_loss = final_val_loss
                     best_model_info = {
                         "model": model,
-
                         "dataset_name": dataset_name,
                         "losses": losses,
                     }
@@ -194,11 +201,9 @@ def handle_encoder_results(
             "_best_model", best_model_loader, best_model, best_model_info["losses"]
         )
         writer.write_encoded_data(
-            "_best_model", best_model_loader, best_model_dataset_name, best_model 
+            "_best_model", best_model_loader, best_model_dataset_name, best_model
         )
-        writer.write_model_state(
-            "_best_model", best_model_dataset_name, best_model
-        )
+        writer.write_model_state("_best_model", best_model_dataset_name, best_model)
 
 
 if __name__ == "__main__":

@@ -69,4 +69,4 @@ architecture:
     
     - type: Linear
       in_features: 32
-      out_features: 15
+      out_features: num_timepoints

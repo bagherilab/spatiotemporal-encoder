@@ -1,13 +1,27 @@
 # Project specific
 data/*
+metadata/*
 figures/*
 logs/*
+results_working/*
 results/*
-results_save/*
+results_downstream/
 archive/
+legacy/
 
-*.ipynb
+# Legacy files
+src/simulation_encoder/models/vae.py
+src/simulation_encoder/models/rbm.py
+src/conf/models/legacy/
+src/conf/hyperparams/legacy/
+src/conf/studies/legacy/
+src/conf/datasets/legacy/
+
+notebook_utils/
+scripts/
+
 *.prof
+*.ipynb
 
 # Editors
 .vscode/

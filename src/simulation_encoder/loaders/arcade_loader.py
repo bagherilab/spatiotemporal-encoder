@@ -43,6 +43,7 @@ class ARCADELoader(Loader):
         image_dir: str,
         keys: list[str],
         channels: list[str],
+        image_size: int,
         name: Optional[str] = None,
         batch_size: int = 16,
         val_split: float = 0.2,

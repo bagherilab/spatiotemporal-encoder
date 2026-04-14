@@ -1,0 +1,107 @@
+type: AE
+architecture:
+  encoder:
+    - type: FNO
+      n_modes: [16, 16]
+      hidden_channels: 32
+      in_channels: num_channels
+      out_channels: 32
+    - type: BatchNorm2d
+      num_features: 32
+    - type: GELU
+    - type: MaxPool2d
+      kernel_size: 2
+      stride: 2
+
+    - type: AdaptiveAvgPool2d
+      output_size: 1
+    - type: Flatten
+    - type: Linear
+      in_features: 32
+      out_features: 512
+    - type: BatchNorm1d
+      num_features: 512
+    - type: ReLU
+    
+    - type: Linear
+      in_features: 512
+      out_features: latent_dim
+  
+  decoder_image:
+    - type: Linear
+      in_features: latent_dim
+      out_features: 512
+    - type: BatchNorm1d
+      num_features: 512
+    - type: ReLU
+    - type: Linear
+      in_features: 512
+      out_features: decoder_spatial_flat
+    - type: BatchNorm1d
+      num_features: decoder_spatial_flat
+    - type: ReLU
+    - type: Unflatten
+      shape: [decoder_init_channels, decoder_base_hw, decoder_base_hw]
+    - type: PointwiseLinear
+      in_channels: decoder_init_channels
+      out_channels: 48
+    - type: BatchNorm2d
+      num_features: 48
+    - type: ReLU
+    - type: Upsample
+      scale_factor: 2
+      mode: bilinear
+      align_corners: false
+    - type: PointwiseLinear
+      in_channels: 48
+      out_channels: 32
+    - type: BatchNorm2d
+      num_features: 32
+    - type: ReLU
+    - type: Upsample
+      scale_factor: 2
+      mode: bilinear
+      align_corners: false
+    - type: PointwiseLinear
+      in_channels: 32
+      out_channels: 24
+    - type: BatchNorm2d
+      num_features: 24
+    - type: ReLU
+    - type: Upsample
+      scale_factor: 2
+      mode: bilinear
+      align_corners: false
+    - type: PointwiseLinear
+      in_channels: 24
+      out_channels: 16
+    - type: BatchNorm2d
+      num_features: 16
+    - type: ReLU
+    - type: Upsample
+      scale_factor: 2
+      mode: bilinear
+      align_corners: false
+    - type: PointwiseLinear
+      in_channels: 16
+      out_channels: num_channels
+    - type: Sigmoid
+  
+  decoder_timepoint:
+    - type: Linear
+      in_features: latent_dim
+      out_features: 64
+    - type: BatchNorm1d
+      num_features: 64
+    - type: ReLU
+    
+    - type: Linear
+      in_features: 64
+      out_features: 32
+    - type: BatchNorm1d
+      num_features: 32
+    - type: ReLU
+    
+    - type: Linear
+      in_features: 32
+      out_features: num_timepoints

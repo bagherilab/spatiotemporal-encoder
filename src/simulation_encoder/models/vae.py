@@ -1,3 +1,4 @@
+import copy
 from typing import Optional, Any
 from collections import defaultdict
 
@@ -10,6 +11,7 @@ from simulation_encoder.logger import Logger
 from simulation_encoder.loaders.loader import Loader
 from simulation_encoder.models.rbm import RBM, CRBM
 from simulation_encoder.models.base_nn import BaseNN
+from simulation_encoder.models.saliency_maps import reconstruction_saliency_map
 
 
 class VAE(BaseNN):
@@ -37,6 +39,7 @@ class VAE(BaseNN):
         name: str,
         architecture: dict[str, list[dict[str, Any]]],
         num_channels: int = 1,
+        num_timepoints: int = 1,
         num_epochs: int = 5,
         image_size: int = 128,
         params: dict[str, Any] = {},
@@ -49,6 +52,7 @@ class VAE(BaseNN):
         self.name = name
         self.architecture = architecture
         self.num_channels = num_channels
+        self.num_timepoints = num_timepoints
         self.num_epochs = num_epochs
         self.params = params
         self.logger = logger
@@ -59,12 +63,17 @@ class VAE(BaseNN):
             "timepoint": params.get("timepoint_loss_weight", 1.0),
         }
 
-        self.encoder = nn.Sequential(*self._create_layers(self.architecture["encoder"].copy()))
+        enc_extra = self._encoder_extra_placeholders(self.architecture["encoder"])
+        self.encoder = nn.Sequential(
+            *self._create_layers(self.architecture["encoder"].copy(), enc_extra)
+        )
         self.fc_mu = nn.Linear(self.architecture["encoder"][-1]["out_features"], self.latent_dim)
         self.fc_logvar = nn.Linear(
             self.architecture["encoder"][-1]["out_features"], self.latent_dim
         )
-        self.decoder_image = nn.Sequential(*self._create_layers(self.architecture["decoder_image"]))
+        self.decoder_image = nn.Sequential(
+            *self._create_layers(self.architecture["decoder_image"], enc_extra)
+        )
         self.decoder_timepoint = nn.Sequential(
             *self._create_layers(self.architecture["decoder_timepoint"])
         )
@@ -83,7 +92,7 @@ class VAE(BaseNN):
 
         # Chosen arbitrarily
         # Factor to balance image and timepoint loss
-        self.image_loss_factor = 10
+        self.image_loss_lambda = 10
         # Factor to balance reconstruction and KL loss
         self.reconstruction_loss_factor = 1
 
@@ -100,7 +109,7 @@ class VAE(BaseNN):
         train_loader: DataLoader,
         val_loader: Optional[DataLoader] = None,
         pretrain: bool = False,
-        patience: int = 5,
+        patience: int = 10,
         min_delta: float = 0.0,
     ) -> tuple[dict[str, list[float]], dict[str, list[float]], dict[str, list[float]]]:
         """
@@ -135,6 +144,7 @@ class VAE(BaseNN):
         grad_norms: dict[str, list[float]] = defaultdict(list)
 
         best_val_loss = float("inf")
+        best_weights = None
         epochs_without_improvement = 0
 
         for e in range(self.num_epochs):
@@ -147,19 +157,19 @@ class VAE(BaseNN):
                 for loss_type, loss in val_loss.items():
                     val_losses[loss_type].append(loss)
 
-                # Check for early stopping
+                # Early stopping
                 current_val_loss = val_loss["weighted_loss"]
                 if current_val_loss < best_val_loss - min_delta:
                     best_val_loss = current_val_loss
                     epochs_without_improvement = 0
+                    best_weights = copy.deepcopy(self.state_dict())
                 else:
                     epochs_without_improvement += 1
-
-                if epochs_without_improvement >= patience:
-                    self._log(
-                        f"Early stopping at epoch {e+1}. Best validation loss: {round(best_val_loss, 6)}"
-                    )
-                    break
+                    if epochs_without_improvement >= patience:
+                        self._log(
+                            f"Early stopping at epoch {e+1}. Best validation loss: {round(best_val_loss, 6)}"
+                        )
+                        break
 
             encoder_grad_norm = self._get_grad_norm(self.encoder)
             decoder_image_grad_norm = self._get_grad_norm(self.decoder_image)
@@ -171,6 +181,9 @@ class VAE(BaseNN):
 
             msg = f"Epoch {e+1}/{self.num_epochs}- Train loss: {round(train_loss['weighted_loss'], 6)} Val loss: {round(val_loss['weighted_loss'], 6)}"
             self._log(msg)
+
+        if best_weights is not None:
+            self.load_state_dict(best_weights)
 
         return (train_losses, val_losses, grad_norms)
 
@@ -245,7 +258,7 @@ class VAE(BaseNN):
                 pred_image, pred_timepoint, mu, logvar = self(inputs)
 
                 batch_loss = {
-                    "image": image_criteria(pred_image, inputs) * self.image_loss_factor,
+                    "image": image_criteria(pred_image, inputs) * self.image_loss_lambda,
                     "timepoint": timepoint_criteria(pred_timepoint, labels),
                 }
 
@@ -297,7 +310,7 @@ class VAE(BaseNN):
                     pred_image, pred_timepoint, mu, logvar = self(inputs)
 
                     batch_loss = {
-                        "image": image_criteria(pred_image, inputs) * self.image_loss_factor,
+                        "image": image_criteria(pred_image, inputs) * self.image_loss_lambda,
                         "timepoint": timepoint_criteria(pred_timepoint, labels),
                     }
                     reconstruction_loss, reconstruction_loss_weighted = (
@@ -320,18 +333,20 @@ class VAE(BaseNN):
         return avg_loss
 
     def get_saliency_map(self, x: torch.Tensor) -> torch.Tensor:
-        """Calculates the saliency map of the input tensor"""
-        self.eval()
+        """
+        Grad-CAM for the reconstruction loss (same hook priority as ``AE``):
 
-        image_criteria = self.criterion["image"]
-        x.requires_grad = True
-        pred_image, _, _, _ = self(x)
-
-        loss_image = image_criteria(pred_image, x)
-        loss_image.backward()
-
-        saliency_map, _ = torch.max(x.grad.data.abs(), dim=1)  # type: ignore
-        return saliency_map
+        1. ``AdaptiveAvgPool2d`` → Grad-CAM on its input (CNN / FNO).
+        2. ``VisionTransformer`` → Grad-CAM on ``norm`` output tokens reshaped to patch grid.
+        3. Fallback: |∂L/∂x|.
+        """
+        return reconstruction_saliency_map(
+            self,
+            self.encoder,
+            x,
+            self.criterion["image"],
+            lambda t: self(t)[0],
+        )
 
     def pretrain_encoder_rbm(
         self,

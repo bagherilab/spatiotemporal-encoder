@@ -13,10 +13,10 @@ from simulation_encoder.dataclass.supervised_results import SupervisedResults
 class Writer:
     """Class for writing information to disk"""
 
-    def __init__(self, results_dir: str = "results/", experiment_name: str = ""):
-        self.experiment_name = experiment_name
+    def __init__(self, results_dir: str = "results/", experiment_key: str = ""):
+        self.experiment_key = experiment_key
         self.results_dir = results_dir
-        self.results_path = os.path.join(results_dir, str(self.experiment_name))
+        self.results_path = os.path.join(results_dir, str(self.experiment_key))
 
         self._setup()
 
@@ -60,7 +60,11 @@ class Writer:
             json.dump(indices_dict, i_file, indent=4)
 
     def write_encoded_data(
-        self, model_name: str, loader: Loader, dataset_name: str, model: BaseNN, 
+        self,
+        model_name: str,
+        loader: Loader,
+        dataset_name: str,
+        model: BaseNN,
     ) -> None:
         """Saves encoded dataset and labels with dataset_name prefix"""
         model_path = os.path.join(self.results_path, model_name)
@@ -82,7 +86,6 @@ class Writer:
 
         torch.save(model.state_dict(), os.path.join(dataset_path, "model_state.pth"))
 
-    
     def write_supervised_results(self, results: SupervisedResults) -> None:
         """Writes the results of all emulators to disk"""
         results_path = os.path.join(self.results_path, "supervised_results.json")
@@ -102,7 +105,7 @@ class Writer:
 
         with open(results_path, "w", encoding="utf-8") as r_file:
             json.dump(results, r_file, indent=4)
-    
+
     def _setup(self) -> None:
         self._create_dir(self.results_dir)
         self._create_dir(self.results_path)

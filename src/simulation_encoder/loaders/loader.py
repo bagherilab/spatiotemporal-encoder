@@ -204,7 +204,8 @@ class Loader(ABC):
 
         for data in data_loader:
             features, targets = data
-            flat_features = features.view(features.size(0), -1)
+            # MPS can surface non-contiguous tensors here after upstream transforms.
+            flat_features = features.reshape(features.size(0), -1)
             flat_input.append(flat_features)
             labels.append(targets)
 

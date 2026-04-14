@@ -8,6 +8,7 @@ class DatasetConfig(BaseModel):
     loader: str = Field(..., description="Name of the dataset loader")
     image_dir: str = Field(..., description="Path to the directory with images")
     label_dir: str = Field(..., description="Path to the directory with labels")
+    image_size: int = Field(..., gt=0, description="Size of the images, must be greater than 0")
     channels: list[str] = Field(..., description="List of channel names")
     batch_size: int = Field(
         ..., gt=0, description="Batch size for training, must be greater than 0"
@@ -31,23 +32,10 @@ class DatasetConfig(BaseModel):
 
 class ModelParamsConfig(BaseModel):
     architecture: str = Field(..., description="Model architecture name")
-    num_channels: int = Field(
-        ..., description="Number of channels (should be the same across datasets)"
+    num_timepoints: int = Field(
+        ..., gt=0, description="Number of timepoints, must be greater than 0"
     )
-    image_size: int = Field(..., gt=0, description="Size of the images, must be greater than 0")
     params: str = Field(..., description="Path or name of the hyperparameter configuration")
-
-    @field_validator("image_size")
-    def check_image_size(cls, value: int) -> int:
-        if value <= 0:
-            raise ValueError("image_size must be greater than 0")
-        return value
-
-    @field_validator("num_channels")
-    def check_num_channels(cls, value: int) -> int:
-        if value <= 0:
-            raise ValueError("num_channels must have at least one element")
-        return value
 
 
 class GeneralConfig(BaseModel):
@@ -61,11 +49,18 @@ class ExperimentConfig(BaseModel):
     general_configs: GeneralConfig
 
 
-class MainConfig(BaseModel):
-    experiment_name: str = Field(..., description="Name of the experiment")
+class StudyConfig(BaseModel):
     experiments: dict[str, ExperimentConfig] = Field(
-        ..., description="Dictionary of experiment configurations"
+        ..., description="Dictionary mapping experiments to their configurations"
     )
+
+
+class MainConfig(BaseModel):
+    study_name: str = Field(..., description="Name of the experiment")
+    data_quantity_experiment: bool = Field(
+        ..., description="Whether to run the data quantity experiment"
+    )
+    debug: bool = Field(..., description="Whether to run in debug mode")
 
 
 """ Hyperparameter configuration """
@@ -102,6 +97,7 @@ class HyperparameterConfig(BaseModel):
 
 """ Model architecture and type """
 
+
 class LayerConfig(BaseModel):
     type: str = Field(..., description="Name of layer in PyTorch")
     in_features: Optional[Union[int, str]] = None
@@ -109,20 +105,40 @@ class LayerConfig(BaseModel):
     num_features: Optional[Union[int, str]] = None
     in_channels: Optional[Union[int, str]] = None
     out_channels: Optional[Union[int, str]] = None
+    activation: Optional[str] = None
+    output_size: Optional[Union[int, str]] = None
+    # Convolutional layers
     kernel_size: Optional[int] = None
     stride: Optional[int] = None
-    shape: Optional[list[int]] = None
+    shape: Optional[list[Union[int, str]]] = None
     scale_factor: Optional[int] = None
     padding: Optional[Union[int, str]] = None
     p: Optional[float] = None
     output_padding: Optional[int] = None
-    activation: Optional[str] = None
-    output_size: Optional[Union[int, str]] = None
     # Neural operators
     hidden_channels: Optional[Union[int, str]] = None
     n_modes: Optional[list[int]] = None
     projection_channels: Optional[int] = None
     lifting_channels: Optional[int] = None
+    n_layers: Optional[int] = None
+    fno_block_precision: Optional[str] = None
+    factorization: Optional[str] = None
+    stabilizer: Optional[str] = None
+    channel_mlp_expansion: Optional[float] = None
+    # Vision Transformer
+    patch_size: Optional[int] = None
+    embed_dim: Optional[int] = None
+    depth: Optional[int] = None
+    num_heads: Optional[int] = None
+    mlp_ratio: Optional[float] = None
+    dropout: Optional[float] = None
+    pool: Optional[str] = None
+    out_dim: Optional[Union[int, str]] = None
+    latent_dim: Optional[Union[int, str]] = None
+    image_size: Optional[Union[int, str]] = None
+    mode: Optional[str] = None
+    align_corners: Optional[bool] = None
+    token_init: Optional[str] = None
 
     @model_validator(mode="before")
     def check_layers(cls, values: dict) -> dict:
