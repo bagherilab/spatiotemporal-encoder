@@ -3,11 +3,11 @@ architecture:
   encoder:
     - type: FNO
       n_modes: [16, 16]
-      hidden_channels: 64
+      hidden_channels: 32
       in_channels: num_channels
-      out_channels: 64
+      out_channels: 32
     - type: BatchNorm2d
-      num_features: 64
+      num_features: 32
     - type: GELU
     - type: MaxPool2d
       kernel_size: 2
@@ -17,7 +17,7 @@ architecture:
       output_size: 1
     - type: Flatten
     - type: Linear
-      in_features: 64
+      in_features: 32
       out_features: 512
     - type: BatchNorm1d
       num_features: 512
@@ -30,62 +30,62 @@ architecture:
   decoder_image:
     - type: Linear
       in_features: latent_dim
-      out_features: 128
-    - type: BatchNorm1d
-      num_features: 128
-    - type: ReLU
-    
-    - type: Linear
-      in_features: 128
-      out_features: 256
-    - type: BatchNorm1d
-      num_features: 256
-    - type: ReLU
-    
-    - type: Linear
-      in_features: 256
       out_features: 512
     - type: BatchNorm1d
       num_features: 512
     - type: ReLU
-    
     - type: Linear
       in_features: 512
-      out_features: 1024
+      out_features: decoder_spatial_flat
     - type: BatchNorm1d
-      num_features: 1024
+      num_features: decoder_spatial_flat
     - type: ReLU
-    
-    - type: Linear
-      in_features: 1024
-      out_features: num_channels      
-
     - type: Unflatten
+      shape: [decoder_init_channels, decoder_base_hw, decoder_base_hw]
+    - type: PointwiseLinear
+      in_channels: decoder_init_channels
+      out_channels: 48
+    - type: BatchNorm2d
+      num_features: 48
+    - type: ReLU
+    - type: Upsample
+      scale_factor: 2
+      mode: bilinear
+      align_corners: false
+    - type: PointwiseLinear
+      in_channels: 48
+      out_channels: 32
+    - type: BatchNorm2d
+      num_features: 32
+    - type: ReLU
+    - type: Upsample
+      scale_factor: 2
+      mode: bilinear
+      align_corners: false
+    - type: PointwiseLinear
+      in_channels: 32
+      out_channels: 24
+    - type: BatchNorm2d
+      num_features: 24
+    - type: ReLU
+    - type: Upsample
+      scale_factor: 2
+      mode: bilinear
+      align_corners: false
+    - type: PointwiseLinear
+      in_channels: 24
+      out_channels: 16
+    - type: BatchNorm2d
+      num_features: 16
+    - type: ReLU
+    - type: Upsample
+      scale_factor: 2
+      mode: bilinear
+      align_corners: false
+    - type: PointwiseLinear
+      in_channels: 16
+      out_channels: num_channels
     - type: Sigmoid
-    # - type: Linear
-    #   in_features: latent_dim
-    #   out_features: 512
-    # - type: BatchNorm1d
-    #   num_features: 512
-    # - type: ReLU
-    
-    # - type: Linear
-    #   in_features: 512
-    #   out_features: 32768
-
-    # - type: Unflatten
-    #   shape: [8, 64, 64]
-
-    # - type: Upsample
-    #   scale_factor: 2
-    #   mode: nearest
-
-    # - type: FNO
-    #   n_modes: [16, 16]
-    #   hidden_channels: 16
-    #   in_channels: 8
-    #   out_channels: num_channels
-    # - type: Sigmoid
   
   decoder_timepoint:
     - type: Linear

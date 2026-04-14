@@ -398,7 +398,7 @@ class SupervisedRegressor(SupervisedModel):
             "elastic_net": {
                 "model": ElasticNet,
                 "param_grid": {
-                    "alpha": [0.1, 1.0, 10.0],
+                    "alpha": [0.1, 1.0],
                     "l1_ratio": [0.1, 0.5, 0.7, 0.9],
                     "selection": ["cyclic", "random"],
                     "max_iter": [1000],
@@ -407,7 +407,7 @@ class SupervisedRegressor(SupervisedModel):
             "random_forest": {
                 "model": RandomForestRegressor,
                 "param_grid": {
-                    "n_estimators": [10, 50],
+                    "n_estimators": [10, 25, 50],
                     "max_depth": [10, 20],
                     "min_samples_split": [2, 5],
                     "min_samples_leaf": [2, 4],

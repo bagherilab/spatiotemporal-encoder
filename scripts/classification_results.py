@@ -15,53 +15,35 @@ from typing import Any
 
 import pandas as pd
 
-_REPO = Path(__file__).resolve().parent.parent
-_SRC = _REPO / "src"
-if str(_SRC) not in sys.path:
-    sys.path.insert(0, str(_SRC))
-
 from latent_model.runner import (
     arcade_colony_tissue_label,
     gastruloid_binary_label,
-    run_study_classification,
     run_study_point_emergent_regression,
     run_study_trajectory_classification,
 )
 
 def main() -> None:
-    repo = _REPO
-
-    RESULTS_STUDY_DIR = repo / "results" / "architecture-gastruloid"
-    EMERGENT_TARGET_TIMEPOINTS = [float(d) for d in range(1, 15)]
-
+    RESULTS_STUDY_DIR = Path("results/architecture-ARCADE")
+    
     # "point" | "trajectory"
-    BACKEND = "point"
+    BACKEND = "trajectory"
+    ENCODER_MODELS: list[str] | None = ["vit4", "vit8"]
 
     # --- point configs ---
-    # "classification" | "regression"
-    POINT_TASK = "regression"
-    CLASSIFIER_TYPES = [
-        "logistic_regression",
-        "random_forest",
-        "svm",
-    ]
-    TIME_POINT_IDX = 0
     CV_FOLDS = 5
-
+    TIME_POINT_IDX = 0
+    EMERGENT_TARGET_TIMEPOINTS = [float(d) for d in range(14, 15)]
     
-
-    # Point regression (ARCADE): emergents CSV
-    EMERGENTS_CSV = repo / "data" / "vascular_function_128" / "labels" / "arcade_emergents.csv"
-    # One target or a list; all are run sequentially (one JSON per target).
-    EMERGENT_PROPERTY_NAME: str | list[str] = ["VOLUMES", "ACTIVITY", "DIAMETERS", "GROWTH", "SYMMETRY", "COUNTS"]  # e.g. ["VOLUMES", "ACTIVITY"]
-    # Point regression (gastruloid): morphometric properties from segmentation.csv
-    GASTRULOID_SEGMENTATION_CSV = repo / "data" / "gastruloid_128" / "labels" / "segmentations.csv"
-    GASTRULOID_PROPERTY_NAME: str | list[str] = ["Mean", "Area", "XM", "YM", "Circ."]  # e.g. ["Mean", "Area", "AR"]
+    # Point regression (ARCADE)
+    EMERGENTS_CSV = Path("data/vascular_function_128/labels/arcade_emergents.csv")
+    EMERGENT_PROPERTY_NAME: str | list[str] = ["GROWTH", "DIAMETERS","COUNTS","VOLUMES", "ACTIVITY", "SYMMETRY"]
+    # Point regression (gastruloid)
+    GASTRULOID_SEGMENTATION_CSV = Path("data/gastruloid_128/labels/segmentations.csv")
+    GASTRULOID_PROPERTY_NAME: str | list[str] = ["Mean", "Area","Circ.", "Skew"]
     REGRESSOR_TYPES = [
         "linear_regression",
         "elastic_net",
         "random_forest",
-        # "svr",
         "mlp"
     ]
     REGRESSION_EVAL_METRIC = "r2"
@@ -85,98 +67,86 @@ def main() -> None:
         seeds = [RANDOM_SEED + k for k in range(NUM_REPEAT_RUNS)]
 
         if BACKEND == "point":
-            if POINT_TASK == "classification":
-                summary_kind = "classification"
-                print(f"Classification label: {label_fn.__name__} (study dir {study_dir.name!r})")
-                for seed in seeds:
-                    print(f"  run seed={seed}")
-                    raw_runs.append(
-                        run_study_classification(
-                            study_dir,
-                            label_fn=label_fn,
-                            time_point_idx=TIME_POINT_IDX,
-                            classifier_types=CLASSIFIER_TYPES,
-                            random_seed=seed,
-                            cv_folds=CV_FOLDS,
-                        )
-                    )
-                stem = f"{raw_runs[0]['study_name']}_classification_results"
-            elif POINT_TASK == "regression":
-                summary_kind = "regression"
-                regression_metric_for_summary = REGRESSION_EVAL_METRIC
-                is_gastruloid = "gastruloid" in study_dir.name.lower()
-                if is_gastruloid:
-                    seg_csv = GASTRULOID_SEGMENTATION_CSV.expanduser().resolve()
-                    prop_specs = _coerce_property_names(GASTRULOID_PROPERTY_NAME)
-                    src_label = "gastruloid segmentations"
-                else:
-                    arcade_csv = EMERGENTS_CSV.expanduser().resolve()
-                    tps_arcade = EMERGENT_TARGET_TIMEPOINTS
-                    prop_specs = _coerce_property_names(EMERGENT_PROPERTY_NAME)
-                    src_label = "arcade emergents"
-
-                out_dir = repo / "results_downstream" / "classification_results"
-                out_dir.mkdir(parents=True, exist_ok=True)
-
-                for prop_spec in prop_specs:
-                    tmp_property_csv: Path | None = None
-                    try:
-                        if is_gastruloid:
-                            tmp_property_csv, tps, resolved_prop = _build_gastruloid_property_csv(
-                                seg_csv,
-                                prop_spec,
-                            )
-                            esc = tmp_property_csv
-                            prop_name = resolved_prop
-                        else:
-                            esc = arcade_csv
-                            tps = tps_arcade
-                            prop_name = prop_spec
-
-                        if tps:
-                            tps_msg = f"{len(tps)} timepoints ({tps[0]!r} … {tps[-1]!r})"
-                        else:
-                            tps_msg = "time_point_idx / iloc (no explicit days)"
-                        print(
-                            f"Point regression: property={prop_name!r} from {src_label} {esc} "
-                            f"({tps_msg}, study dir {study_dir.name!r})"
-                        )
-                        raw_runs = []
-                        for seed in seeds:
-                            print(f"  run seed={seed}")
-                            raw_runs.append(
-                                run_study_point_emergent_regression(
-                                    study_dir,
-                                    emergents_csv=esc,
-                                    emergent_property_name=prop_name,
-                                    time_point_idx=TIME_POINT_IDX,
-                                    target_timepoints=tps,
-                                    regressor_types=REGRESSOR_TYPES,
-                                    random_seed=seed,
-                                    cv_folds=CV_FOLDS,
-                                    eval_metric=REGRESSION_EVAL_METRIC,
-                                )
-                            )
-                        raw = _merge_repeat_exports(raw_runs, summary_kind, seeds)
-                        safe_prop = str(prop_name).replace("/", "_")
-                        stem = f"{raw_runs[0]['study_name']}_point_regression_{safe_prop.lower()}"
-                        cls_path = out_dir / f"{stem}.json"
-                        with open(cls_path, "w", encoding="utf-8") as f:
-                            json.dump(raw, f)
-                        n = len(raw["model_dataset_results"])
-                        print(f"Wrote {cls_path} ({n} model/dataset rows, backend={BACKEND})")
-                        _print_best_downstream_result(
-                            raw,
-                            summary_kind=summary_kind,
-                            regression_eval_metric=regression_metric_for_summary,
-                        )
-                    finally:
-                        if tmp_property_csv is not None and tmp_property_csv.is_file():
-                            tmp_property_csv.unlink(missing_ok=True)
-
-                return
+            summary_kind = "regression"
+            regression_metric_for_summary = REGRESSION_EVAL_METRIC
+            is_gastruloid = "gastruloid" in study_dir.name.lower()
+            if is_gastruloid:
+                seg_csv = GASTRULOID_SEGMENTATION_CSV.expanduser().resolve()
+                targets = GASTRULOID_PROPERTY_NAME
+                src_label = "gastruloid segmentations"
             else:
-                raise ValueError(f"Unknown POINT_TASK: {POINT_TASK!r}")
+                arcade_csv = EMERGENTS_CSV.expanduser().resolve()
+                tps_arcade = EMERGENT_TARGET_TIMEPOINTS
+                targets = EMERGENT_PROPERTY_NAME
+                src_label = "arcade emergents"
+
+            out_dir = Path("results_downstream/classification_results")
+            out_dir.mkdir(parents=True, exist_ok=True)
+
+            for target in targets:
+                tmp_property_csv = None
+                try:
+                    if is_gastruloid:
+                        tmp_property_csv, tps, resolved_prop = _build_gastruloid_property_csv(
+                            seg_csv,
+                            target,
+                        )
+                        esc = tmp_property_csv
+                        prop_name = resolved_prop
+                    else:
+                        esc = arcade_csv
+                        tps = tps_arcade
+                        prop_name = target
+
+                    if tps:
+                        tps_msg = f"{len(tps)} timepoints ({tps[0]!r} … {tps[-1]!r})"
+                    else:
+                        tps_msg = "time_point_idx / iloc (no explicit days)"
+                    print(
+                        f"Point regression: property={prop_name!r} from {src_label} {esc} "
+                        f"({tps_msg}, study dir {study_dir.name!r})"
+                    )
+                    raw_runs = []
+                    for seed in seeds:
+                        print(f"  run seed={seed}")
+                        raw_runs.append(
+                            run_study_point_emergent_regression(
+                                study_dir,
+                                emergents_csv=esc,
+                                emergent_property_name=prop_name,
+                                time_point_idx=TIME_POINT_IDX,
+                                target_timepoints=tps,
+                                regressor_types=REGRESSOR_TYPES,
+                            encoder_model_names=ENCODER_MODELS,
+                                random_seed=seed,
+                                cv_folds=CV_FOLDS,
+                                eval_metric=REGRESSION_EVAL_METRIC,
+                            )
+                        )
+                    raw = _merge_repeat_exports(raw_runs, summary_kind, seeds)
+                    safe_prop = str(prop_name).replace("/", "_")
+                    stem = f"{raw_runs[0]['study_name']}_point_regression_{safe_prop.lower()}"
+                    cls_path = out_dir / f"{stem}.json"
+                    raw = _merge_results_with_existing_file(
+                        cls_path,
+                        raw,
+                        summary_kind=summary_kind,
+                        selected_model_names=ENCODER_MODELS,
+                    )
+                    with open(cls_path, "w", encoding="utf-8") as f:
+                        json.dump(raw, f)
+                    n = len(raw["model_dataset_results"])
+                    print(f"Wrote {cls_path} ({n} model/dataset rows, backend={BACKEND})")
+                    _print_best_downstream_result(
+                        raw,
+                        summary_kind=summary_kind,
+                        regression_eval_metric=regression_metric_for_summary,
+                    )
+                finally:
+                    if tmp_property_csv is not None and tmp_property_csv.is_file():
+                        tmp_property_csv.unlink(missing_ok=True)
+
+            return
         elif BACKEND == "trajectory":
             summary_kind = "trajectory"
             print(f"Classification label: {label_fn.__name__} (study dir {study_dir.name!r})")
@@ -191,6 +161,7 @@ def main() -> None:
                         num_classes=TRAJECTORY_NUM_CLASSES,
                         max_epochs=TRAJECTORY_MAX_EPOCHS,
                         patience=TRAJECTORY_PATIENCE,
+                            encoder_model_names=ENCODER_MODELS,
                     )
                 )
             stem = f"{raw_runs[0]['study_name']}_trajectory_classification_results"
@@ -199,9 +170,15 @@ def main() -> None:
 
         raw = _merge_repeat_exports(raw_runs, summary_kind, seeds)
 
-        out_dir = repo / "results_downstream" / "classification_results"
+        out_dir = Path("results_downstream/classification_results")
         out_dir.mkdir(parents=True, exist_ok=True)
         cls_path = out_dir / f"{stem}.json"
+        raw = _merge_results_with_existing_file(
+            cls_path,
+            raw,
+            summary_kind=summary_kind,
+            selected_model_names=ENCODER_MODELS,
+        )
         with open(cls_path, "w", encoding="utf-8") as f:
             json.dump(raw, f)
 
@@ -218,21 +195,6 @@ def main() -> None:
     except (FileNotFoundError, ValueError) as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
-
-
-def _coerce_property_names(names: str | list[str]) -> list[str]:
-    """Single string or non-empty list of target column names for emergent / segmentation regression."""
-    if isinstance(names, str):
-        s = names.strip()
-        if not s:
-            raise ValueError("property name must be non-empty")
-        return [s]
-    if not names:
-        raise ValueError("property names list must be non-empty")
-    out = [str(x).strip() for x in names]
-    if not all(out):
-        raise ValueError("property names must be non-empty strings")
-    return out
 
 
 def _test_accuracy(row: dict) -> float:
@@ -267,8 +229,6 @@ def _merge_repeat_exports(
     Combine repeated runs into one JSON-friendly dict: per-row repeat metrics (for error bars),
     no per-sample correct/incorrect or y_true/y_pred lists.
     """
-    if not raw_runs:
-        raise ValueError("raw_runs is empty")
     base = raw_runs[0]
     out: dict[str, Any] = {
         "study_name": base.get("study_name"),
@@ -313,6 +273,73 @@ def _merge_repeat_exports(
     return out
 
 
+def _results_row_key(summary_kind: str | None, row: dict[str, Any]) -> tuple[Hashable, ...]:
+    if summary_kind == "classification":
+        return (row.get("model_name"), row.get("dataset_name"), row.get("classifier_type"))
+    if summary_kind == "regression":
+        return (row.get("model_name"), row.get("dataset_name"), row.get("regressor_type"))
+    return (row.get("model_name"), row.get("dataset_name"))
+
+
+def _index_rows_by_key(
+    rows: list[dict[str, Any]],
+    key_fn: Callable[[dict[str, Any]], tuple[Hashable, ...]],
+) -> dict[tuple[Hashable, ...], dict[str, Any]]:
+    return {key_fn(row): row for row in rows}
+
+
+def _merge_rows_by_key(
+    existing_rows: list[dict[str, Any]],
+    new_rows: list[dict[str, Any]],
+    key_fn: Callable[[dict[str, Any]], tuple[Hashable, ...]],
+    selected_model_names: list[str] | None = None,
+) -> list[dict[str, Any]]:
+    selected = {str(x) for x in selected_model_names} if selected_model_names else None
+    merged_by_key = {
+        key: row
+        for key, row in _index_rows_by_key(existing_rows, key_fn).items()
+        if selected is None or str(row.get("model_name")) not in selected
+    }
+    merged_by_key.update(_index_rows_by_key(new_rows, key_fn))
+    return [merged_by_key[k] for k in sorted(merged_by_key, key=lambda t: tuple(str(x) for x in t))]
+
+
+def _merge_results_with_existing_file(
+    cls_path: Path,
+    new_raw: dict[str, Any],
+    summary_kind: str | None,
+    selected_model_names: list[str] | None,
+) -> dict[str, Any]:
+    new_rows = new_raw.get("model_dataset_results") or []
+    if not new_rows:
+        wanted = ", ".join(selected_model_names) if selected_model_names else "all encoder models"
+        raise ValueError(f"No downstream results were produced for {wanted}.")
+
+    if not cls_path.is_file():
+        return new_raw
+
+    with open(cls_path, encoding="utf-8") as f:
+        existing_raw = json.load(f)
+
+    existing_rows = existing_raw.get("model_dataset_results") or []
+    key_fn = lambda row: _results_row_key(summary_kind, row)
+    merged_rows = _merge_rows_by_key(
+        existing_rows,
+        new_rows,
+        key_fn=key_fn,
+        selected_model_names=selected_model_names,
+    )
+
+    merged_meta = dict(existing_raw.get("meta") or {})
+    merged_meta.update(new_raw.get("meta") or {})
+
+    out = dict(existing_raw)
+    out.update(new_raw)
+    out["meta"] = merged_meta
+    out["model_dataset_results"] = merged_rows
+    return out
+
+
 def _merge_repeat_classification_rows(
     raw_runs: list[dict[str, Any]],
     key_fn: Callable[[dict[str, Any]], tuple[Hashable, ...]],
@@ -321,7 +348,7 @@ def _merge_repeat_classification_rows(
     all_keys: set[tuple[Hashable, ...]] = set()
     per_run: list[dict[tuple[Hashable, ...], dict[str, Any]]] = []
     for run in raw_runs:
-        idx = {key_fn(r): r for r in (run.get("model_dataset_results") or [])}
+        idx = _index_rows_by_key(run.get("model_dataset_results") or [], key_fn)
         per_run.append(idx)
         all_keys.update(idx.keys())
 
@@ -359,16 +386,15 @@ def _merge_repeat_classification_rows(
 def _merge_repeat_regression_rows(
     raw_runs: list[dict[str, Any]],
     key_fn: Callable[[dict[str, Any]], tuple[Hashable, ...]],
-    *,
     eval_metric: str = "r2",
-) -> list[dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
     drop_keys = frozenset(
         {"test_y_true", "test_y_pred", "test_sample_ids", "test_timepoints"}
     )
     all_keys: set[tuple[Hashable, ...]] = set()
     per_run: list[dict[tuple[Hashable, ...], dict[str, Any]]] = []
     for run in raw_runs:
-        idx = {key_fn(r): r for r in (run.get("model_dataset_results") or [])}
+        idx = _index_rows_by_key(run.get("model_dataset_results") or [], key_fn)
         per_run.append(idx)
         all_keys.update(idx.keys())
 
@@ -453,11 +479,10 @@ def _merge_repeat_regression_rows(
 
 def _print_best_downstream_result(
     raw: dict,
-    *,
     summary_kind: str,
     regression_eval_metric: str | None = None,
     ) -> None:
-    """Print the single best row in ``model_dataset_results`` for the current task."""
+    """Print the best row in ``model_dataset_results`` for the current task."""
     rows = raw.get("model_dataset_results") or []
     if not rows:
         print("No model/dataset rows in results.")
@@ -520,26 +545,6 @@ def _print_best_downstream_result(
             )
         return
 
-    if summary_kind == "classification":
-        print("\n--- Best per encoder model (by test accuracy) ---")
-        for model_name in model_names:
-            model_rows = [r for r in rows if r.get("model_name") == model_name]
-            best = max(model_rows, key=_test_accuracy)
-            acc = _test_accuracy(best)
-            c, w = best.get("total_correct", 0), best.get("total_incorrect", 0)
-            head = best.get("classifier_type", "?")
-
-            print(f"\nEncoder: {model_name}")
-            print(f"  dataset:     {best.get('dataset_name')}")
-            print(f"  classifier:  {head}")
-            std = best.get("test_accuracy_std")
-            n_rep = len(best.get("test_accuracies") or [])
-            if n_rep > 0 and std is not None:
-                print(f"  test acc:    {acc:.4f} ± {std:.4f} (mean over {n_rep} runs)")
-            else:
-                print(f"  test acc:    {acc:.4f} ({c} correct / {c + w} total)")
-        return
-
     if summary_kind == "trajectory":
         meta = raw.get("meta") or {}
         cell = meta.get("cell", "?")
@@ -569,7 +574,6 @@ def _print_best_downstream_result(
                 print(f"  test acc:    {acc:.4f} ({c} correct / {c + w} total)")
         return
 
-    print(f"Unknown summary_kind: {summary_kind!r}")
 
 def label_fn_for_study_dir(study_dir: Path):
     name = study_dir.name.lower()
@@ -600,8 +604,8 @@ def _build_gastruloid_property_csv(
     property_name: str,
     ) -> tuple[Path, list[float], str]:
     """
-    Convert gastruloid ``segmentations.csv`` into emergent-like columns:
-    ``sample_id,timepoint,<property_column>``.
+    Convert gastruloid ``segmentations.csv`` into columns:
+    ``sample_id,timepoint,<target_column>``.
     """
     df = pd.read_csv(source_csv)
     if "Image" not in df.columns:

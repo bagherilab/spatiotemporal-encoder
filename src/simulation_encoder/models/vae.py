@@ -11,6 +11,7 @@ from simulation_encoder.logger import Logger
 from simulation_encoder.loaders.loader import Loader
 from simulation_encoder.models.rbm import RBM, CRBM
 from simulation_encoder.models.base_nn import BaseNN
+from simulation_encoder.models.saliency_maps import reconstruction_saliency_map
 
 
 class VAE(BaseNN):
@@ -332,18 +333,20 @@ class VAE(BaseNN):
         return avg_loss
 
     def get_saliency_map(self, x: torch.Tensor) -> torch.Tensor:
-        """Calculates the saliency map of the input tensor"""
-        self.eval()
+        """
+        Grad-CAM for the reconstruction loss (same hook priority as ``AE``):
 
-        image_criteria = self.criterion["image"]
-        x.requires_grad = True
-        pred_image, _, _, _ = self(x)
-
-        loss_image = image_criteria(pred_image, x)
-        loss_image.backward()
-
-        saliency_map, _ = torch.max(x.grad.data.abs(), dim=1)  # type: ignore
-        return saliency_map
+        1. ``AdaptiveAvgPool2d`` → Grad-CAM on its input (CNN / FNO).
+        2. ``VisionTransformer`` → Grad-CAM on ``norm`` output tokens reshaped to patch grid.
+        3. Fallback: |∂L/∂x|.
+        """
+        return reconstruction_saliency_map(
+            self,
+            self.encoder,
+            x,
+            self.criterion["image"],
+            lambda t: self(t)[0],
+        )
 
     def pretrain_encoder_rbm(
         self,

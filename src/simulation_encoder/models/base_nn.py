@@ -15,7 +15,24 @@ from simulation_encoder.models.vit import (
 
 # Layer types that are not in torch.nn
 NEURALOP_LAYER_TYPES = ("FNO", "TFNO")
-CUSTOM_LAYER_TYPES = ("Unflatten", "VisionTransformer", "VisionTransformerDecoder")
+CUSTOM_LAYER_TYPES = ("Unflatten", "VisionTransformer", "VisionTransformerDecoder", "PointwiseLinear")
+
+_DECODER_NUM_UPSAMPLE_STAGES = 4
+_DECODER_INIT_CHANNELS = 64
+
+
+class PointwiseLinear(nn.Module):
+    """1×1 convolution (channel mixing without spatial interaction)."""
+
+    def __init__(self, in_channels: int, out_channels: int) -> None:
+        super().__init__()
+        self.linear = nn.Linear(in_channels, out_channels)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # (B, C, H, W) → (B, H, W, C) → linear → (B, H, W, C') → (B, C', H, W)
+        x = x.permute(0, 2, 3, 1).contiguous()
+        x = self.linear(x)
+        return x.permute(0, 3, 1, 2).contiguous()
 
 
 class BaseNN(ABC, nn.Module):
@@ -96,12 +113,17 @@ class BaseNN(ABC, nn.Module):
 
     def _base_placeholder_values(self) -> dict[str, Any]:
         flat_size = self.image_size * self.image_size * self.num_channels
+        decoder_base_hw = self.image_size // (2 ** _DECODER_NUM_UPSAMPLE_STAGES)
+        decoder_init_ch = _DECODER_INIT_CHANNELS
         return {
             "num_channels": self.num_channels,
             "latent_dim": self.latent_dim,
             "num_timepoints": self.num_timepoints,
             "image_size": self.image_size,
             "num_channels_flat": flat_size,
+            "decoder_base_hw": decoder_base_hw,
+            "decoder_init_channels": decoder_init_ch,
+            "decoder_spatial_flat": decoder_init_ch * decoder_base_hw * decoder_base_hw,
         }
 
     def _resolve_vision_transformer_head_dim(self, raw_config: dict[str, Any]) -> int:
@@ -166,7 +188,7 @@ class BaseNN(ABC, nn.Module):
             if val in values:
                 resolved[key] = values[val]
 
-        if layer_type in ("Conv2d", "ConvTranspose2d"):
+        if layer_type in ("Conv2d", "ConvTranspose2d", "PointwiseLinear"):
             for k in ("in_channels", "out_channels"):
                 replace(k)
         elif layer_type == "Linear":
@@ -260,6 +282,12 @@ class BaseNN(ABC, nn.Module):
                 "in_channels": resolved.get("in_channels", self.num_channels),
             }
             return build_vision_transformer_decoder(resolved, context)
+
+        if layer_type == "PointwiseLinear":
+            return PointwiseLinear(
+                in_channels=resolved["in_channels"],
+                out_channels=resolved["out_channels"],
+            )
 
         if layer_type == "Unflatten":
             shape = resolved.get(

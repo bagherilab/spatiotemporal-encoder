@@ -10,8 +10,8 @@ archive/
 legacy/
 
 # Legacy files
-src/simulation_encoder/vae.py
-src/simulation_encoder/rbm.py
+src/simulation_encoder/models/vae.py
+src/simulation_encoder/models/rbm.py
 src/conf/models/legacy/
 src/conf/hyperparams/legacy/
 src/conf/studies/legacy/

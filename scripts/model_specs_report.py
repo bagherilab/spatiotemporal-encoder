@@ -57,7 +57,7 @@ def main() -> None:
     parser.add_argument(
         "--models",
         nargs="+",
-        default=["ae_small_mirror", "cae_small_mirror", "neuralop_small_mirror", "vit_small_mirror"],
+        default=["ae_small", "cae_small", "neuralop_small", "vit_small"],
         help="Model config names from src/conf/models (without .yaml).",
     )
     parser.add_argument(

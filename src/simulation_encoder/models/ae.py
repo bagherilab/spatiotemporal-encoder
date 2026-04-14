@@ -11,6 +11,7 @@ from simulation_encoder.logger import Logger
 from simulation_encoder.loaders.loader import Loader
 from simulation_encoder.models.rbm import RBM, CRBM
 from simulation_encoder.models.base_nn import BaseNN
+from simulation_encoder.models.saliency_maps import reconstruction_saliency_map
 
 
 class AE(BaseNN):
@@ -297,27 +298,16 @@ class AE(BaseNN):
         return avg_loss
 
     def get_saliency_map(self, x: torch.Tensor) -> torch.Tensor:
-        """Calculates the saliency map of the input tensor"""
-        self.eval()
-
-        image_criteria = self.criterion["image"]
-        x.requires_grad = True
-
-        try:
-            pred_image, _ = self(x)
-            loss_image = image_criteria(pred_image, x)
-            loss_image.backward()
-
-            if x.grad is not None:
-                saliency_map, _ = torch.max(x.grad.data.abs(), dim=1)  # type: ignore
-            else:
-                raise RuntimeError("Gradient is None")
-
-        except RuntimeError as e:
-            print(f"Error during saliency map computation: {e}")
-            saliency_map = torch.zeros_like(x[:, 0, :, :])
-
-        return saliency_map
+        """
+        Grad-CAM for the reconstruction loss. Uses the last spatial layer before bottleneck in the encoder.
+        """
+        return reconstruction_saliency_map(
+            self,
+            self.encoder,
+            x,
+            self.criterion["image"],
+            lambda t: self(t)[0],
+        )
 
     def pretrain_encoder_rbm(
         self,
@@ -325,7 +315,7 @@ class AE(BaseNN):
         rbm_epochs: int = 5,
         rbm_lr: float = 0.01,
         data_fraction: float = 0.2,
-    ) -> None:
+        ) -> None:
         """
         Pretrains the encoder using a Restricted Boltzmann Machine.
 
@@ -412,7 +402,7 @@ class AE(BaseNN):
 
     def _calc_reconstruction_loss(
         self, losses: dict[str, torch.Tensor]
-    ) -> tuple[torch.Tensor, torch.Tensor]:
+        ) -> tuple[torch.Tensor, torch.Tensor]:
         """Calculates the combined loss from individual losses and weights"""
         combined_loss = torch.Tensor(sum([losses[key] for key in losses.keys()])).detach()
         combined_loss_weighted = torch.Tensor(

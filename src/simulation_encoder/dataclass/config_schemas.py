@@ -120,6 +120,11 @@ class LayerConfig(BaseModel):
     n_modes: Optional[list[int]] = None
     projection_channels: Optional[int] = None
     lifting_channels: Optional[int] = None
+    n_layers: Optional[int] = None
+    fno_block_precision: Optional[str] = None
+    factorization: Optional[str] = None
+    stabilizer: Optional[str] = None
+    channel_mlp_expansion: Optional[float] = None
     # Vision Transformer
     patch_size: Optional[int] = None
     embed_dim: Optional[int] = None

@@ -4,7 +4,7 @@ import json
 import warnings
 from collections import defaultdict
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
@@ -143,7 +143,7 @@ def get_shaded_color(base_hex: str, timepoint: float, min_tp: float, max_tp: flo
     return shaded_rgb
 
 
-# --- Parity 2c: cell counts + size legend ---------------------------------
+# Parity 2c: cell counts + size legend
 
 PARITY_BASE_DOT = 36.0
 PARITY_COUNT_POWER = 1.0
@@ -201,7 +201,7 @@ def plot_parity_size_legend(
     return fig
 
 
-# --- Downstream emergent-property parity (classification_results JSON) -----
+# Downstream emergent-property parity (classification_results JSON)
 
 EMERGENT_PARITY_GRAY = "0.42"
 EMERGENT_PARITY_DIAG = "0.35"
@@ -249,11 +249,25 @@ def _emergent_equal_aspect_datalim_silent(ax: plt.Axes) -> None:
         ax.set_aspect("equal", adjustable="datalim")
 
 
-def _emergent_style_axes(ax: plt.Axes, *, tick_labelsize: float) -> None:
+def _emergent_style_axes(
+    ax: plt.Axes, tick_labelsize: float, show_ticks: bool = True
+) -> None:
     ax.set_frame_on(False)
     for spine in ax.spines.values():
         spine.set_visible(False)
-    ax.tick_params(axis="both", which="both", length=3, width=0.6, labelsize=tick_labelsize)
+    if show_ticks:
+        ax.tick_params(axis="both", which="both", length=3, width=0.6, labelsize=tick_labelsize)
+    else:
+        ax.tick_params(
+            axis="both",
+            which="both",
+            length=0,
+            width=0,
+            labelleft=False,
+            labelbottom=False,
+            left=False,
+            bottom=False,
+        )
 
 
 def _emergent_tick_formatters(ax: plt.Axes, xticks: np.ndarray, yticks: np.ndarray) -> None:
@@ -302,19 +316,27 @@ def emergent_parity_tick_limits(
 def plot_emergent_parity_row(
     emergent_property: str,
     payload: dict,
-    *,
     models: list[str],
     fig_width_per_col: float = 2.15,
     fig_row_height: float = 2.05,
     row_ticks: dict[str, dict[str, list[float] | None]] | None = None,
     tick_labelsize: float = 12,
+    model_panels: Literal["horizontal", "vertical"] = "horizontal",
+    show_ticks: bool = True,
 ) -> plt.Figure:
-    """One row of parity scatters: one panel per encoder in ``models`` order."""
+    """
+    Parity scatters: one panel per encoder in ``models`` order.
+    """
     prop = emergent_property
-    n_cols = len(models)
-    fig_w = fig_width_per_col * n_cols
-    fig, axes = plt.subplots(1, n_cols, figsize=(fig_w, fig_row_height), squeeze=False, constrained_layout=False)
-    ax_row = axes[0]
+    n = len(models)
+    if model_panels == "horizontal":
+        fig_w, fig_h = fig_width_per_col * n, fig_row_height
+        fig, axes = plt.subplots(1, n, figsize=(fig_w, fig_h), squeeze=False, constrained_layout=False)
+        panel_axes = list(axes[0])
+    else:
+        fig_w, fig_h = fig_width_per_col, fig_row_height * n
+        fig, axes = plt.subplots(n, 1, figsize=(fig_w, fig_h), squeeze=False, constrained_layout=False)
+        panel_axes = np.ravel(axes).tolist()
 
     best = best_row_per_encoder(payload["model_dataset_results"])
     y_lo_r, y_hi_r = np.inf, -np.inf
@@ -330,9 +352,12 @@ def plot_emergent_parity_row(
         x_hi_r = max(x_hi_r, float(np.nanmax(y)))
 
     if not np.isfinite(y_lo_r):
-        for ax in ax_row:
+        for ax in panel_axes:
             ax.set_axis_off()
-        fig.subplots_adjust(left=0.08, right=0.99, top=0.99, bottom=0.08, wspace=0.12)
+        if model_panels == "horizontal":
+            fig.subplots_adjust(left=0.08, right=0.99, top=0.99, bottom=0.08, wspace=0.12)
+        else:
+            fig.subplots_adjust(left=0.08, right=0.99, top=0.99, bottom=0.08, hspace=0.12)
         return fig
 
     span_y = y_hi_r - y_lo_r
@@ -345,8 +370,8 @@ def plot_emergent_parity_row(
     xticks, yticks, xa, xb, ya, yb = emergent_parity_tick_limits(prop, row_ticks, xa, xb, ya, yb)
 
     for ci, model_name in enumerate(models):
-        ax = ax_row[ci]
-        _emergent_style_axes(ax, tick_labelsize=tick_labelsize)
+        ax = panel_axes[ci]
+        _emergent_style_axes(ax, tick_labelsize=tick_labelsize, show_ticks=show_ticks)
         row = best.get(model_name)
         if row is None:
             ax.set_axis_off()
@@ -358,32 +383,49 @@ def plot_emergent_parity_row(
             yhat,
             s=EMERGENT_PARITY_SCATTER_SIZE,
             alpha=EMERGENT_PARITY_SCATTER_ALPHA,
-            c=EMERGENT_PARITY_GRAY,
+            c="#152F67",
             edgecolors="none",
             rasterized=True,
         )
         ax.set_xlim(xa, xb)
         ax.set_ylim(ya, yb)
-        ax.set_xticks(xticks)
-        ax.set_yticks(yticks)
+        if show_ticks:
+            ax.set_xticks(xticks)
+            ax.set_yticks(yticks)
+        else:
+            ax.set_xticks([])
+            ax.set_yticks([])
         ax.minorticks_off()
         _emergent_equal_aspect_datalim_silent(ax)
         xl, yl = ax.get_xlim(), ax.get_ylim()
         t0, t1 = max(xl[0], yl[0]), min(xl[1], yl[1])
         if t1 >= t0:
             ax.plot([t0, t1], [t0, t1], color=EMERGENT_PARITY_DIAG, linestyle="--", linewidth=0.9)
-        ax.tick_params(
-            labelleft=ci == 0,
-            labelbottom=True,
-            left=ci == 0,
-            bottom=True,
-            labelsize=tick_labelsize,
-        )
-        _emergent_tick_formatters(ax, xticks, yticks)
-        for tick in (*ax.get_xticklabels(), *ax.get_yticklabels()):
-            tick.set_fontsize(tick_labelsize)
+        if show_ticks:
+            if model_panels == "horizontal":
+                ax.tick_params(
+                    labelleft=ci == 0,
+                    labelbottom=True,
+                    left=ci == 0,
+                    bottom=True,
+                    labelsize=tick_labelsize,
+                )
+            else:
+                ax.tick_params(
+                    labelleft=ci == 0,
+                    labelbottom=ci == n - 1,
+                    left=ci == 0,
+                    bottom=ci == n - 1,
+                    labelsize=tick_labelsize,
+                )
+            _emergent_tick_formatters(ax, xticks, yticks)
+            for tick in (*ax.get_xticklabels(), *ax.get_yticklabels()):
+                tick.set_fontsize(tick_labelsize)
 
-    fig.subplots_adjust(left=0.08, right=0.99, top=0.99, bottom=0.08, wspace=0.12)
+    if model_panels == "horizontal":
+        fig.subplots_adjust(left=0.08, right=0.99, top=0.99, bottom=0.08, wspace=0.12)
+    else:
+        fig.subplots_adjust(left=0.08, right=0.99, top=0.99, bottom=0.08, hspace=0.12)
     return fig
 
 
@@ -391,14 +433,20 @@ def print_emergent_parity_legend(
     emergent_properties: list[str],
     payloads: list[dict],
     model_order: list[str],
-) -> None:
+    model_panels: Literal["horizontal", "vertical"] = "horizontal",
+    ) -> None:
     """Print row order and R² table (stdout)."""
     print("Emergent properties (top → bottom row order):")
     for i, name in enumerate(emergent_properties, start=1):
         print(f"  {i}. {name}")
     w_prop = max(len("property"), max((len(p) for p in emergent_properties), default=8))
     w_model = max(10, max((len(m) for m in model_order), default=8))
-    print("\nTest R² (best row per encoder; columns left → right):")
+    axis_blurb = (
+        "columns left → right"
+        if model_panels == "horizontal"
+        else "rows top → bottom"
+    )
+    print(f"\nTest R² (best row per encoder; panels {axis_blurb}):")
     hdr = f"  {'property':<{w_prop}}" + "".join(f"{m:>{w_model}}" for m in model_order)
     print(hdr)
     print("  " + "-" * (w_prop + w_model * len(model_order)))
