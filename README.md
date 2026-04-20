@@ -109,6 +109,12 @@ Examples can be found in the directory, but they must include:
   ```
 - Most existing pytorch layers should be compatible with this yaml format.
 
+For the manuscript "Inductive bias influences the spatial scale of biological features learned from images.", the following model yaml files were used for each encoder referenced in the paper:
+- MLP: conf/models/ae_small.yaml
+- CNN: conf/models/cae_small.yaml
+- FNO: conf/models/neuralop_small.yaml
+- ViT: conf/models/vit_small.yaml
+
 ### Hyperparameters configs
 
 Inside the `conf/hyperparams` directory, configs can be used to specify the model hyperparameters.
