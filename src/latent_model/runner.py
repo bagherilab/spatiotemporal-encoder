@@ -90,6 +90,7 @@ def gastruloid_binary_label(sample_id: str) -> int:
     if sample_id.startswith("array2"):
         return 1
 
+
 def arcade_colony_tissue_label(sample_id: str) -> int:
     """
     0 — colony: C       1 — tissue: CH
@@ -98,6 +99,7 @@ def arcade_colony_tissue_label(sample_id: str) -> int:
         return 1
     if sample_id.startswith("C_"):
         return 0
+
 
 def iter_encoded_csv_paths(study_dir: Path) -> Iterator[tuple[str, str, Path]]:
     """Yield (encoder_model_name, dataset_name, encoded_data.csv path)."""
@@ -118,7 +120,7 @@ def load_latent_train_val_test(
     val_size: float = 0.2,
     split_mode: str = "csv",
     random_seed: int = 42,
-    ) -> tuple[pd.DataFrame, pd.Series, pd.DataFrame, pd.Series, pd.DataFrame, pd.Series]:
+) -> tuple[pd.DataFrame, pd.Series, pd.DataFrame, pd.Series, pd.DataFrame, pd.Series]:
     """
     Build (X, y) for train/val/test from encoded CSV.
 
@@ -181,10 +183,11 @@ def load_latent_train_val_test(
     X_test, y_test = pack(test_ids)
     return X_train, y_train, X_val, y_val, X_test, y_test
 
+
 def emergent_target_lookup_from_csv(
     emergents_csv: Path,
     target_column: str,
-    ) -> dict[tuple[str, float], float]:
+) -> dict[tuple[str, float], float]:
     """
     Load target values from CSV.
     """
@@ -222,6 +225,7 @@ def emergent_target_lookup_from_csv(
         out[(sid, tp)] = yv
     return out
 
+
 def load_latent_train_val_test_emergent_regression(
     csv_path: Path,
     time_point_idx: int,
@@ -232,14 +236,15 @@ def load_latent_train_val_test_emergent_regression(
     split_mode: str = "csv",
     target_timepoints: Sequence[float] | None = None,
     timepoint_atol: float = 1e-5,
-    ) -> tuple[
+) -> tuple[
     pd.DataFrame,
     pd.Series,
     pd.DataFrame,
     pd.Series,
     pd.DataFrame,
     pd.Series,
-    dict[str, Any],]:
+    dict[str, Any],
+]:
     """
     Latent features joined to ``emergent_lookup`` on ``(sample_id, timepoint)``.
     """
@@ -263,7 +268,9 @@ def load_latent_train_val_test_emergent_regression(
     enc_sids = set(data["sample_id"].unique())
     em_sids = {k[0] for k in emergent_lookup}
     if not enc_sids & em_sids:
-        raise ValueError(f"{csv_path}: no sample_id overlap between this encoded_data.csv and the emergents table ")
+        raise ValueError(
+            f"{csv_path}: no sample_id overlap between this encoded_data.csv and the emergents table "
+        )
 
     n_no_latent_row = 0
     n_missing_target = 0
@@ -416,7 +423,7 @@ def _fit_pca_on_train(
 def _pca_transform_dataframes(
     pca: PCA,
     *dfs: pd.DataFrame,
-    ) -> list[pd.DataFrame]:
+) -> list[pd.DataFrame]:
     """Project each DataFrame into PC space, preserving index."""
     pc_cols = [f"PC{i + 1}" for i in range(pca.n_components_)]
     out: list[pd.DataFrame] = []
@@ -431,9 +438,7 @@ def _pca_transform_sequence_loader(loader: "SequenceLoader") -> PCA:
     Fit PCA on training sequences and transform
     every sequence in the loader.
     """
-    train_vecs = np.concatenate(
-        [loader.sequences[sid] for sid in loader._train_ids], axis=0
-    )
+    train_vecs = np.concatenate([loader.sequences[sid] for sid in loader._train_ids], axis=0)
     pca = PCA(n_components=train_vecs.shape[1])
     pca.fit(train_vecs)
     for sid in list(loader.sequences):
@@ -451,7 +456,7 @@ def run_regressor_on_splits(
     regressor_type: str = "linear_regression",
     cv_folds: int = 5,
     eval_metric: str = "r2",
-    ) -> dict[str, Any]:
+) -> dict[str, Any]:
     """Grid search on train; refit on train+val; return test metrics"""
     reg = SupervisedRegressor(model_type=regressor_type, eval_metric=eval_metric)
     scaler = StandardScaler()
@@ -501,7 +506,7 @@ def run_study_point_emergent_regression(
     cv_folds: int = 5,
     split_mode: str = "csv",
     eval_metric: str = "r2",
-    ) -> dict[str, Any]:
+) -> dict[str, Any]:
     """
     Predict an emergent from latents features.
     """
@@ -537,9 +542,12 @@ def run_study_point_emergent_regression(
         for reg_t in reg_list:
             print(f"Running {reg_t} on {model_name} {dataset_name}")
             metrics = run_regressor_on_splits(
-                X_train, y_train,
-                X_val, y_val,
-                X_test, y_test,
+                X_train,
+                y_train,
+                X_val,
+                y_val,
+                X_test,
+                y_test,
                 regressor_type=reg_t,
                 cv_folds=cv_folds,
                 eval_metric=eval_metric,
@@ -571,6 +579,7 @@ def run_study_point_emergent_regression(
         },
     }
 
+
 def run_study_trajectory_classification(
     study_dir: Path,
     study_name: str | None = None,
@@ -587,7 +596,7 @@ def run_study_trajectory_classification(
     encoder_model_names: Sequence[str] | None = None,
     split_mode: str = "csv",
     random_seed: int = 42,
-    ) -> dict[str, Any]:
+) -> dict[str, Any]:
     """
     Classify each sample from its latent trajectory.
     """

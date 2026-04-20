@@ -15,7 +15,12 @@ from simulation_encoder.models.vit import (
 
 # Layer types that are not in torch.nn
 NEURALOP_LAYER_TYPES = ("FNO", "TFNO")
-CUSTOM_LAYER_TYPES = ("Unflatten", "VisionTransformer", "VisionTransformerDecoder", "PointwiseLinear")
+CUSTOM_LAYER_TYPES = (
+    "Unflatten",
+    "VisionTransformer",
+    "VisionTransformerDecoder",
+    "PointwiseLinear",
+)
 
 _DECODER_NUM_UPSAMPLE_STAGES = 4
 _DECODER_INIT_CHANNELS = 64
@@ -113,7 +118,7 @@ class BaseNN(ABC, nn.Module):
 
     def _base_placeholder_values(self) -> dict[str, Any]:
         flat_size = self.image_size * self.image_size * self.num_channels
-        decoder_base_hw = self.image_size // (2 ** _DECODER_NUM_UPSAMPLE_STAGES)
+        decoder_base_hw = self.image_size // (2**_DECODER_NUM_UPSAMPLE_STAGES)
         decoder_init_ch = _DECODER_INIT_CHANNELS
         return {
             "num_channels": self.num_channels,

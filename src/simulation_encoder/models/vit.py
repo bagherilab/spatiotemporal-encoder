@@ -132,9 +132,7 @@ class VisionTransformerDecoder(nn.Module):
         elif token_init == "broadcast":
             self.proj_in = nn.Linear(latent_dim, embed_dim)
         else:
-            raise ValueError(
-                f"token_init must be 'dense' or 'broadcast', got {token_init!r}"
-            )
+            raise ValueError(f"token_init must be 'dense' or 'broadcast', got {token_init!r}")
 
         self.pos_embed = nn.Parameter(torch.zeros(1, self.num_patches, embed_dim))
         nn.init.trunc_normal_(self.pos_embed, std=0.02)

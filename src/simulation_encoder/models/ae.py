@@ -315,7 +315,7 @@ class AE(BaseNN):
         rbm_epochs: int = 5,
         rbm_lr: float = 0.01,
         data_fraction: float = 0.2,
-        ) -> None:
+    ) -> None:
         """
         Pretrains the encoder using a Restricted Boltzmann Machine.
 
@@ -402,7 +402,7 @@ class AE(BaseNN):
 
     def _calc_reconstruction_loss(
         self, losses: dict[str, torch.Tensor]
-        ) -> tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """Calculates the combined loss from individual losses and weights"""
         combined_loss = torch.Tensor(sum([losses[key] for key in losses.keys()])).detach()
         combined_loss_weighted = torch.Tensor(

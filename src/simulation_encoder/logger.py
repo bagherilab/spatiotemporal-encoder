@@ -112,3 +112,7 @@ class Logger:
         if not os.path.exists(self.log_path):
             with open(self.log_path, "w", encoding="utf-8") as f:
                 f.write("")
+
+
+# Alias kept for backward compatibility with modules that import ExperimentLogger
+ExperimentLogger = Logger

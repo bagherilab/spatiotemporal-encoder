@@ -54,18 +54,3 @@ def load_model_yaml(
     )
     yaml_path = os.path.join(yaml_path, yaml_file)
     return load_yaml(yaml_path, ModelArchitectureConfig)
-
-
-def load_yaml(yaml_file: str, config_class: BaseModel) -> BaseModel:
-    try:
-        with open(yaml_file, "r") as file:
-            config = yaml.safe_load(file)
-        return config_class(**config)  # type: ignore
-    except FileNotFoundError as e:
-        traceback.print_exc()
-        raise FileNotFoundError(f"File {yaml_file} not found") from e
-    except ValidationError as e:
-        traceback.print_exc()
-        raise ValidationError(
-            f"Error in loading yaml file: {e}, issue validation with {type(config_class).__name__} param set"
-        ) from e

@@ -61,7 +61,9 @@ class Plotter:
         plt.close()
 
     @staticmethod
-    def show_images(image_lists: list[list[torch.Tensor]], row_labels: list[str] = None) -> None:
+    def show_images(
+        image_lists: list[list[torch.Tensor]], row_labels: list[str] | None = None
+    ) -> None:
         """TODO"""
         num_rows = len(image_lists)
         if num_rows == 0:
