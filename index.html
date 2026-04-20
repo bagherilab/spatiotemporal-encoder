@@ -102,120 +102,98 @@ To install dependencies, navigate to the project folder in the command line and 
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>poetry<span class="w"> </span>install
 </pre></div>
 </div>
-<p>If you do not have poetry installed, refer to the documantation they provide <a class="reference external" href="https://python-poetry.org">here</a>.</p>
+<p>If you do not have poetry installed, refer to the documentation they provide <a class="reference external" href="https://python-poetry.org">here</a>.</p>
 </section>
 <section id="usage">
 <h2>Usage<a class="headerlink" href="#usage" title="Link to this heading"></a></h2>
-<p>Once dependencies are installed, add your data file (currently only <code class="docutils literal notranslate"><span class="pre">csv</span></code> files are supported) to the data folder.
-Next, there are several config files that inform the program on operating details.
-All config files are located inside of the <code class="docutils literal notranslate"><span class="pre">src/conf</span></code> directory.</p>
+<p>Once dependencies are installed, place imaging data under the paths expected by your dataset YAML (see below). Training reads configuration from <code class="docutils literal notranslate"><span class="pre">src/conf/</span></code>.</p>
 <section id="main-config">
 <h3>Main config<a class="headerlink" href="#main-config" title="Link to this heading"></a></h3>
-<p>The <code class="docutils literal notranslate"><span class="pre">config.yaml</span></code> file outlines high-level experimental details, incluing:</p>
+<p><code class="docutils literal notranslate"><span class="pre">src/conf/config.yaml</span></code> sets top-level flags:</p>
 <ul class="simple">
-<li><p>The study name, which should be the same as the corresponding <code class="docutils literal notranslate"><span class="pre">study</span> <span class="pre">config</span></code>.</p></li>
-<li><p>Whether the experiment is a quantity experiment to test the effects of different amounts of training data (<code class="docutils literal notranslate"><span class="pre">quantity_experiment</span></code>)</p></li>
+<li><p><strong>``study_name``</strong>: Base name of the study file in <code class="docutils literal notranslate"><span class="pre">src/conf/studies/</span></code> (without <code class="docutils literal notranslate"><span class="pre">.yaml</span></code>), e.g. <code class="docutils literal notranslate"><span class="pre">architecture-gastruloid</span></code> loads <code class="docutils literal notranslate"><span class="pre">src/conf/studies/architecture-gastruloid.yaml</span></code>.</p></li>
+<li><p><strong>``data_quantity_experiment``</strong>: If <code class="docutils literal notranslate"><span class="pre">true</span></code>, runs the data-quantity sweep; if <code class="docutils literal notranslate"><span class="pre">false</span></code>, runs standard training from the study file.</p></li>
+<li><p><strong>``debug``</strong>: Enables debug behavior in the training runner.</p></li>
 </ul>
 </section>
 <section id="study-configs">
 <h3>Study configs<a class="headerlink" href="#study-configs" title="Link to this heading"></a></h3>
-<p>Inside the <code class="docutils literal notranslate"><span class="pre">conf/studies</span></code> directory, config files can be specified for any study the user wants run.
-Examples can be found in the directory, but they must include:</p>
-<ul>
-<li><p>A list of studies (<code class="docutils literal notranslate"><span class="pre">experiments</span></code>) to run</p></li>
-<li><p>At least one experiment in the format</p>
+<p>Files in <code class="docutils literal notranslate"><span class="pre">src/conf/studies/</span></code> define <strong>experiments</strong>. Each study YAML has an <code class="docutils literal notranslate"><span class="pre">experiments</span></code> mapping: keys are experiment IDs (e.g. <code class="docutils literal notranslate"><span class="pre">ae</span></code>, <code class="docutils literal notranslate"><span class="pre">vit</span></code>), values list datasets, model assets, and run options.</p>
+<p>Required shape:</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">experiments</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">[</span><span class="nv">experiment name</span><span class="p p-Indicator">]:</span>
-<span class="w">      </span><span class="nt">datasets</span><span class="p">:</span>
-<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">dataset name</span><span class="p p-Indicator">]</span>
-<span class="w">      </span><span class="nt">model</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">architecture</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">model name</span><span class="p p-Indicator">]</span>
-<span class="w">          </span><span class="nt">num_timepoints</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">num timepoins per sample</span><span class="p p-Indicator">]</span>
-<span class="w">          </span><span class="nt">params</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">parameter set name</span><span class="p p-Indicator">]</span>
-<span class="w">      </span><span class="nt">general_configs</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">verbose</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">true/false</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="nt">&lt;experiment_id&gt;</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">datasets</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;dataset_config_name&gt;</span>
+<span class="w">    </span><span class="nt">model</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">architecture</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;model_yaml_stem&gt;</span><span class="w">    </span><span class="c1"># src/conf/models/&lt;stem&gt;.yaml</span>
+<span class="w">      </span><span class="nt">num_timepoints</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;int&gt;</span>
+<span class="w">      </span><span class="nt">params</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;hyperparams_yaml_stem&gt;</span><span class="w">    </span><span class="c1"># src/conf/hyperparams/&lt;stem&gt;.yaml</span>
+<span class="w">    </span><span class="nt">general_configs</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">pretrain</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;true|false&gt;</span>
+<span class="w">      </span><span class="nt">verbose</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;true|false&gt;</span>
 </pre></div>
 </div>
-</li>
-<li><p>The datasets, architecture, and parameter set names must match their corresponding config files</p></li>
-</ul>
+<p>The names under <code class="docutils literal notranslate"><span class="pre">datasets</span></code>, <code class="docutils literal notranslate"><span class="pre">architecture</span></code>, and <code class="docutils literal notranslate"><span class="pre">params</span></code> must match the corresponding YAML stems in <code class="docutils literal notranslate"><span class="pre">src/conf/datasets/</span></code>, <code class="docutils literal notranslate"><span class="pre">src/conf/models/</span></code>, and <code class="docutils literal notranslate"><span class="pre">src/conf/hyperparams/</span></code>. Packaged examples include <code class="docutils literal notranslate"><span class="pre">architecture-gastruloid.yaml</span></code> and <code class="docutils literal notranslate"><span class="pre">architecture-ARCADE.yaml</span></code> (extra architectures may appear commented—uncomment or add entries to enable them).</p>
 </section>
 <section id="dataset-configs">
 <h3>Dataset configs<a class="headerlink" href="#dataset-configs" title="Link to this heading"></a></h3>
-<p>Inside the <code class="docutils literal notranslate"><span class="pre">conf/datasets</span></code> directory, dataset configs can be used to specify the dataset location and hyperparameters.</p>
-<p>Examples can be found in the directory, but they must include:</p>
-<ul>
-<li><p>The loader responsible to managing the data. The primary difference between the loaders is parsing any image metadata from the file name.</p></li>
-<li><p>The image directory where the jpg/png files can be found.</p></li>
-<li><p>The hyperparameters associated with the dataset in the following format:</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">loader</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">loader name</span><span class="p p-Indicator">]</span>
-<span class="nt">image_dir</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">image path</span><span class="p p-Indicator">]</span>
-<span class="nt">image_size</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">num pixels in image side length</span><span class="p p-Indicator">]</span>
-<span class="nt">channels</span><span class="p">:</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">image channels model should consider</span><span class="p p-Indicator">]</span>
-<span class="nt">batch_size</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">batch size</span><span class="p p-Indicator">]</span>
-<span class="nt">val_split</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">data fraction to use for validation</span><span class="p p-Indicator">]</span>
-<span class="nt">test_split</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">data fraction to use for testing</span><span class="p p-Indicator">]</span>
-<span class="nt">keys</span><span class="p">:</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">key in image names to include in study</span><span class="p p-Indicator">]</span>
-<span class="nt">augmentations</span><span class="p">:</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">rotate</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">degree of rotation</span><span class="p p-Indicator">]</span>
-</pre></div>
-</div>
-</li>
+<p>Files in <code class="docutils literal notranslate"><span class="pre">src/conf/datasets/</span></code> describe loaders and data layout. Required fields (see <code class="docutils literal notranslate"><span class="pre">DatasetConfig</span></code> in <code class="docutils literal notranslate"><span class="pre">src/simulation_encoder/dataclass/config_schemas.py</span></code>):</p>
+<ul class="simple">
+<li><p><strong>``loader``</strong>: Which loader handles parsing (e.g. <code class="docutils literal notranslate"><span class="pre">gastruloid</span></code>, <code class="docutils literal notranslate"><span class="pre">ARCADE</span></code>).</p></li>
+<li><p><strong>``image_dir``</strong>, <strong>``label_dir``</strong>: Paths to image stacks and label files.</p></li>
+<li><p><strong>``image_size``</strong>: Edge length of square inputs (pixels).</p></li>
+<li><p><strong>``channels``</strong>: Channel names passed to the model.</p></li>
+<li><p><strong>``batch_size``</strong>, <strong>``val_split``</strong>, <strong>``test_split``</strong>: Batch size and validation/test fractions (<code class="docutils literal notranslate"><span class="pre">val_split</span></code> + <code class="docutils literal notranslate"><span class="pre">test_split</span></code> must be &amp;lt; 1).</p></li>
+<li><p><strong>``keys``</strong>: Which sample keys to include (dataset-specific).</p></li>
+</ul>
+<p>Optional:</p>
+<ul class="simple">
+<li><p><strong>``augmentations``</strong>: Augmentation list (e.g. <code class="docutils literal notranslate"><span class="pre">rotate:</span> <span class="pre">90</span></code>); may be empty or commented.</p></li>
 </ul>
 </section>
 <section id="model-configs">
 <h3>Model configs<a class="headerlink" href="#model-configs" title="Link to this heading"></a></h3>
-<p>Inside the <code class="docutils literal notranslate"><span class="pre">conf/models</span></code> directory, model configs can be used to specify the model architecture.
-This allows quick model development without modifying any python code.</p>
-<p>Examples can be found in the directory, but they must include:</p>
-<ul>
-<li><p>The type of model to construct. Currently only vanilla autoencoders (<code class="docutils literal notranslate"><span class="pre">AE</span></code>) are compatible.</p></li>
-<li><p>The architecture and layers of the encoder, spatial decoder (<code class="docutils literal notranslate"><span class="pre">decoder_image</span></code>), and temporal decoder (<code class="docutils literal notranslate"><span class="pre">decoder_timepoint</span></code>) in the following format:</p>
+<p>Files in <code class="docutils literal notranslate"><span class="pre">src/conf/models/</span></code> define the network. The bundled manuscript-style configs use:</p>
+<ul class="simple">
+<li><p><strong>``type``</strong>: e.g. <code class="docutils literal notranslate"><span class="pre">AE</span></code> for <code class="docutils literal notranslate"><span class="pre">ae_small</span></code>, <code class="docutils literal notranslate"><span class="pre">cae_small</span></code>, <code class="docutils literal notranslate"><span class="pre">neuralop_small</span></code>, and <code class="docutils literal notranslate"><span class="pre">vit_small</span></code>.</p></li>
+<li><p><strong>``architecture``</strong>: Layer lists under <strong>``encoder``</strong>, <strong>``decoder_image``</strong>, and <strong>``decoder_timepoint``</strong>. Each layer has a <strong>``type``</strong> (PyTorch module name) and kwargs. Runtime placeholders include <code class="docutils literal notranslate"><span class="pre">num_channels</span></code>, <code class="docutils literal notranslate"><span class="pre">latent_dim</span></code>, <code class="docutils literal notranslate"><span class="pre">image_size</span></code>, and tokens such as <code class="docutils literal notranslate"><span class="pre">decoder_spatial_flat</span></code>.</p></li>
+</ul>
+<p>Supported building blocks include standard conv/linear stacks, <strong>``FNO``</strong> (in <code class="docutils literal notranslate"><span class="pre">neuralop_small.yaml</span></code>), and <strong>``VisionTransformer``</strong> (<code class="docutils literal notranslate"><span class="pre">vit_small.yaml</span></code>). Other layouts (e.g. <code class="docutils literal notranslate"><span class="pre">flat_cnn.yaml</span></code>) may differ for one-off experiments.</p>
+<p>Example skeleton:</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AE</span>
 <span class="nt">architecture</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">encoder</span><span class="p">:</span>
-<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">layer type</span><span class="p p-Indicator">]</span>
-<span class="w">        </span><span class="p p-Indicator">[</span><span class="nv">layer parameters</span><span class="p p-Indicator">]</span>
-<span class="w">    </span><span class="nt">decoder_image</span><span class="p">:</span>
-<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">layer type</span><span class="p p-Indicator">]</span>
-<span class="w">        </span><span class="p p-Indicator">[</span><span class="nv">layer parameters</span><span class="p p-Indicator">]</span>
-<span class="w">    </span><span class="nt">decoder_timepoint</span><span class="p">:</span>
-<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">layer type</span><span class="p p-Indicator">]</span>
-<span class="w">        </span><span class="p p-Indicator">[</span><span class="nv">layer parameters</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="nt">encoder</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;layer&gt;</span>
+<span class="w">      </span><span class="c1"># layer kwargs...</span>
+<span class="w">  </span><span class="nt">decoder_image</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;layer&gt;</span>
+<span class="w">  </span><span class="nt">decoder_timepoint</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;layer&gt;</span>
 </pre></div>
 </div>
-</li>
-<li><p>Most existing pytorch layers should be compatible with this yaml format.</p></li>
+<p>For the manuscript <em>Inductive bias influences the spatial scale of biological features learned from images</em>, the encoder YAMLs referenced in the paper are under <code class="docutils literal notranslate"><span class="pre">src/conf/models/</span></code>:</p>
+<ul class="simple">
+<li><p>MLP: <code class="docutils literal notranslate"><span class="pre">ae_small.yaml</span></code></p></li>
+<li><p>CNN: <code class="docutils literal notranslate"><span class="pre">cae_small.yaml</span></code></p></li>
+<li><p>FNO: <code class="docutils literal notranslate"><span class="pre">neuralop_small.yaml</span></code></p></li>
+<li><p>ViT: <code class="docutils literal notranslate"><span class="pre">vit_small.yaml</span></code></p></li>
 </ul>
 </section>
-<section id="hyperparameters-configs">
-<h3>Hyperparameters configs<a class="headerlink" href="#hyperparameters-configs" title="Link to this heading"></a></h3>
-<p>Inside the <code class="docutils literal notranslate"><span class="pre">conf/hyperparams</span></code> directory, configs can be used to specify the model hyperparameters.</p>
-<p>Examples can be found in the directory, but they must include:</p>
+<section id="hyperparameter-configs">
+<h3>Hyperparameter configs<a class="headerlink" href="#hyperparameter-configs" title="Link to this heading"></a></h3>
+<p>Files in <code class="docutils literal notranslate"><span class="pre">src/conf/hyperparams/</span></code> describe training search spaces. <code class="docutils literal notranslate"><span class="pre">grid_optimizers.yaml</span></code> matches the current schema:</p>
+<ul class="simple">
+<li><p><strong>``num_epochs``</strong>: Training epochs.</p></li>
+<li><p><strong>``continuous``</strong>: Typically <strong>``image_loss_weight``</strong> with:</p>
 <ul>
-<li><p>Either a single value or range of image decoder loss wieghts (<code class="docutils literal notranslate"><span class="pre">image_loss_weight</span></code>). This will determing how much the spatial information is prioritized over temporal information in the encodings.</p></li>
-<li><p>A list of dimensionality sizes to test, determining the size of the learned latent dimension.</p></li>
-<li><p>Other optimzer parameters in the following format:</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">num_epochs</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">num epochs</span><span class="p p-Indicator">]</span>
-<span class="nt">continuous</span><span class="p">:</span>
-<span class="nt">image_loss_weight</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">range</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">lower bound</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">upper bound</span><span class="p p-Indicator">]</span>
-<span class="w">    </span><span class="nt">search</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">linear</span>
-<span class="w">    </span><span class="nt">num_samples</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">number of samples</span><span class="p p-Indicator">]</span>
-<span class="nt">discrete</span><span class="p">:</span>
-<span class="nt">latent_dim</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">values</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">dimensionality values</span><span class="p p-Indicator">]</span>
-<span class="nt">optimizer</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">values</span><span class="p">:</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">Adam/SGD</span><span class="p p-Indicator">]</span>
-<span class="w">        </span><span class="nt">lr</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">learning rate</span><span class="p p-Indicator">]</span>
-</pre></div>
-</div>
-</li>
+<li><p><strong>``range``</strong>: A single float <strong>or</strong> a two-element <code class="docutils literal notranslate"><span class="pre">[low,</span> <span class="pre">high]</span></code> interval (see <code class="docutils literal notranslate"><span class="pre">HyperparameterRangeConfig</span></code> in <code class="docutils literal notranslate"><span class="pre">config_schemas.py</span></code>).</p></li>
+<li><p><strong>``search``</strong>: e.g. <code class="docutils literal notranslate"><span class="pre">linear</span></code>.</p></li>
+<li><p><strong>``num_samples``</strong>: Number of samples along the continuous axis when a range is used.</p></li>
 </ul>
-<p>Once config files have been updated, start the Poetry virtual environment:</p>
+</li>
+<li><p><strong>``discrete``</strong>: e.g. <strong>``latent_dim``</strong> with <strong>``values``</strong>: list of latent sizes; <strong>``optimizer``</strong> with <strong>``values``</strong>: a list of optimizer dicts. Fields such as <code class="docutils literal notranslate"><span class="pre">lr</span></code>, <code class="docutils literal notranslate"><span class="pre">betas</span></code>, <code class="docutils literal notranslate"><span class="pre">momentum</span></code>, and <code class="docutils literal notranslate"><span class="pre">nesterov</span></code> may be <strong>lists</strong>, which are expanded in a grid (see the Adam and SGD blocks in <code class="docutils literal notranslate"><span class="pre">grid_optimizers.yaml</span></code>).</p></li>
+</ul>
+<p>Once configs are updated, start the Poetry virtual environment:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>poetry<span class="w"> </span>shell
 </pre></div>
 </div>
@@ -223,7 +201,7 @@ This allows quick model development without modifying any python code.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>python<span class="w"> </span>src/simulation_encoder/main.py
 </pre></div>
 </div>
-<p>Results and logs will be recorded, and the best performing model in each experiment will have it’s weights saved in a <code class="docutils literal notranslate"><span class="pre">.pth</span></code> file in the corresponding results folder.</p>
+<p>Results and logs will be recorded, and the best performing model in each experiment will have its weights saved in a <code class="docutils literal notranslate"><span class="pre">.pth</span></code> file in the corresponding results folder.</p>
 </section>
 </section>
 </section>
