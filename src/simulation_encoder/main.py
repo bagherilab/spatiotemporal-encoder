@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import cProfile
 import pstats
 import time
@@ -10,6 +11,13 @@ from simulation_encoder.runner import Runner
 from simulation_encoder.writer import Writer
 from simulation_encoder.plotter import Plotter
 from simulation_encoder.logger import Logger
+=======
+import os
+import sys
+from pathlib import Path
+
+import yaml
+>>>>>>> 3011307 (Refactor out runner class)
 
 from simulation_encoder.dataclass.param_sets import DatasetParams, ModelParams
 from simulation_encoder.dataclass.config_schemas import (
@@ -26,6 +34,7 @@ from simulation_encoder.utils.yaml_utils import (
     load_yaml,
 )
 
+<<<<<<< HEAD
 CONFIG_YAML = "src/conf/config.yaml"
 STUDIES_DIR = "src/conf/studies"
 RESULTS_DIR = "results"
@@ -218,3 +227,36 @@ if __name__ == "__main__":
     stats = pstats.Stats(pr)
     stats.sort_stats(pstats.SortKey.TIME)
     stats.dump_stats("profile_output.prof")
+=======
+from simulation_encoder.runner import Runner
+
+
+def main() -> None:
+    """
+    Entry point for script
+    """
+    with open("src/conf/config.yaml", "r", encoding="utf-8") as file:
+        config = yaml.safe_load(file)
+
+    exp_name = config["experiment_name"]
+    data_dir = config["data_dir"]
+    model_configs = config["model_configs"]
+
+    batch_size = model_configs["batch_size"]
+    test_split = model_configs["test_split"]
+    verbose = model_configs["verbose"]
+
+    runner = Runner(exp_name, verbose)
+
+    for model_yaml in os.listdir("src/conf/models"):
+        if model_yaml.endswith(".yaml"):
+            runner.add_model(model_yaml)
+
+    runner.add_dataset(data_dir, test_split, batch_size)
+    runner.run_models()
+    runner.save_results()
+
+
+if __name__ == "__main__":
+    main()
+>>>>>>> 3011307 (Refactor out runner class)

@@ -23,6 +23,8 @@ scripts/
 *.prof
 *.ipynb
 
+*.ipynb
+
 # Editors
 .vscode/
 .idea/

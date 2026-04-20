@@ -1,3 +1,14 @@
+<<<<<<< HEAD
 study_name: architecture-gastruloid
 data_quantity_experiment: false
 debug: true
+=======
+exp_name: "autoencoder2channel"
+data_dir: "data/ARCADE"
+model_configs:
+  batch_size: 10
+  test_split: 0.2
+  load_prev_model: false
+  prev_model_path: ""
+  verbose: true
+>>>>>>> 3011307 (Refactor out runner class)
