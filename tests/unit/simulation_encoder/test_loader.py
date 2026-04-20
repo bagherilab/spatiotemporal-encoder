@@ -99,8 +99,8 @@ class TestPNGLoaderSplits(unittest.TestCase):
     def test_train_and_test_loaders_correct_length(self):
         # 3 groups, test_split=0.4 → floor(0.4*3)=1 test, 2 train; batch_size=1
         dataset = PNGLoader(self.temp_dir.name, test_split=0.4, batch_size=1, random_seed=123)
-        self.assertEqual(len(dataset.get_train_data()), 2)
-        self.assertEqual(len(dataset.get_test_data()), 1)
+        self.assertEqual(len(dataset.get_train_dataloader()), 2)
+        self.assertEqual(len(dataset.get_test_dataloader()), 1)
 
     def test_train_test_indices_are_disjoint(self):
         dataset = PNGLoader(self.temp_dir.name, test_split=0.2, batch_size=1, random_seed=123)
