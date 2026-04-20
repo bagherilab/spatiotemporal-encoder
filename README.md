@@ -25,122 +25,100 @@ To install dependencies, navigate to the project folder in the command line and 
 $ poetry install
 ```
 
-If you do not have poetry installed, refer to the documantation they provide [here](https://python-poetry.org).
+If you do not have poetry installed, refer to the documentation they provide [here](https://python-poetry.org).
 
 ## Usage
 
-Once dependencies are installed, add your data file (currently only `csv` files are supported) to the data folder. 
-Next, there are several config files that inform the program on operating details.
-All config files are located inside of the `src/conf` directory.
+Once dependencies are installed, place imaging data under the paths expected by your dataset YAML (see below). Training reads configuration from `src/conf/`.
 
 ### Main config
 
-The `config.yaml` file outlines high-level experimental details, incluing:
-- The study name, which should be the same as the corresponding `study config`.
-- Whether the experiment is a quantity experiment to test the effects of different amounts of training data (`quantity_experiment`)
+`src/conf/config.yaml` sets top-level flags:
+
+- **`study_name`**: Base name of the study file in `src/conf/studies/` (without `.yaml`), e.g. `architecture-gastruloid` loads `src/conf/studies/architecture-gastruloid.yaml`.
+- **`data_quantity_experiment`**: If `true`, runs the data-quantity sweep; if `false`, runs standard training from the study file.
+- **`debug`**: Enables debug behavior in the training runner.
 
 ### Study configs
 
-Inside the `conf/studies` directory, config files can be specified for any study the user wants run. 
-Examples can be found in the directory, but they must include:
-- A list of studies (`experiments`) to run
-- At least one experiment in the format
+Files in `src/conf/studies/` define **experiments**. Each study YAML has an `experiments` mapping: keys are experiment IDs (e.g. `ae`, `vit`), values list datasets, model assets, and run options.
+
+Required shape:
 
   ```yaml
   experiments:
-    [experiment name]:
-        datasets:
-            - [dataset name]
-        model:
-            architecture: [model name]
-            num_timepoints: [num timepoins per sample]
-            params: [parameter set name]
-        general_configs:
-            verbose: [true/false]
+    <experiment_id>:
+      datasets:
+        - <dataset_config_name>
+      model:
+        architecture: <model_yaml_stem>    # src/conf/models/<stem>.yaml
+        num_timepoints: <int>
+        params: <hyperparams_yaml_stem>    # src/conf/hyperparams/<stem>.yaml
+      general_configs:
+        pretrain: <true|false>
+        verbose: <true|false>
   ```
 
-- The datasets, architecture, and parameter set names must match their corresponding config files
+The names under `datasets`, `architecture`, and `params` must match the corresponding YAML stems in `src/conf/datasets/`, `src/conf/models/`, and `src/conf/hyperparams/`. Packaged examples include `architecture-gastruloid.yaml` and `architecture-ARCADE.yaml` (extra architectures may appear commented—uncomment or add entries to enable them).
 
 ### Dataset configs
 
-Inside the `conf/datasets` directory, dataset configs can be used to specify the dataset location and hyperparameters. 
+Files in `src/conf/datasets/` describe loaders and data layout. Required fields (see `DatasetConfig` in `src/simulation_encoder/dataclass/config_schemas.py`):
 
-Examples can be found in the directory, but they must include:
-- The loader responsible to managing the data. The primary difference between the loaders is parsing any image metadata from the file name.
-- The image directory where the jpg/png files can be found.
-- The hyperparameters associated with the dataset in the following format:
+- **`loader`**: Which loader handles parsing (e.g. `gastruloid`, `ARCADE`).
+- **`image_dir`**, **`label_dir`**: Paths to image stacks and label files.
+- **`image_size`**: Edge length of square inputs (pixels).
+- **`channels`**: Channel names passed to the model.
+- **`batch_size`**, **`val_split`**, **`test_split`**: Batch size and validation/test fractions (`val_split` + `test_split` must be &lt; 1).
+- **`keys`**: Which sample keys to include (dataset-specific).
 
-  ```yaml
-    loader: [loader name]
-    image_dir: [image path]
-    image_size: [num pixels in image side length]
-    channels:
-        - [image channels model should consider]
-    batch_size: [batch size]
-    val_split: [data fraction to use for validation]
-    test_split: [data fraction to use for testing]
-    keys:
-        - [key in image names to include in study]
-    augmentations:
-        - rotate: [degree of rotation]
-  ```
+Optional:
+
+- **`augmentations`**: Augmentation list (e.g. `rotate: 90`); may be empty or commented.
+
 
 ### Model configs
 
-Inside the `conf/models` directory, model configs can be used to specify the model architecture.
-This allows quick model development without modifying any python code. 
+Files in `src/conf/models/` define the network. The bundled manuscript-style configs use:
 
-Examples can be found in the directory, but they must include:
-- The type of model to construct. Currently only vanilla autoencoders (`AE`) are compatible.
-- The architecture and layers of the encoder, spatial decoder (`decoder_image`), and temporal decoder (`decoder_timepoint`) in the following format:
+- **`type`**: e.g. `AE` for `ae_small`, `cae_small`, `neuralop_small`, and `vit_small`.
+- **`architecture`**: Layer lists under **`encoder`**, **`decoder_image`**, and **`decoder_timepoint`**. Each layer has a **`type`** (PyTorch module name) and kwargs. Runtime placeholders include `num_channels`, `latent_dim`, `image_size`, and tokens such as `decoder_spatial_flat`.
 
-  ```yaml
-    type: AE
-    architecture:
-        encoder:
-            - type: [layer type]
-            [layer parameters]
-        decoder_image:
-            - type: [layer type]
-            [layer parameters]
-        decoder_timepoint:
-            - type: [layer type]
-            [layer parameters]
-  ```
-- Most existing pytorch layers should be compatible with this yaml format.
+Supported building blocks include standard conv/linear stacks, **`FNO`** (in `neuralop_small.yaml`), and **`VisionTransformer`** (`vit_small.yaml`). Other layouts (e.g. `flat_cnn.yaml`) may differ for one-off experiments.
 
-For the manuscript "Inductive bias influences the spatial scale of biological features learned from images.", the following model yaml files were used for each encoder referenced in the paper:
-- MLP: conf/models/ae_small.yaml
-- CNN: conf/models/cae_small.yaml
-- FNO: conf/models/neuralop_small.yaml
-- ViT: conf/models/vit_small.yaml
-
-### Hyperparameters configs
-
-Inside the `conf/hyperparams` directory, configs can be used to specify the model hyperparameters.
-
-Examples can be found in the directory, but they must include:
-- Either a single value or range of image decoder loss wieghts (`image_loss_weight`). This will determing how much the spatial information is prioritized over temporal information in the encodings.
-- A list of dimensionality sizes to test, determining the size of the learned latent dimension.
-- Other optimzer parameters in the following format:
+Example skeleton:
 
   ```yaml
-    num_epochs: [num epochs]
-    continuous:
-    image_loss_weight:
-        range: [lower bound, upper bound]
-        search: linear
-        num_samples: [number of samples]
-    discrete:
-    latent_dim:
-        values: [dimensionality values]
-    optimizer:
-        values:
-        - type: [Adam/SGD]
-            lr: [learning rate]
+  type: AE
+  architecture:
+    encoder:
+      - type: <layer>
+        # layer kwargs...
+    decoder_image:
+      - type: <layer>
+    decoder_timepoint:
+      - type: <layer>
   ```
 
-Once config files have been updated, start the Poetry virtual environment:
+For the manuscript *Inductive bias influences the spatial scale of biological features learned from images*, the encoder YAMLs referenced in the paper are under `src/conf/models/`:
+
+- MLP: `ae_small.yaml`
+- CNN: `cae_small.yaml`
+- FNO: `neuralop_small.yaml`
+- ViT: `vit_small.yaml`
+
+### Hyperparameter configs
+
+Files in `src/conf/hyperparams/` describe training search spaces. `grid_optimizers.yaml` matches the current schema:
+
+- **`num_epochs`**: Training epochs.
+- **`continuous`**: Typically **`image_loss_weight`** with:
+  - **`range`**: A single float **or** a two-element `[low, high]` interval (see `HyperparameterRangeConfig` in `config_schemas.py`).
+  - **`search`**: e.g. `linear`.
+  - **`num_samples`**: Number of samples along the continuous axis when a range is used.
+- **`discrete`**: e.g. **`latent_dim`** with **`values`**: list of latent sizes; **`optimizer`** with **`values`**: a list of optimizer dicts. Fields such as `lr`, `betas`, `momentum`, and `nesterov` may be **lists**, which are expanded in a grid (see the Adam and SGD blocks in `grid_optimizers.yaml`).
+
+Once configs are updated, start the Poetry virtual environment:
 
 ```bash
 $ poetry shell
@@ -152,4 +130,4 @@ Finally, experiments can be run manually by running the `main.py` file
 $ python src/simulation_encoder/main.py
 ```
 
-Results and logs will be recorded, and the best performing model in each experiment will have it's weights saved in a `.pth` file in the corresponding results folder.
+Results and logs will be recorded, and the best performing model in each experiment will have its weights saved in a `.pth` file in the corresponding results folder.

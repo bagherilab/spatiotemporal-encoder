@@ -329,31 +329,40 @@ class Runner:
     verbose : bool
         Controls if model training is output to console
     """
+
     def __init__(self, exp_name: str, verbose: bool) -> None:
-        self.models = {}
-        self.dataset = None
+        self.models: dict[str, CAE] = {}
+        self.dataset: PNGLoader = None
         self.logger = ExperimentLogger(exp_name)
-        self.losses = {}
-        self.val_losses = {}
+        self.losses: dict[str, list[float]] = {}
+        self.val_losses: dict[str, list[float]] = {}
 
         self.exp_name = exp_name
         self.verbose = verbose
 
-    def add_model(self, model_yaml) -> None:
+    def add_model(self, model_yaml: str) -> None:
         """
         Add model to be trained by the runner
         """
-        with open(model_yaml, "r", encoding='utf-8') as file:
+        with open(model_yaml, "r", encoding="utf-8") as file:
             params = yaml.safe_load(file)
         model_name = os.path.splitext(os.path.basename(model_yaml))[0]
         model = CAE(params)
         self.models[model_name] = model
 
-    def add_dataset(self, data_dir: str, test_split: float, batch_size:int, healthy_flag: bool=False) -> None:
+    def add_dataset(
+        self, data_dir: str, test_split: float, batch_size: int, healthy_flag: bool = False
+    ) -> None:
         """
         Add dataset on which models should be trained
         """
-        self.dataset = PNGLoader(data_dir, test_split=test_split, batch_size=batch_size, logger=self.logger, healthy_flag=healthy_flag)
+        self.dataset = PNGLoader(
+            data_dir,
+            test_split=test_split,
+            batch_size=batch_size,
+            logger=self.logger,
+            healthy_flag=healthy_flag,
+        )
 
     def run_models(self) -> None:
         """
@@ -363,11 +372,16 @@ class Runner:
             raise ValueError("No dataset has been added to runner.")
         if not self.models:
             raise ValueError("No models have been added to runner.")
-    
-        print(self.dataset)
+
+        msg = f"Training on {len(self.dataset._get_train_indices())} examples. Testing on {len(self.dataset._get_test_indices())} examples."  # type: ignore
+        self.logger.log(msg)
+        if self.verbose:
+            print(msg)
+
         for model_name, model in self.models.items():
-            print(model_name)
-            print(model)
+            self.logger.log("----------------------------")
+            self.logger.log(f"Training model {model_name}")
+            self.logger.log(f"Model: {model}")
             self._run_model(model_name, model)
 
     def save_model(self, model_name: str, model: CAE) -> None:
@@ -381,9 +395,15 @@ class Runner:
         """
         Writes the results of running the models to disk
         """
-        with open(f"results/{self.exp_name}", "w", encoding='utf-8') as r_file:
-            for model_name, _ in self.models:
-                json.dump({"train_loss": self.losses[model_name], "val_loss": self.val_losses[model_name]}, r_file)
+        with open(f"results/{self.exp_name}", "w", encoding="utf-8") as r_file:
+            for model_name, _ in self.models.items():
+                json.dump(
+                    {
+                        "train_loss": self.losses[model_name],
+                        "val_loss": self.val_losses[model_name],
+                    },
+                    r_file,
+                )
 
     @staticmethod
     def plot_loss(loss: list[float], vloss: list[float], name: str) -> None:
@@ -411,12 +431,6 @@ class Runner:
         """
         train_loader = self.dataset.get_train_data()
         test_loader = self.dataset.get_test_data()
-
-        self.logger.log(
-            f"Training on {len(train_loader)} examples. Testing on {len(test_loader)} examples."
-        )
-        if self.verbose:
-            print(f"Training on {len(train_loader)} examples. Testing on {len(test_loader)} examples.")
 
         optimizer = torch.optim.Adam(model.parameters())
         loss_fn = torch.nn.MSELoss()
