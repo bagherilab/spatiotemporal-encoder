@@ -62,36 +62,55 @@ class PNGLoader(Dataset):
             return torch.stack((cancer_tensor, healthy_tensor, graph_tensor), dim=0)
         return torch.stack((cancer_tensor, graph_tensor), dim=0)
 
-    def get_train_data(self) -> DataLoader:
-        """
-        Returns training DataLoader
-        """
+    def get_train_dataloader(self) -> DataLoader:
+        """Returns training DataLoader"""
         train_dataset = Subset(self, self._get_train_indices())
         return DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
 
-    def get_test_data(self) -> DataLoader:
-        """
-        Returns test DataLoader
-        """
+    def get_test_dataloader(self) -> DataLoader:
+        """Returns test DataLoader"""
         test_dataset = Subset(self, self._get_test_indices())
         return DataLoader(test_dataset, batch_size=self.batch_size, shuffle=False)
 
+    def get_cv_splits(self, k_folds: int) -> list[tuple[DataLoader, DataLoader]]:
+        """Returns list of k-folds of training and validation DataLoader"""
+        indices = self._get_train_indices()
+        np.random.seed(self.random_seed)
+        np.random.shuffle(indices)
+        fold_size = len(indices) // k_folds
+        folds = []
+        for i in range(k_folds):
+            val_indices = indices[i * fold_size : (i + 1) * fold_size]
+            train_indices = [idx for idx in indices if idx not in val_indices]
+            train_dataset = Subset(self, train_indices)
+            val_dataset = Subset(self, val_indices)
+            folds.append(
+                (
+                    DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True),
+                    DataLoader(val_dataset, batch_size=self.batch_size, shuffle=False),
+                )
+            )
+
+        return folds
+
+    @property
+    def n_train(self) -> int:
+        """Number of training points"""
+        return len(self._get_train_indices())
+
+    @property
+    def n_test(self) -> int:
+        """Number of test points"""
+        return len(self._get_test_indices())
+
     def _get_train_indices(self) -> list[int]:
-        """
-        Returns a list of training indices for the dataset
-        """
         return self._train_indices
 
     def _get_test_indices(self) -> list[int]:
-        """
-        Returns a list of test indices for the dataset
-        """
         return self._test_indices
 
     def _get_image_groups(self) -> None:
-        """
-        Returns groups of images based on the filename format.
-        """
+        """Returns groups of images based on the filename format."""
         groups = {}
         for filename in os.listdir(self.image_dir):
             if filename.endswith(".png"):

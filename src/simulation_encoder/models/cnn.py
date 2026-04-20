@@ -27,9 +27,7 @@ class BaseCNN(nn.Module):
         self.verbose = verbose
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        General forward pass of the network
-        """
+        """General forward pass of the network"""
         raise NotImplementedError("forward method should be implemented in the subclass")
 
     def fit(
@@ -108,10 +106,9 @@ class BaseCNN(nn.Module):
         Returns
         -------
         float
-            Average loss for the epoch
+            Average loss
         """
-        # Sets dropout and batch normalization layers to training mode
-        self.train()
+        self.train()  # Sets dropout and batch normalization layers to training mode
 
         running_loss = 0.0
         avg_epoch_loss = 0.0
@@ -141,10 +138,9 @@ class BaseCNN(nn.Module):
         Returns
         -------
         float
-            Average validation loss for the epoch
+            Average validation loss
         """
-        # Sets dropout and batch normalization layers to evaluation mode
-        self.eval()
+        self.eval()  # Sets dropout and batch normalization layers to evaluation mode
 
         running_loss = 0.0
         avg_epoch_loss = 0.0
@@ -165,10 +161,8 @@ class CAE(BaseCNN):
 
     Parameters
     ----------
-    input_shape : tuple[int]
-        Shape of the input data
-    conf : str
-        Config file with model layers
+    params : dict[str, Any]
+        Dictionary containing model parameters from yaml file
     logger : Logger, optional
         Logger object for logging, by default None
     verbose : bool
@@ -192,9 +186,7 @@ class CAE(BaseCNN):
         self.decoder = nn.Sequential(*decoder_layers)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Performs encoding and decoding to recreate original tensor
-        """
+        """Performs encoding and decoding to recreate original tensor"""
         x = self.encoder(x)
         x = self.decoder(x)
         return x
@@ -219,7 +211,6 @@ class CAE(BaseCNN):
                 if activation:
                     activation = getattr(nn, activation)
                     layers.append(activation())
-
             elif layer_type == "Unflatten":
                 layer_type = getattr(nn, layer_type)
                 shape = config.pop("shape")
