@@ -47,6 +47,7 @@ class ExperimentConfig(BaseModel):
     datasets: list[str]
     model: ModelParamsConfig
     general_configs: GeneralConfig
+    seed: int = Field(42, description="Random seed for this experiment (model init + data split)")
 
 
 class StudyConfig(BaseModel):

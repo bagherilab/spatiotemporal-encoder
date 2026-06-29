@@ -16,6 +16,7 @@ class DatasetParams:
     labels: Optional[list[str]] = None
     label_dir: Optional[str] = None
     augmentations: Optional[dict] = None
+    random_seed: int = 42
 
 
 @dataclass

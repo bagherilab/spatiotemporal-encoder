@@ -1,7 +1,10 @@
 import cProfile
 import pstats
 import time
-import os
+import random
+
+import numpy as np
+import torch
 
 from simulation_encoder.runner import Runner
 from simulation_encoder.writer import Writer
@@ -30,8 +33,16 @@ RESULTS_DIR = "results"
 MODEL_YAML_DIR = "src/conf/models"
 
 
+def set_global_seed(seed: int) -> None:
+    """Seed Python, NumPy, and PyTorch RNGs so a run is reproducible for a given seed."""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+
 def main() -> None:
-<<<<<<< HEAD
     """Entry point for the simulation encoder. This function reads the config.yaml file and
     creates the necessary objects to run the simulation encoder. The main components are the
     dataset parameters, model parameters, and the runner object. The runner object is responsible
@@ -48,6 +59,8 @@ def main() -> None:
     for experiment_key, experiment_config in study_config.experiments.items():  # type: ignore
         pretrain = experiment_config.general_configs.pretrain
         verbose = experiment_config.general_configs.verbose
+        seed = experiment_config.seed
+        set_global_seed(seed)
 
         logger = Logger(log_name=f"{study_name}_{experiment_key}", verbose=verbose)
         runner = Runner(pretrain, logger, verbose)
@@ -55,7 +68,7 @@ def main() -> None:
         plotter = Plotter(results_dir=f"{RESULTS_DIR}/{study_name}", experiment_key=experiment_key)
 
         # Loader
-        loader_params = create_loader_params(experiment_config)
+        loader_params = create_loader_params(experiment_config, seed)
         runner.add_loader_params(loader_params)
         first_dataset_name = next(iter(loader_params))
         first_dataset_params = loader_params[first_dataset_name]
@@ -79,7 +92,9 @@ def main() -> None:
     #     writer.write_emulation_results(emulation_results)
 
 
-def create_loader_params(experiment_config: ExperimentConfig) -> dict[str, DatasetParams]:
+def create_loader_params(
+    experiment_config: ExperimentConfig, seed: int = 42
+) -> dict[str, DatasetParams]:
     """
     Create loader parameter sets from the experiment config.
 
@@ -87,6 +102,9 @@ def create_loader_params(experiment_config: ExperimentConfig) -> dict[str, Datas
     ----------
     experiment_config : ExperimentConfig
         Experiment configuration containing dataset information
+    seed : int
+        Random seed controlling the train/val/test split so each seed is an
+        independent replicate
 
     Returns
     -------
@@ -112,6 +130,7 @@ def create_loader_params(experiment_config: ExperimentConfig) -> dict[str, Datas
             augmentations=dataset_config.augmentations,
             labels=dataset_config.labels,
             name=dataset_name,
+            random_seed=seed,
         )
         loader_params[dataset_name] = dataset_params
 
@@ -204,42 +223,6 @@ def handle_encoder_results(
             "_best_model", best_model_loader, best_model_dataset_name, best_model
         )
         writer.write_model_state("_best_model", best_model_dataset_name, best_model)
-=======
-    """Entry point for script"""
-    with open("src/conf/config.yaml", "r", encoding="utf-8") as file:
-        config = yaml.safe_load(file)
-
-    exp_name = config["experiment_name"]
-    data_dir = config["data_dir"]
-
-    model_configs = config["model_configs"]
-    num_epochs = model_configs["num_epochs"]
-    batch_size = model_configs["batch_size"]
-    test_split = model_configs["test_split"]
-    verbose = model_configs["verbose"]
-
-    models = config["models"]
-
-    model_files = get_model_files(models)
-
-    runner = Runner(exp_name, verbose)
-    runner.add_models(model_files)
-    runner.add_dataset(data_dir, test_split, batch_size)
-    runner.train_models(num_epochs=num_epochs)
-    runner.plot_loss()
-    runner.save_results()
-
-
-def get_model_files(models: list[str]) -> list[str]:
-    """Reads model list from config file"""
-    model_files = []
-    for model in models:
-        model_yaml = f"{model}.yaml"
-        if not os.path.exists(f"{MODEL_YAML_DIR}/{model_yaml}"):
-            raise FileNotFoundError(f"Model config file {model_yaml} not found in {MODEL_YAML_DIR}")
-        model_files.append(f"{MODEL_YAML_DIR}/{model_yaml}")
-    return model_files
->>>>>>> 11d79ee (Formatting and testing)
 
 
 if __name__ == "__main__":
