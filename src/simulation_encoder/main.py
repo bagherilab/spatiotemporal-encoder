@@ -1,6 +1,8 @@
 import cProfile
 import pstats
 import time
+import os
+import sys
 import random
 
 import numpy as np
@@ -42,6 +44,45 @@ def set_global_seed(seed: int) -> None:
         torch.cuda.manual_seed_all(seed)
 
 
+def select_experiments(study_config) -> list:
+    """
+    Choose which experiments to run, in YAML order.
+
+    Resolution order (first match wins):
+      1. Experiment keys passed as CLI args: ``python main.py ae_seed42 vit_seed44``
+      2. ``EXPERIMENT_KEY`` env var (single key)
+      3. ``SLURM_ARRAY_TASK_ID`` env var (index into the experiment list) -- used by
+         the SLURM job array so each array task runs exactly one experiment
+      4. Otherwise: all experiments
+    """
+    all_items = list(study_config.experiments.items())
+    available = study_config.experiments
+
+    cli_keys = [arg for arg in sys.argv[1:] if not arg.startswith("-")]
+    if cli_keys:
+        missing = [key for key in cli_keys if key not in available]
+        if missing:
+            raise KeyError(f"Experiment keys not found in study: {missing}")
+        return [(key, available[key]) for key in cli_keys]
+
+    env_key = os.environ.get("EXPERIMENT_KEY")
+    if env_key:
+        if env_key not in available:
+            raise KeyError(f"EXPERIMENT_KEY={env_key!r} not found in study")
+        return [(env_key, available[env_key])]
+
+    array_id = os.environ.get("SLURM_ARRAY_TASK_ID")
+    if array_id is not None:
+        idx = int(array_id)
+        if not 0 <= idx < len(all_items):
+            raise IndexError(
+                f"SLURM_ARRAY_TASK_ID={idx} out of range for {len(all_items)} experiments"
+            )
+        return [all_items[idx]]
+
+    return all_items
+
+
 def main() -> None:
     """Entry point for the simulation encoder. This function reads the config.yaml file and
     creates the necessary objects to run the simulation encoder. The main components are the
@@ -56,7 +97,7 @@ def main() -> None:
     study_name = main_config.study_name  # type: ignore
     study_config = load_study_yaml(study_name)
 
-    for experiment_key, experiment_config in study_config.experiments.items():  # type: ignore
+    for experiment_key, experiment_config in select_experiments(study_config):  # type: ignore
         pretrain = experiment_config.general_configs.pretrain
         verbose = experiment_config.general_configs.verbose
         seed = experiment_config.seed

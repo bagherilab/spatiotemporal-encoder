@@ -108,12 +108,10 @@ s3transfer==0.16.0
 scikit-image==0.25.2
 scikit-learn==1.8.0
 scipy==1.12.0
-<<<<<<< HEAD
 scs==3.2.11
 seaborn==0.13.2
 sentry-sdk==2.57.0
 setproctitle==1.3.7
--e git+https://github.com/bagherilab/simulation-encoder.git@e4a4e748427c6c082c857eff21809b2816e39d1a#egg=simulation_encoder
 six==1.17.0
 smmap==5.0.3
 snakeviz==2.2.2
@@ -143,11 +141,3 @@ wcwidth==0.6.0
 widgetsnbextension==4.0.14
 zarr==3.1.5
 zipp==3.23.0
-=======
-matplotlib==3.8.3
-PyYAML==6.0.1
-
---find-links https://download.pytorch.org/whl/torch_stable.html
-torch==2.2.2+cpu
-torchvision==0.17.2+cpu
->>>>>>> 11d79ee (Formatting and testing)
